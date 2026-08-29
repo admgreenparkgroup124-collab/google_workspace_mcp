@@ -1,0 +1,733 @@
+<script>
+(function () {
+  'use strict';
+
+  // ---------------------------------------------------------------------
+  // State
+  // ---------------------------------------------------------------------
+  var rawData = { spk: [], homeWithAi: [], purchasing: [], meta: { years: [], gpList: [], projectsByGp: {} }, generatedAt: null };
+
+  var filters = {
+    kategori: { 'SPK': true, 'Purchasing': true, 'Home With AI': true },
+    tahun: '',
+    bulan: '',
+    gp: {},      // { displayValue: true }
+    proyek: {},  // { displayValue: true }
+    search: ''
+  };
+
+  var activeTableTab = 'spk';
+  var tableSearch = '';
+  var tableSort = { key: null, dir: 1 };
+  var charts = {};
+  var refreshTimer = null;
+  var isLoading = false;
+
+  var MONTHS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+
+  var TABLE_COLUMNS = {
+    spk: [
+      { key: 'noSpk', label: 'No. SPK' },
+      { key: 'jenisSpk', label: 'Jenis' },
+      { key: 'itemSpk', label: 'Item SPK' },
+      { key: 'gp', label: 'GP' },
+      { key: 'proyek', label: 'Proyek' },
+      { key: 'unit', label: 'Unit' },
+      { key: 'namaPekerjaan', label: 'Pekerjaan' },
+      { key: 'kontraktor', label: 'Kontraktor' },
+      { key: 'nilaiTotal', label: 'Nilai (Rp)', format: 'currency' },
+      { key: 'tanggalTerbit', label: 'Tgl Terbit' },
+      { key: 'tanggalSelesaiEfektif', label: 'Tgl Selesai' },
+      { key: 'isOverdue', label: 'Status', format: 'overdue' }
+    ],
+    homeWithAi: [
+      { key: 'gp', label: 'GP' },
+      { key: 'proyek', label: 'Proyek' },
+      { key: 'unit', label: 'Unit' },
+      { key: 'status', label: 'Status', format: 'hwaStatus' },
+      { key: 'nilai', label: 'Nilai (Rp)', format: 'currency' },
+      { key: 'tanggalTerpasang', label: 'Tgl Terpasang' },
+      { key: 'keterangan', label: 'Keterangan' }
+    ],
+    purchasing: [
+      { key: 'gp', label: 'GP' },
+      { key: 'proyek', label: 'Proyek' },
+      { key: 'unit', label: 'Unit' },
+      { key: 'jenisPengadaan', label: 'Jenis Pengadaan' },
+      { key: 'namaBarang', label: 'Nama Barang' },
+      { key: 'nilai', label: 'Nilai (Rp)', format: 'currency' },
+      { key: 'statusPekerjaan', label: 'Status' },
+      { key: 'tanggal', label: 'Tanggal' },
+      { key: 'keterangan', label: 'Keterangan' }
+    ]
+  };
+
+  // ---------------------------------------------------------------------
+  // Helpers
+  // ---------------------------------------------------------------------
+  function normKey(s) {
+    return String(s || '').trim().toUpperCase().replace(/\s+/g, '');
+  }
+
+  function formatRupiah(n) {
+    var num = Math.round(Number(n) || 0);
+    var neg = num < 0;
+    num = Math.abs(num);
+    var s = String(num);
+    var out = '';
+    while (s.length > 3) {
+      out = '.' + s.slice(-3) + out;
+      s = s.slice(0, -3);
+    }
+    out = s + out;
+    return (neg ? '-' : '') + 'Rp ' + out;
+  }
+
+  function formatDate(iso) {
+    if (!iso) return '–';
+    var parts = iso.split('-');
+    if (parts.length !== 3) return iso;
+    return parts[2] + '/' + parts[1] + '/' + parts[0];
+  }
+
+  function escapeHtml(str) {
+    return String(str == null ? '' : str)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function statusBadgeClass(status) {
+    var s = (status || '').toLowerCase();
+    if (s.indexOf('terpasang') === 0 || s === 'sudah order') return 'badge-green';
+    if (s.indexOf('on proses') === 0) return 'badge-amber';
+    if (s.indexOf('belum') === 0) return 'badge-gray';
+    return 'badge-gray';
+  }
+
+  // ---------------------------------------------------------------------
+  // Clock (WIB, real-time)
+  // ---------------------------------------------------------------------
+  function updateClock() {
+    var now = new Date();
+    try {
+      var dateStr = new Intl.DateTimeFormat('id-ID', {
+        timeZone: 'Asia/Jakarta', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+      }).format(now);
+      var timeStr = new Intl.DateTimeFormat('id-ID', {
+        timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+      }).format(now);
+      document.getElementById('clock').textContent = dateStr + ' · ' + timeStr + ' WIB';
+    } catch (e) {
+      document.getElementById('clock').textContent = now.toString();
+    }
+  }
+  setInterval(updateClock, 1000);
+  updateClock();
+
+  // ---------------------------------------------------------------------
+  // Data loading
+  // ---------------------------------------------------------------------
+  function loadData(showOverlay) {
+    if (isLoading) return;
+    isLoading = true;
+    document.getElementById('loadingOverlay').hidden = !showOverlay;
+    document.getElementById('refreshBtn').disabled = true;
+    document.getElementById('syncStatus').textContent = 'Menyinkronkan…';
+
+    google.script.run
+      .withSuccessHandler(onDataLoaded)
+      .withFailureHandler(onDataError)
+      .getDashboardData();
+  }
+
+  function onDataLoaded(payload) {
+    isLoading = false;
+    document.getElementById('loadingOverlay').hidden = true;
+    document.getElementById('refreshBtn').disabled = false;
+    document.getElementById('errorBanner').hidden = true;
+
+    rawData = payload;
+    updateSyncStatus();
+    populateFilterOptions();
+    renderAll();
+  }
+
+  function onDataError(err) {
+    isLoading = false;
+    document.getElementById('loadingOverlay').hidden = true;
+    document.getElementById('refreshBtn').disabled = false;
+    var banner = document.getElementById('errorBanner');
+    banner.textContent = 'Gagal memuat data: ' + (err && err.message ? err.message : err);
+    banner.hidden = false;
+    document.getElementById('syncStatus').textContent = 'Gagal sinkron';
+  }
+
+  function updateSyncStatus() {
+    if (!rawData.generatedAt) return;
+    var d = new Date(rawData.generatedAt);
+    var timeStr = new Intl.DateTimeFormat('id-ID', {
+      timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+    }).format(d);
+    document.getElementById('syncStatus').textContent = 'Terakhir sinkron: ' + timeStr + ' WIB';
+  }
+
+  // ---------------------------------------------------------------------
+  // Filter options
+  // ---------------------------------------------------------------------
+  function populateFilterOptions() {
+    // Kategori chips (fixed set, keep current active state)
+    var katWrap = document.getElementById('filterKategori');
+    katWrap.innerHTML = '';
+    ['SPK', 'Purchasing', 'Home With AI'].forEach(function (kat) {
+      var chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'chip' + (filters.kategori[kat] ? ' active' : '');
+      chip.textContent = kat;
+      chip.addEventListener('click', function () {
+        filters.kategori[kat] = !filters.kategori[kat];
+        chip.classList.toggle('active');
+        renderAll();
+      });
+      katWrap.appendChild(chip);
+    });
+
+    // Tahun
+    var tahunSel = document.getElementById('filterTahun');
+    var currentTahun = tahunSel.value;
+    tahunSel.innerHTML = '<option value="">Semua</option>';
+    (rawData.meta.years || []).forEach(function (y) {
+      var opt = document.createElement('option');
+      opt.value = y;
+      opt.textContent = y;
+      tahunSel.appendChild(opt);
+    });
+    tahunSel.value = currentTahun;
+    tahunSel.onchange = function () { filters.tahun = tahunSel.value; renderAll(); };
+
+    // Bulan
+    var bulanSel = document.getElementById('filterBulan');
+    var currentBulan = bulanSel.value;
+    bulanSel.innerHTML = '<option value="">Semua</option>';
+    MONTHS.forEach(function (name, idx) {
+      var opt = document.createElement('option');
+      opt.value = idx + 1;
+      opt.textContent = name;
+      bulanSel.appendChild(opt);
+    });
+    bulanSel.value = currentBulan;
+    bulanSel.onchange = function () { filters.bulan = bulanSel.value; renderAll(); };
+
+    renderGpChips();
+    renderProyekChips();
+  }
+
+  function renderGpChips() {
+    var wrap = document.getElementById('filterGp');
+    wrap.innerHTML = '';
+    (rawData.meta.gpList || []).forEach(function (gp) {
+      var chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'chip' + (filters.gp[gp] ? ' active' : '');
+      chip.textContent = gp;
+      chip.addEventListener('click', function () {
+        filters.gp[gp] = !filters.gp[gp];
+        chip.classList.toggle('active');
+        pruneOrphanProyekFilters();
+        renderProyekChips();
+        renderAll();
+      });
+      wrap.appendChild(chip);
+    });
+  }
+
+  function selectedGpList() {
+    return Object.keys(filters.gp).filter(function (k) { return filters.gp[k]; });
+  }
+
+  function availableProyekList() {
+    var selectedGp = selectedGpList();
+    var set = {};
+    var order = [];
+    var byGp = rawData.meta.projectsByGp || {};
+    var gpsToUse = selectedGp.length ? selectedGp : Object.keys(byGp);
+    gpsToUse.forEach(function (gp) {
+      (byGp[gp] || []).forEach(function (proyek) {
+        if (!set[proyek]) { set[proyek] = true; order.push(proyek); }
+      });
+    });
+    return order;
+  }
+
+  function pruneOrphanProyekFilters() {
+    var available = {};
+    availableProyekList().forEach(function (p) { available[p] = true; });
+    Object.keys(filters.proyek).forEach(function (p) {
+      if (filters.proyek[p] && !available[p]) delete filters.proyek[p];
+    });
+  }
+
+  function renderProyekChips() {
+    var wrap = document.getElementById('filterProyek');
+    wrap.innerHTML = '';
+    availableProyekList().forEach(function (proyek) {
+      var chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'chip' + (filters.proyek[proyek] ? ' active' : '');
+      chip.textContent = proyek;
+      chip.addEventListener('click', function () {
+        filters.proyek[proyek] = !filters.proyek[proyek];
+        chip.classList.toggle('active');
+        renderAll();
+      });
+      wrap.appendChild(chip);
+    });
+  }
+
+  // ---------------------------------------------------------------------
+  // Filtering
+  // ---------------------------------------------------------------------
+  function passesCommonFilters(rec, kategoriKey) {
+    if (!filters.kategori[kategoriKey]) return false;
+    if (filters.tahun && String(rec.tahun || '') !== String(filters.tahun)) return false;
+    if (filters.bulan && String(rec.bulan || '') !== String(filters.bulan)) return false;
+
+    var selectedGp = selectedGpList();
+    if (selectedGp.length) {
+      var gpKeys = selectedGp.map(normKey);
+      if (gpKeys.indexOf(normKey(rec.gp)) === -1) return false;
+    }
+    var selectedProyek = Object.keys(filters.proyek).filter(function (k) { return filters.proyek[k]; });
+    if (selectedProyek.length) {
+      var proyekKeys = selectedProyek.map(normKey);
+      if (proyekKeys.indexOf(normKey(rec.proyek)) === -1) return false;
+    }
+
+    if (filters.search) {
+      var haystack = JSON.stringify(rec).toLowerCase();
+      if (haystack.indexOf(filters.search.toLowerCase()) === -1) return false;
+    }
+    return true;
+  }
+
+  function getFilteredSpk() { return rawData.spk.filter(function (r) { return passesCommonFilters(r, 'SPK'); }); }
+  function getFilteredHomeWithAi() { return rawData.homeWithAi.filter(function (r) { return passesCommonFilters(r, 'Home With AI'); }); }
+  function getFilteredPurchasing() { return rawData.purchasing.filter(function (r) { return passesCommonFilters(r, 'Purchasing'); }); }
+
+  // ---------------------------------------------------------------------
+  // Render orchestration
+  // ---------------------------------------------------------------------
+  function renderAll() {
+    var fSpk = getFilteredSpk();
+    var fHwa = getFilteredHomeWithAi();
+    var fPur = getFilteredPurchasing();
+
+    renderSummary(fSpk, fHwa, fPur);
+    renderCharts(fSpk, fHwa, fPur);
+    renderTable(fSpk, fHwa, fPur);
+  }
+
+  // ---------------------------------------------------------------------
+  // Summary cards + overdue alert
+  // ---------------------------------------------------------------------
+  function renderSummary(fSpk, fHwa, fPur) {
+    var totalSpk = fSpk.length;
+    var totalNilaiKontrak = fSpk.reduce(function (sum, r) { return sum + r.nilaiTotal; }, 0);
+    var overdueCount = fSpk.filter(function (r) { return r.isOverdue; }).length;
+
+    var hwaByStatus = { 'Belum Order': { count: 0, nilai: 0 }, 'On Proses': { count: 0, nilai: 0 }, 'Terpasang': { count: 0, nilai: 0 } };
+    fHwa.forEach(function (r) {
+      if (!hwaByStatus[r.status]) hwaByStatus[r.status] = { count: 0, nilai: 0 };
+      hwaByStatus[r.status].count++;
+      hwaByStatus[r.status].nilai += r.nilai;
+    });
+
+    var purByJenis = { 'Promo Unit': 0, 'Material PSU': 0, 'Material Unit Bangunan': 0 };
+    var totalPur = 0;
+    fPur.forEach(function (r) {
+      if (purByJenis[r.jenisPengadaan] === undefined) purByJenis[r.jenisPengadaan] = 0;
+      purByJenis[r.jenisPengadaan] += r.nilai;
+      totalPur += r.nilai;
+    });
+
+    var cards = [];
+
+    cards.push({
+      label: 'Total SPK Terbit',
+      value: totalSpk,
+      sub: formatRupiah(totalNilaiKontrak) + ' total nilai kontrak'
+    });
+
+    var hwaBreakdown = Object.keys(hwaByStatus).map(function (status) {
+      return '<span class="badge ' + statusBadgeClass(status) + '">' + status + ': ' + hwaByStatus[status].count + '</span>';
+    }).join('');
+    var hwaTotalNilai = Object.keys(hwaByStatus).reduce(function (s, k) { return s + hwaByStatus[k].nilai; }, 0);
+    cards.push({
+      label: 'Home With AI',
+      value: fHwa.length + ' unit',
+      sub: formatRupiah(hwaTotalNilai) + ' total nilai',
+      breakdown: hwaBreakdown
+    });
+
+    var purBreakdown = Object.keys(purByJenis).map(function (jenis) {
+      return '<span class="badge badge-gray">' + jenis + ': ' + formatRupiah(purByJenis[jenis]) + '</span>';
+    }).join('');
+    cards.push({
+      label: 'Total Nilai Purchasing',
+      value: formatRupiah(totalPur),
+      sub: fPur.length + ' item pengadaan',
+      breakdown: purBreakdown
+    });
+
+    var wrap = document.getElementById('summaryCards');
+    wrap.innerHTML = '';
+    cards.forEach(function (c) {
+      var el = document.createElement('div');
+      el.className = 'card';
+      el.innerHTML =
+        '<div class="card-label">' + escapeHtml(c.label) + '</div>' +
+        '<div class="card-value">' + escapeHtml(String(c.value)) + '</div>' +
+        (c.sub ? '<div class="card-sub">' + escapeHtml(c.sub) + '</div>' : '') +
+        (c.breakdown ? '<div class="card-breakdown">' + c.breakdown + '</div>' : '');
+      wrap.appendChild(el);
+    });
+
+    var alertCard = document.createElement('div');
+    alertCard.className = 'card' + (overdueCount > 0 ? ' card-alert' : '');
+    alertCard.innerHTML =
+      '<div class="card-label">Unit Overdue (SPK Unit Rumah)</div>' +
+      '<div class="card-value">' + overdueCount + '</div>' +
+      '<div class="card-sub">Melewati target Tanggal Selesai</div>';
+    wrap.appendChild(alertCard);
+
+    var alertRow = document.getElementById('alertRow');
+    alertRow.innerHTML = '';
+    if (overdueCount > 0) {
+      var banner = document.createElement('div');
+      banner.className = 'alert-banner';
+      banner.innerHTML = '<span class="alert-icon">⚠️</span>' +
+        '<span>' + overdueCount + ' unit SPK Unit Rumah sudah melewati target Tanggal Selesai. Lihat tabel SPK untuk detail.</span>';
+      alertRow.appendChild(banner);
+    }
+  }
+
+  // ---------------------------------------------------------------------
+  // Charts
+  // ---------------------------------------------------------------------
+  var PALETTE = ['#2f5d8a', '#1c3a5e', '#5b8fb9', '#8fb4d4', '#0f2540', '#a9c0d6'];
+  var STATUS_COLORS = { 'Belum Order': '#94a3b8', 'On Proses': '#b7791f', 'Terpasang': '#1f9d55' };
+
+  function destroyChart(key) {
+    if (charts[key]) { charts[key].destroy(); delete charts[key]; }
+  }
+
+  function renderCharts(fSpk, fHwa, fPur) {
+    renderChartJenisPekerjaan(fSpk);
+    renderChartTrenNilai(fSpk);
+    renderChartProporsiGp(fSpk);
+    renderChartHwaStatus(fHwa);
+    renderChartPurchasing(fPur);
+  }
+
+  function groupSum(arr, keyFn, valueFn) {
+    var order = [];
+    var map = {};
+    arr.forEach(function (item) {
+      var k = keyFn(item) || '(Tidak diisi)';
+      if (!map[k]) { map[k] = 0; order.push(k); }
+      map[k] += valueFn ? valueFn(item) : 1;
+    });
+    return { labels: order, values: order.map(function (k) { return map[k]; }) };
+  }
+
+  function renderChartJenisPekerjaan(fSpk) {
+    destroyChart('jenisPekerjaan');
+    var g = groupSum(fSpk, function (r) { return r.itemSpk; });
+    var ctx = document.getElementById('chartJenisPekerjaan').getContext('2d');
+    charts.jenisPekerjaan = new Chart(ctx, {
+      type: 'bar',
+      data: { labels: g.labels, datasets: [{ label: 'Jumlah SPK', data: g.values, backgroundColor: '#2f5d8a', borderRadius: 4 }] },
+      options: baseBarOptions('Jumlah SPK')
+    });
+  }
+
+  function renderChartTrenNilai(fSpk) {
+    destroyChart('trenNilai');
+    var map = {};
+    fSpk.forEach(function (r) {
+      if (!r.tahun || !r.bulan) return;
+      var key = r.tahun + '-' + ('0' + r.bulan).slice(-2);
+      if (!map[key]) map[key] = 0;
+      map[key] += r.nilaiTotal;
+    });
+    var keys = Object.keys(map).sort();
+    var labels = keys.map(function (k) {
+      var parts = k.split('-');
+      return MONTHS[parseInt(parts[1], 10) - 1].slice(0, 3) + ' ' + parts[0];
+    });
+    var values = keys.map(function (k) { return map[k]; });
+    var ctx = document.getElementById('chartTrenNilai').getContext('2d');
+    charts.trenNilai = new Chart(ctx, {
+      type: 'bar',
+      data: { labels: labels, datasets: [{ label: 'Nilai Kontrak', data: values, backgroundColor: '#1c3a5e', borderRadius: 4 }] },
+      options: baseBarOptions('Rp', true)
+    });
+  }
+
+  function renderChartProporsiGp(fSpk) {
+    destroyChart('proporsiGp');
+    var g = groupSum(fSpk, function (r) { return r.gp; }, function (r) { return r.nilaiTotal; });
+    var ctx = document.getElementById('chartProporsiGp').getContext('2d');
+    charts.proporsiGp = new Chart(ctx, {
+      type: 'doughnut',
+      data: { labels: g.labels, datasets: [{ data: g.values, backgroundColor: PALETTE }] },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } } }
+      }
+    });
+  }
+
+  function renderChartHwaStatus(fHwa) {
+    destroyChart('hwaStatus');
+    var proyekOrder = [];
+    var byProyekStatus = {};
+    fHwa.forEach(function (r) {
+      var p = r.proyek || '(Tidak diisi)';
+      if (!byProyekStatus[p]) { byProyekStatus[p] = { 'Belum Order': 0, 'On Proses': 0, 'Terpasang': 0 }; proyekOrder.push(p); }
+      if (byProyekStatus[p][r.status] === undefined) byProyekStatus[p][r.status] = 0;
+      byProyekStatus[p][r.status]++;
+    });
+    var statuses = ['Belum Order', 'On Proses', 'Terpasang'];
+    var datasets = statuses.map(function (status) {
+      return {
+        label: status,
+        data: proyekOrder.map(function (p) { return byProyekStatus[p][status] || 0; }),
+        backgroundColor: STATUS_COLORS[status]
+      };
+    });
+    var ctx = document.getElementById('chartHwaStatus').getContext('2d');
+    charts.hwaStatus = new Chart(ctx, {
+      type: 'bar',
+      data: { labels: proyekOrder, datasets: datasets },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true, ticks: { precision: 0 } } },
+        plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } } }
+      }
+    });
+  }
+
+  function renderChartPurchasing(fPur) {
+    destroyChart('purchasing');
+    var g = groupSum(fPur, function (r) { return r.jenisPengadaan; }, function (r) { return r.nilai; });
+    var ctx = document.getElementById('chartPurchasing').getContext('2d');
+    charts.purchasing = new Chart(ctx, {
+      type: 'bar',
+      data: { labels: g.labels, datasets: [{ label: 'Nilai (Rp)', data: g.values, backgroundColor: PALETTE.slice(0, g.labels.length), borderRadius: 4 }] },
+      options: baseBarOptions('Rp', true, true)
+    });
+  }
+
+  function baseBarOptions(axisLabel, isCurrency, horizontal) {
+    return {
+      indexAxis: horizontal ? 'y' : 'x',
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: function (ctx) {
+              var v = ctx.parsed.y !== undefined ? ctx.parsed.y : ctx.parsed.x;
+              return isCurrency ? formatRupiah(v) : v;
+            }
+          }
+        }
+      },
+      scales: {
+        x: { ticks: { font: { size: 10 } } },
+        y: {
+          beginAtZero: true,
+          ticks: {
+            font: { size: 10 },
+            callback: function (v) { return isCurrency ? formatRupiah(v) : v; }
+          }
+        }
+      }
+    };
+  }
+
+  // ---------------------------------------------------------------------
+  // Table
+  // ---------------------------------------------------------------------
+  function renderTable(fSpk, fHwa, fPur) {
+    var dataMap = { spk: fSpk, homeWithAi: fHwa, purchasing: fPur };
+    var rows = dataMap[activeTableTab].slice();
+    var columns = TABLE_COLUMNS[activeTableTab];
+
+    if (tableSearch) {
+      var q = tableSearch.toLowerCase();
+      rows = rows.filter(function (r) { return JSON.stringify(r).toLowerCase().indexOf(q) !== -1; });
+    }
+
+    if (tableSort.key) {
+      rows.sort(function (a, b) {
+        var av = a[tableSort.key], bv = b[tableSort.key];
+        if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * tableSort.dir;
+        av = String(av || ''); bv = String(bv || '');
+        return av.localeCompare(bv) * tableSort.dir;
+      });
+    }
+
+    var thead = document.querySelector('#dataTable thead');
+    thead.innerHTML = '';
+    var headRow = document.createElement('tr');
+    columns.forEach(function (col) {
+      var th = document.createElement('th');
+      var arrow = tableSort.key === col.key ? (tableSort.dir === 1 ? ' ▲' : ' ▼') : '';
+      th.textContent = col.label + arrow;
+      th.addEventListener('click', function () {
+        if (tableSort.key === col.key) tableSort.dir *= -1;
+        else { tableSort.key = col.key; tableSort.dir = 1; }
+        renderTable(getFilteredSpk(), getFilteredHomeWithAi(), getFilteredPurchasing());
+      });
+      headRow.appendChild(th);
+    });
+    thead.appendChild(headRow);
+
+    var tbody = document.querySelector('#dataTable tbody');
+    tbody.innerHTML = '';
+
+    if (!rows.length) {
+      var emptyRow = document.createElement('tr');
+      emptyRow.className = 'empty-row';
+      var td = document.createElement('td');
+      td.colSpan = columns.length;
+      td.textContent = 'Tidak ada data untuk filter saat ini.';
+      emptyRow.appendChild(td);
+      tbody.appendChild(emptyRow);
+    } else {
+      rows.forEach(function (r) {
+        var tr = document.createElement('tr');
+        if (r.isOverdue) tr.className = 'row-overdue';
+        columns.forEach(function (col) {
+          var td = document.createElement('td');
+          var val = r[col.key];
+          if (col.format === 'currency') td.textContent = formatRupiah(val);
+          else if (col.format === 'overdue') td.innerHTML = val ? '<span class="badge badge-red">Overdue</span>' : '<span class="badge badge-green">Sesuai Jadwal</span>';
+          else if (col.format === 'hwaStatus') td.innerHTML = '<span class="badge ' + statusBadgeClass(val) + '">' + escapeHtml(val) + '</span>';
+          else if (col.key === 'tanggalTerbit' || col.key === 'tanggalSelesaiEfektif' || col.key === 'tanggalTerpasang' || col.key === 'tanggal') td.textContent = formatDate(val);
+          else td.textContent = val === '' || val == null ? '–' : val;
+          tr.appendChild(td);
+        });
+        if (r.unitKey) {
+          tr.addEventListener('click', function () { openUnitDetail(r); });
+        } else {
+          tr.style.cursor = 'default';
+        }
+        tbody.appendChild(tr);
+      });
+    }
+
+    document.getElementById('tableCount').textContent = rows.length + ' baris';
+  }
+
+  document.getElementById('tableTabs').addEventListener('click', function (e) {
+    var btn = e.target.closest('button[data-tab]');
+    if (!btn) return;
+    activeTableTab = btn.getAttribute('data-tab');
+    document.querySelectorAll('#tableTabs button').forEach(function (b) { b.classList.toggle('active', b === btn); });
+    tableSort = { key: null, dir: 1 };
+    renderTable(getFilteredSpk(), getFilteredHomeWithAi(), getFilteredPurchasing());
+  });
+
+  document.getElementById('tableSearch').addEventListener('input', function (e) {
+    tableSearch = e.target.value;
+    renderTable(getFilteredSpk(), getFilteredHomeWithAi(), getFilteredPurchasing());
+  });
+
+  // ---------------------------------------------------------------------
+  // Unit detail modal
+  // ---------------------------------------------------------------------
+  function openUnitDetail(record) {
+    var unitKey = record.unitKey;
+    var spkList = rawData.spk.filter(function (r) { return r.unitKey === unitKey; });
+    var hwaList = rawData.homeWithAi.filter(function (r) { return r.unitKey === unitKey; });
+    var purList = rawData.purchasing.filter(function (r) { return r.unitKey === unitKey; });
+
+    var html = '<div class="unit-header">' +
+      '<h2>' + escapeHtml(record.unit) + '</h2>' +
+      '<p>' + escapeHtml(record.gp) + ' · ' + escapeHtml(record.proyek) + '</p>' +
+      '</div>';
+
+    html += '<div class="unit-section"><h4>Riwayat SPK (' + spkList.length + ')</h4>';
+    html += spkList.length ? spkList.map(function (r) {
+      return '<div class="unit-item">' +
+        '<div class="unit-item-title"><span>' + escapeHtml(r.noSpk) + ' — ' + escapeHtml(r.namaPekerjaan || r.itemSpk) + '</span>' +
+        '<span>' + formatRupiah(r.nilaiTotal) + '</span></div>' +
+        '<div class="unit-item-meta">Terbit: ' + formatDate(r.tanggalTerbit) + ' · Target selesai: ' + formatDate(r.tanggalSelesaiEfektif) +
+        (r.isOverdue ? ' <span class="badge badge-red">Overdue</span>' : '') +
+        (r.kontraktor ? ' · ' + escapeHtml(r.kontraktor) : '') + '</div>' +
+        '</div>';
+    }).join('') : '<p class="unit-empty">Belum ada SPK untuk unit ini.</p>';
+    html += '</div>';
+
+    html += '<div class="unit-section"><h4>Home With AI</h4>';
+    html += hwaList.length ? hwaList.map(function (r) {
+      return '<div class="unit-item">' +
+        '<div class="unit-item-title"><span class="badge ' + statusBadgeClass(r.status) + '">' + escapeHtml(r.status) + '</span>' +
+        '<span>' + formatRupiah(r.nilai) + '</span></div>' +
+        '<div class="unit-item-meta">' + (r.tanggalTerpasang ? 'Terpasang: ' + formatDate(r.tanggalTerpasang) : 'Belum terpasang') +
+        (r.keterangan ? ' · ' + escapeHtml(r.keterangan) : '') + '</div>' +
+        '</div>';
+    }).join('') : '<p class="unit-empty">Belum ada data Home With AI untuk unit ini.</p>';
+    html += '</div>';
+
+    html += '<div class="unit-section"><h4>Purchasing (Promo &amp; Material Unit)</h4>';
+    html += purList.length ? purList.map(function (r) {
+      return '<div class="unit-item">' +
+        '<div class="unit-item-title"><span>' + escapeHtml(r.namaBarang) + ' (' + escapeHtml(r.jenisPengadaan) + ')</span>' +
+        '<span>' + formatRupiah(r.nilai) + '</span></div>' +
+        '<div class="unit-item-meta">Status: ' + escapeHtml(r.statusPekerjaan) + (r.tanggal ? ' · ' + formatDate(r.tanggal) : '') +
+        (r.keterangan ? ' · ' + escapeHtml(r.keterangan) : '') + '</div>' +
+        '</div>';
+    }).join('') : '<p class="unit-empty">Belum ada data Purchasing untuk unit ini.</p>';
+    html += '</div>';
+
+    document.getElementById('unitModalContent').innerHTML = html;
+    document.getElementById('unitModalBackdrop').classList.add('open');
+  }
+
+  document.getElementById('unitModalClose').addEventListener('click', closeUnitModal);
+  document.getElementById('unitModalBackdrop').addEventListener('click', function (e) {
+    if (e.target === document.getElementById('unitModalBackdrop')) closeUnitModal();
+  });
+  function closeUnitModal() {
+    document.getElementById('unitModalBackdrop').classList.remove('open');
+  }
+
+  // ---------------------------------------------------------------------
+  // Global controls
+  // ---------------------------------------------------------------------
+  document.getElementById('refreshBtn').addEventListener('click', function () { loadData(false); });
+
+  var searchDebounce = null;
+  document.getElementById('filterSearch').addEventListener('input', function (e) {
+    var val = e.target.value;
+    clearTimeout(searchDebounce);
+    searchDebounce = setTimeout(function () { filters.search = val; renderAll(); }, 250);
+  });
+
+  document.getElementById('resetFiltersBtn').addEventListener('click', function () {
+    filters = { kategori: { 'SPK': true, 'Purchasing': true, 'Home With AI': true }, tahun: '', bulan: '', gp: {}, proyek: {}, search: '' };
+    document.getElementById('filterSearch').value = '';
+    populateFilterOptions();
+    renderAll();
+  });
+
+  // ---------------------------------------------------------------------
+  // Init
+  // ---------------------------------------------------------------------
+  loadData(true);
+  refreshTimer = setInterval(function () { loadData(false); }, 180000); // auto-refresh tiap 3 menit
+})();
+</script>

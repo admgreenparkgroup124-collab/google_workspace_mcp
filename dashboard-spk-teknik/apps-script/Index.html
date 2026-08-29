@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboard Monitoring SPK & PO - Green Park Group</title>
+  <?!= include('Styles'); ?>
+</head>
+<body>
+  <div id="app">
+    <header class="topbar">
+      <div class="topbar-brand">
+        <div class="brand-mark">GPG</div>
+        <div class="brand-text">
+          <h1>Dashboard Monitoring SPK &amp; PO</h1>
+          <p>Departemen Teknik — Green Park Group</p>
+        </div>
+      </div>
+      <div class="topbar-meta">
+        <div class="clock" id="clock">–</div>
+        <div class="sync-status" id="syncStatus">Memuat data…</div>
+        <button id="refreshBtn" class="btn-refresh" type="button" title="Refresh data sekarang">⟳ Refresh</button>
+        <div class="user-badge" title="Masuk sebagai">
+          <?= userEmail ?>
+        </div>
+      </div>
+    </header>
+
+    <section class="filters" id="filters" aria-label="Filter data">
+      <div class="filter-group">
+        <label>Kategori</label>
+        <div class="chip-multiselect" id="filterKategori"></div>
+      </div>
+      <div class="filter-group">
+        <label for="filterTahun">Tahun</label>
+        <select id="filterTahun"><option value="">Semua</option></select>
+      </div>
+      <div class="filter-group">
+        <label for="filterBulan">Bulan</label>
+        <select id="filterBulan"><option value="">Semua</option></select>
+      </div>
+      <div class="filter-group filter-group-wide">
+        <label>Grup Proyek</label>
+        <div class="chip-multiselect" id="filterGp"></div>
+      </div>
+      <div class="filter-group filter-group-wide">
+        <label>Proyek</label>
+        <div class="chip-multiselect" id="filterProyek"></div>
+      </div>
+      <div class="filter-group filter-search">
+        <label for="filterSearch">Cari</label>
+        <input type="text" id="filterSearch" placeholder="No. SPK, unit, kontraktor, item…">
+      </div>
+      <button id="resetFiltersBtn" class="btn-reset" type="button">Reset Filter</button>
+    </section>
+
+    <section class="alert-row" id="alertRow"></section>
+
+    <section class="summary-cards" id="summaryCards"></section>
+
+    <section class="charts-grid">
+      <div class="chart-card">
+        <h3>SPK per Jenis Pekerjaan</h3>
+        <div class="chart-canvas-wrap"><canvas id="chartJenisPekerjaan"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3>Tren Nilai Kontrak per Bulan</h3>
+        <div class="chart-canvas-wrap"><canvas id="chartTrenNilai"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3>Proporsi Nilai per Grup Proyek</h3>
+        <div class="chart-canvas-wrap"><canvas id="chartProporsiGp"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3>Status Home With AI per Proyek</h3>
+        <div class="chart-canvas-wrap"><canvas id="chartHwaStatus"></canvas></div>
+      </div>
+      <div class="chart-card chart-card-wide">
+        <h3>Nilai Purchasing per Jenis Pengadaan</h3>
+        <div class="chart-canvas-wrap"><canvas id="chartPurchasing"></canvas></div>
+      </div>
+    </section>
+
+    <section class="table-section">
+      <div class="table-tabs" id="tableTabs">
+        <button data-tab="spk" class="active" type="button">SPK</button>
+        <button data-tab="homeWithAi" type="button">Home With AI</button>
+        <button data-tab="purchasing" type="button">Purchasing</button>
+      </div>
+      <div class="table-toolbar">
+        <input type="text" id="tableSearch" placeholder="Cari di tabel ini…">
+        <span id="tableCount"></span>
+      </div>
+      <div class="table-wrap">
+        <table id="dataTable">
+          <thead></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <footer class="footer-note">
+      Data disinkronkan otomatis dari Google Sheets Master Database SPK Teknik GPG.
+      Dashboard ini read-only — perubahan data dilakukan langsung di spreadsheet oleh PIC masing-masing.
+    </footer>
+
+    <div class="unit-modal-backdrop" id="unitModalBackdrop">
+      <div class="unit-modal" role="dialog" aria-modal="true">
+        <button class="unit-modal-close" id="unitModalClose" type="button" aria-label="Tutup">×</button>
+        <div id="unitModalContent"></div>
+      </div>
+    </div>
+
+    <div class="loading-overlay" id="loadingOverlay">
+      <div class="spinner"></div>
+      <p>Memuat data dashboard…</p>
+    </div>
+
+    <div class="error-banner" id="errorBanner" hidden></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js"></script>
+  <?!= include('JavaScript'); ?>
+</body>
+</html>
