@@ -11,8 +11,8 @@
     kategori: { 'SPK': true, 'Purchasing': true, 'Home With AI': true },
     tahun: '',
     bulan: '',
-    gp: {},      // { displayValue: true }
-    proyek: {},  // { displayValue: true }
+    gp: {},     // { displayValue: true } -- multi-select (chip)
+    proyek: '', // single value -- dropdown, '' = Semua
     search: ''
   };
 
@@ -281,7 +281,7 @@
     bulanSel.onchange = function () { filters.bulan = bulanSel.value; renderAll(); };
 
     renderGpChips();
-    renderProyekChips();
+    populateProyekSelect();
   }
 
   function renderGpChips() {
@@ -295,8 +295,8 @@
       chip.addEventListener('click', function () {
         filters.gp[gp] = !filters.gp[gp];
         chip.classList.toggle('active');
-        pruneOrphanProyekFilters();
-        renderProyekChips();
+        pruneOrphanProyekFilter();
+        populateProyekSelect();
         renderAll();
       });
       wrap.appendChild(chip);
@@ -321,29 +321,27 @@
     return order;
   }
 
-  function pruneOrphanProyekFilters() {
+  // Kalau proyek yang lagi dipilih sudah tidak ada di daftar proyek yang
+  // tersedia (karena filter GP berubah), reset ke "Semua".
+  function pruneOrphanProyekFilter() {
+    if (!filters.proyek) return;
     var available = {};
     availableProyekList().forEach(function (p) { available[p] = true; });
-    Object.keys(filters.proyek).forEach(function (p) {
-      if (filters.proyek[p] && !available[p]) delete filters.proyek[p];
-    });
+    if (!available[filters.proyek]) filters.proyek = '';
   }
 
-  function renderProyekChips() {
-    var wrap = document.getElementById('filterProyek');
-    wrap.innerHTML = '';
+  function populateProyekSelect() {
+    var sel = document.getElementById('filterProyek');
+    var current = filters.proyek;
+    sel.innerHTML = '<option value="">Semua</option>';
     availableProyekList().forEach(function (proyek) {
-      var chip = document.createElement('button');
-      chip.type = 'button';
-      chip.className = 'chip' + (filters.proyek[proyek] ? ' active' : '');
-      chip.textContent = proyek;
-      chip.addEventListener('click', function () {
-        filters.proyek[proyek] = !filters.proyek[proyek];
-        chip.classList.toggle('active');
-        renderAll();
-      });
-      wrap.appendChild(chip);
+      var opt = document.createElement('option');
+      opt.value = proyek;
+      opt.textContent = proyek;
+      sel.appendChild(opt);
     });
+    sel.value = current;
+    sel.onchange = function () { filters.proyek = sel.value; renderAll(); };
   }
 
   // ---------------------------------------------------------------------
@@ -359,11 +357,7 @@
       var gpKeys = selectedGp.map(normKey);
       if (gpKeys.indexOf(normKey(rec.gp)) === -1) return false;
     }
-    var selectedProyek = Object.keys(filters.proyek).filter(function (k) { return filters.proyek[k]; });
-    if (selectedProyek.length) {
-      var proyekKeys = selectedProyek.map(normKey);
-      if (proyekKeys.indexOf(normKey(rec.proyek)) === -1) return false;
-    }
+    if (filters.proyek && normKey(rec.proyek) !== normKey(filters.proyek)) return false;
 
     if (filters.search) {
       var haystack = JSON.stringify(rec).toLowerCase();
@@ -922,7 +916,7 @@
   });
 
   document.getElementById('resetFiltersBtn').addEventListener('click', function () {
-    filters = { kategori: { 'SPK': true, 'Purchasing': true, 'Home With AI': true }, tahun: '', bulan: '', gp: {}, proyek: {}, search: '' };
+    filters = { kategori: { 'SPK': true, 'Purchasing': true, 'Home With AI': true }, tahun: '', bulan: '', gp: {}, proyek: '', search: '' };
     document.getElementById('filterSearch').value = '';
     populateFilterOptions();
     renderAll();
