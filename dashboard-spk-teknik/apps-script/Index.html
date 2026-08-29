@@ -20,85 +20,162 @@
       <div class="topbar-meta">
         <div class="clock" id="clock">–</div>
         <div class="sync-status" id="syncStatus">Memuat data…</div>
+        <div class="sync-interval">
+          <label for="syncInterval">Auto-refresh</label>
+          <select id="syncInterval">
+            <option value="1">1 menit</option>
+            <option value="5">5 menit</option>
+            <option value="10">10 menit</option>
+            <option value="20">20 menit</option>
+            <option value="30">30 menit</option>
+          </select>
+        </div>
         <button id="refreshBtn" class="btn-refresh" type="button" title="Refresh data sekarang">⟳ Refresh</button>
         <div class="user-badge" title="Masuk sebagai">
           <?= userEmail ?>
         </div>
       </div>
+      <nav class="app-nav" id="appNav" aria-label="Menu halaman">
+        <button data-view="dashboard" class="active" type="button">Dashboard</button>
+        <button data-view="master-spk" type="button">Master Data SPK</button>
+        <button data-view="master-purchasing" type="button">Master Data Purchasing</button>
+        <button data-view="master-hwa" type="button">Master Data Home With AI</button>
+      </nav>
     </header>
 
-    <section class="filters" id="filters" aria-label="Filter data">
-      <div class="filter-group">
-        <label>Kategori</label>
-        <div class="chip-multiselect" id="filterKategori"></div>
-      </div>
-      <div class="filter-group">
-        <label for="filterTahun">Tahun</label>
-        <select id="filterTahun"><option value="">Semua</option></select>
-      </div>
-      <div class="filter-group">
-        <label for="filterBulan">Bulan</label>
-        <select id="filterBulan"><option value="">Semua</option></select>
-      </div>
-      <div class="filter-group filter-group-wide">
-        <label>Grup Proyek</label>
-        <div class="chip-multiselect" id="filterGp"></div>
-      </div>
-      <div class="filter-group filter-group-wide">
-        <label>Proyek</label>
-        <div class="chip-multiselect" id="filterProyek"></div>
-      </div>
-      <div class="filter-group filter-search">
-        <label for="filterSearch">Cari</label>
-        <input type="text" id="filterSearch" placeholder="No. SPK, unit, kontraktor, item…">
-      </div>
-      <button id="resetFiltersBtn" class="btn-reset" type="button">Reset Filter</button>
-    </section>
+    <!-- ============================== VIEW: Dashboard ============================== -->
+    <div id="view-dashboard" class="view">
+      <section class="filters" id="filters" aria-label="Filter data">
+        <div class="filter-group">
+          <label>Kategori</label>
+          <div class="chip-multiselect" id="filterKategori"></div>
+        </div>
+        <div class="filter-group">
+          <label for="filterTahun">Tahun</label>
+          <select id="filterTahun"><option value="">Semua</option></select>
+        </div>
+        <div class="filter-group">
+          <label for="filterBulan">Bulan</label>
+          <select id="filterBulan"><option value="">Semua</option></select>
+        </div>
+        <div class="filter-group filter-group-wide">
+          <label>Grup Proyek</label>
+          <div class="chip-multiselect" id="filterGp"></div>
+        </div>
+        <div class="filter-group filter-group-wide">
+          <label>Proyek</label>
+          <div class="chip-multiselect" id="filterProyek"></div>
+        </div>
+        <div class="filter-group filter-search">
+          <label for="filterSearch">Cari</label>
+          <input type="text" id="filterSearch" placeholder="No. SPK, unit, kontraktor, item…">
+        </div>
+        <button id="resetFiltersBtn" class="btn-reset" type="button">Reset Filter</button>
+      </section>
 
-    <section class="alert-row" id="alertRow"></section>
+      <section class="alert-row" id="alertRow"></section>
 
-    <section class="summary-cards" id="summaryCards"></section>
+      <section class="summary-cards" id="summaryCards"></section>
 
-    <section class="charts-grid">
-      <div class="chart-card">
-        <h3>SPK per Jenis Pekerjaan</h3>
-        <div class="chart-canvas-wrap"><canvas id="chartJenisPekerjaan"></canvas></div>
-      </div>
-      <div class="chart-card">
-        <h3>Tren Nilai Kontrak per Bulan</h3>
-        <div class="chart-canvas-wrap"><canvas id="chartTrenNilai"></canvas></div>
-      </div>
-      <div class="chart-card">
-        <h3>Proporsi Nilai per Grup Proyek</h3>
-        <div class="chart-canvas-wrap"><canvas id="chartProporsiGp"></canvas></div>
-      </div>
-      <div class="chart-card">
-        <h3>Status Home With AI per Proyek</h3>
-        <div class="chart-canvas-wrap"><canvas id="chartHwaStatus"></canvas></div>
-      </div>
-      <div class="chart-card chart-card-wide">
-        <h3>Nilai Purchasing per Jenis Pengadaan</h3>
-        <div class="chart-canvas-wrap"><canvas id="chartPurchasing"></canvas></div>
-      </div>
-    </section>
+      <section class="charts-grid">
+        <div class="chart-card">
+          <h3>SPK per Jenis Pekerjaan</h3>
+          <div class="chart-canvas-wrap"><canvas id="chartJenisPekerjaan"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3>Tren Nilai Kontrak per Bulan</h3>
+          <div class="chart-canvas-wrap"><canvas id="chartTrenNilai"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3>Proporsi Nilai per Grup Proyek</h3>
+          <div class="chart-canvas-wrap"><canvas id="chartProporsiGp"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3>Status Home With AI per Proyek</h3>
+          <div class="chart-canvas-wrap"><canvas id="chartHwaStatus"></canvas></div>
+        </div>
+        <div class="chart-card chart-card-wide">
+          <h3>Nilai Purchasing per Jenis Pengadaan</h3>
+          <div class="chart-canvas-wrap"><canvas id="chartPurchasing"></canvas></div>
+        </div>
+      </section>
 
-    <section class="table-section">
-      <div class="table-tabs" id="tableTabs">
-        <button data-tab="spk" class="active" type="button">SPK</button>
-        <button data-tab="homeWithAi" type="button">Home With AI</button>
-        <button data-tab="purchasing" type="button">Purchasing</button>
-      </div>
-      <div class="table-toolbar">
-        <input type="text" id="tableSearch" placeholder="Cari di tabel ini…">
-        <span id="tableCount"></span>
-      </div>
-      <div class="table-wrap">
-        <table id="dataTable">
-          <thead></thead>
-          <tbody></tbody>
-        </table>
-      </div>
-    </section>
+      <section class="table-section">
+        <div class="table-tabs" id="tableTabs">
+          <button data-tab="spk" class="active" type="button">SPK</button>
+          <button data-tab="homeWithAi" type="button">Home With AI</button>
+          <button data-tab="purchasing" type="button">Purchasing</button>
+        </div>
+        <div class="table-toolbar">
+          <input type="text" id="tableSearch" placeholder="Cari di tabel ini…">
+          <span id="tableCount"></span>
+        </div>
+        <div class="table-wrap">
+          <table id="dataTable">
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <!-- ============================== VIEW: Master Data SPK ============================== -->
+    <div id="view-master-spk" class="view" hidden>
+      <section class="table-section">
+        <div class="table-tabs" id="masterSpkGpTabs">
+          <button data-gp="" class="active" type="button">Semua</button>
+          <button data-gp="GP1" type="button">GP1</button>
+          <button data-gp="GP2" type="button">GP2</button>
+          <button data-gp="GP3" type="button">GP3</button>
+          <button data-gp="GP4" type="button">GP4</button>
+        </div>
+        <div class="table-toolbar">
+          <input type="text" id="masterSpkSearch" placeholder="Cari No. SPK, kontraktor, item, unit…">
+          <span id="masterSpkCount"></span>
+        </div>
+        <div class="table-wrap">
+          <table id="masterSpkTable">
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <p class="master-hint">Menampilkan seluruh kolom SPK persis seperti tab GP1–GP4 di spreadsheet sumber (baca-saja). Klik baris yang punya Unit untuk lihat riwayat gabungan unit tsb.</p>
+      </section>
+    </div>
+
+    <!-- ============================== VIEW: Master Data Purchasing ============================== -->
+    <div id="view-master-purchasing" class="view" hidden>
+      <section class="table-section">
+        <div class="table-toolbar">
+          <input type="text" id="masterPurSearch" placeholder="Cari GP, proyek, unit, nama barang…">
+          <span id="masterPurCount"></span>
+        </div>
+        <div class="table-wrap">
+          <table id="masterPurTable">
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <p class="master-hint">Menampilkan seluruh kolom tab Purchasing di spreadsheet sumber (baca-saja). Baris Material PSU tidak terikat unit tertentu.</p>
+      </section>
+    </div>
+
+    <!-- ============================== VIEW: Master Data Home With AI ============================== -->
+    <div id="view-master-hwa" class="view" hidden>
+      <section class="table-section">
+        <div class="table-toolbar">
+          <input type="text" id="masterHwaSearch" placeholder="Cari GP, proyek, unit…">
+          <span id="masterHwaCount"></span>
+        </div>
+        <div class="table-wrap">
+          <table id="masterHwaTable">
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <p class="master-hint">Menampilkan seluruh kolom tab Home With AI di spreadsheet sumber (baca-saja).</p>
+      </section>
+    </div>
 
     <footer class="footer-note">
       Data disinkronkan otomatis dari Google Sheets Master Database SPK Teknik GPG.

@@ -173,15 +173,28 @@ sendiri), cara update:
 - Kalau muncul halaman "Akses Ditolak", cek: (a) email yang dipakai login
   benar-benar ada di tab Akses (tanpa spasi/typo), (b) file spreadsheet
   sudah di-share ke email tsb.
-- Filter Kategori/Tahun/Bulan/GP/Proyek + kotak pencarian ada di bagian
-  atas; kartu ringkasan, alert overdue, grafik, dan tabel di bawahnya
-  otomatis mengikuti filter yang aktif.
-- Klik satu baris di tabel yang punya nilai Unit (Blok/No. Unit terisi)
-  untuk membuka **Detail per Unit** — riwayat SPK, Home With AI, dan
-  Purchasing unit tsb digabung dalam satu panel, terlepas dari filter yang
-  sedang aktif di halaman utama.
+- Ada 4 menu di bagian atas (di bawah header):
+  - **Dashboard** — ringkasan: filter Kategori/Tahun/Bulan/GP/Proyek + kotak
+    pencarian, kartu ringkasan, alert overdue, 5 grafik, dan tabel per
+    kategori (SPK/Home With AI/Purchasing) yang mengikuti filter aktif.
+  - **Master Data SPK** — seluruh kolom SPK apa adanya (persis tab GP1–GP4
+    di spreadsheet), dengan sub-tab untuk memilih GP tertentu atau "Semua".
+  - **Master Data Purchasing** — seluruh kolom tab Purchasing apa adanya.
+  - **Master Data Home With AI** — seluruh kolom tab Home With AI apa
+    adanya.
+  Ketiga menu Master Data ini punya kotak pencari sendiri dan **tidak**
+  ikut filter Kategori/Tahun/Bulan/GP/Proyek di menu Dashboard — sengaja
+  dibuat sebagai tampilan "apa adanya" dari data mentah per tab.
+- Klik satu baris di tabel manapun (Dashboard maupun Master Data) yang
+  punya nilai Unit (Blok/No. Unit terisi) untuk membuka **Detail per
+  Unit** — riwayat SPK, Home With AI, dan Purchasing unit tsb digabung
+  dalam satu panel, terlepas dari filter/menu yang sedang aktif.
 - Tombol **⟳ Refresh** di kanan atas menarik data terbaru dari spreadsheet
-  kapan saja; dashboard juga auto-refresh setiap ~3 menit sendiri.
+  kapan saja. Auto-refresh berjalan sendiri di latar belakang — intervalnya
+  bisa diatur lewat dropdown **Auto-refresh** di sebelah tombol Refresh
+  (pilihan: 1/5/10/20/30 menit, default 5 menit). Pilihan interval
+  tersimpan per browser (lewat localStorage), jadi tidak perlu diatur
+  ulang tiap kali dibuka.
 
 ---
 

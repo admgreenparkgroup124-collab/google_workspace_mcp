@@ -23,6 +23,20 @@
   var refreshTimer = null;
   var isLoading = false;
 
+  var currentView = 'dashboard'; // 'dashboard' | 'master-spk' | 'master-purchasing' | 'master-hwa'
+  var masterSpkGp = '';          // '' = semua GP, else 'GP1'..'GP4' (cocok dengan sourceTab)
+  var masterSpkSearch = '';
+  var masterPurSearch = '';
+  var masterHwaSearch = '';
+  var masterSpkSort = { key: null, dir: 1 };
+  var masterPurSort = { key: null, dir: 1 };
+  var masterHwaSort = { key: null, dir: 1 };
+
+  var SYNC_STORAGE_KEY = 'gpg_spk_dashboard_sync_minutes';
+  var SYNC_OPTIONS = [1, 5, 10, 20, 30];
+  var DEFAULT_SYNC_MINUTES = 5;
+  var syncMinutes = DEFAULT_SYNC_MINUTES;
+
   var MONTHS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
   var TABLE_COLUMNS = {
@@ -61,6 +75,55 @@
       { key: 'keterangan', label: 'Keterangan' }
     ]
   };
+
+  // Kolom lengkap untuk halaman Master Data -- semua field dari payload
+  // getDashboardData(), persis urutan kolom di spreadsheet sumber (PRD 6).
+  var MASTER_SPK_COLUMNS = [
+    { key: 'sourceTab', label: 'Tab' },
+    { key: 'noSpk', label: 'No. SPK' },
+    { key: 'jenisSpk', label: 'Jenis SPK' },
+    { key: 'itemSpk', label: 'Item SPK' },
+    { key: 'gp', label: 'Grup Proyek' },
+    { key: 'proyek', label: 'Nama Proyek' },
+    { key: 'unit', label: 'Blok/Unit' },
+    { key: 'kontraktor', label: 'Kontraktor/Vendor' },
+    { key: 'subKontraktor', label: 'Sub Kontraktor' },
+    { key: 'namaPekerjaan', label: 'Nama Pekerjaan' },
+    { key: 'volume', label: 'Volume' },
+    { key: 'satuan', label: 'Satuan' },
+    { key: 'hargaPerMeter', label: 'Harga/Meter (Rp)', format: 'currency' },
+    { key: 'nilaiKontrak', label: 'Nilai Kontrak (Rp)', format: 'currency' },
+    { key: 'nilaiAddendum', label: 'Nilai Addendum (Rp)', format: 'currency' },
+    { key: 'nilaiTotal', label: 'Nilai Total (Rp)', format: 'currency' },
+    { key: 'tanggalTerbit', label: 'Tanggal Terbit' },
+    { key: 'tanggalSelesaiEfektif', label: 'Tanggal Selesai' },
+    { key: 'isOverdue', label: 'Status', format: 'overdue' },
+    { key: 'picAdminTeknik', label: 'PIC Admin Teknik' },
+    { key: 'keterangan', label: 'Keterangan' },
+    { key: 'lampiran', label: 'Lampiran' }
+  ];
+
+  var MASTER_PUR_COLUMNS = [
+    { key: 'gp', label: 'Grup Proyek' },
+    { key: 'proyek', label: 'Nama Proyek' },
+    { key: 'unit', label: 'Blok/Unit' },
+    { key: 'jenisPengadaan', label: 'Jenis Pengadaan' },
+    { key: 'namaBarang', label: 'Nama Barang/Item' },
+    { key: 'nilai', label: 'Nilai (Rp)', format: 'currency' },
+    { key: 'statusPekerjaan', label: 'Status Pekerjaan' },
+    { key: 'tanggal', label: 'Tanggal' },
+    { key: 'keterangan', label: 'Keterangan' }
+  ];
+
+  var MASTER_HWA_COLUMNS = [
+    { key: 'gp', label: 'Grup Proyek' },
+    { key: 'proyek', label: 'Nama Proyek' },
+    { key: 'unit', label: 'Blok/Unit' },
+    { key: 'status', label: 'Status', format: 'hwaStatus' },
+    { key: 'nilai', label: 'Nilai (Rp)', format: 'currency' },
+    { key: 'tanggalTerpasang', label: 'Tanggal Terpasang' },
+    { key: 'keterangan', label: 'Keterangan' }
+  ];
 
   // ---------------------------------------------------------------------
   // Helpers
@@ -148,7 +211,7 @@
     rawData = payload;
     updateSyncStatus();
     populateFilterOptions();
-    renderAll();
+    renderCurrentView();
   }
 
   function onDataError(err) {
@@ -167,7 +230,8 @@
     var timeStr = new Intl.DateTimeFormat('id-ID', {
       timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
     }).format(d);
-    document.getElementById('syncStatus').textContent = 'Terakhir sinkron: ' + timeStr + ' WIB';
+    document.getElementById('syncStatus').textContent =
+      'Terakhir sinkron: ' + timeStr + ' WIB · auto tiap ' + syncMinutes + ' menit';
   }
 
   // ---------------------------------------------------------------------
@@ -557,45 +621,44 @@
   }
 
   // ---------------------------------------------------------------------
-  // Table
+  // Table (generic builder, dipakai tabel Dashboard + ketiga tabel Master Data)
   // ---------------------------------------------------------------------
-  function renderTable(fSpk, fHwa, fPur) {
-    var dataMap = { spk: fSpk, homeWithAi: fHwa, purchasing: fPur };
-    var rows = dataMap[activeTableTab].slice();
-    var columns = TABLE_COLUMNS[activeTableTab];
+  function buildDataTable(opts) {
+    // opts: theadEl, tbodyEl, countEl, rows, columns, sortState, search, onHeaderClick, onRowClick
+    var rows = opts.rows.slice();
+    var columns = opts.columns;
+    var sortState = opts.sortState;
 
-    if (tableSearch) {
-      var q = tableSearch.toLowerCase();
+    if (opts.search) {
+      var q = opts.search.toLowerCase();
       rows = rows.filter(function (r) { return JSON.stringify(r).toLowerCase().indexOf(q) !== -1; });
     }
 
-    if (tableSort.key) {
+    if (sortState.key) {
       rows.sort(function (a, b) {
-        var av = a[tableSort.key], bv = b[tableSort.key];
-        if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * tableSort.dir;
+        var av = a[sortState.key], bv = b[sortState.key];
+        if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * sortState.dir;
         av = String(av || ''); bv = String(bv || '');
-        return av.localeCompare(bv) * tableSort.dir;
+        return av.localeCompare(bv) * sortState.dir;
       });
     }
 
-    var thead = document.querySelector('#dataTable thead');
-    thead.innerHTML = '';
+    opts.theadEl.innerHTML = '';
     var headRow = document.createElement('tr');
     columns.forEach(function (col) {
       var th = document.createElement('th');
-      var arrow = tableSort.key === col.key ? (tableSort.dir === 1 ? ' ▲' : ' ▼') : '';
+      var arrow = sortState.key === col.key ? (sortState.dir === 1 ? ' ▲' : ' ▼') : '';
       th.textContent = col.label + arrow;
       th.addEventListener('click', function () {
-        if (tableSort.key === col.key) tableSort.dir *= -1;
-        else { tableSort.key = col.key; tableSort.dir = 1; }
-        renderTable(getFilteredSpk(), getFilteredHomeWithAi(), getFilteredPurchasing());
+        if (sortState.key === col.key) sortState.dir *= -1;
+        else { sortState.key = col.key; sortState.dir = 1; }
+        opts.onHeaderClick();
       });
       headRow.appendChild(th);
     });
-    thead.appendChild(headRow);
+    opts.theadEl.appendChild(headRow);
 
-    var tbody = document.querySelector('#dataTable tbody');
-    tbody.innerHTML = '';
+    opts.tbodyEl.innerHTML = '';
 
     if (!rows.length) {
       var emptyRow = document.createElement('tr');
@@ -604,7 +667,7 @@
       td.colSpan = columns.length;
       td.textContent = 'Tidak ada data untuk filter saat ini.';
       emptyRow.appendChild(td);
-      tbody.appendChild(emptyRow);
+      opts.tbodyEl.appendChild(emptyRow);
     } else {
       rows.forEach(function (r) {
         var tr = document.createElement('tr');
@@ -619,16 +682,32 @@
           else td.textContent = val === '' || val == null ? '–' : val;
           tr.appendChild(td);
         });
-        if (r.unitKey) {
-          tr.addEventListener('click', function () { openUnitDetail(r); });
+        if (r.unitKey && opts.onRowClick) {
+          tr.addEventListener('click', function () { opts.onRowClick(r); });
         } else {
           tr.style.cursor = 'default';
         }
-        tbody.appendChild(tr);
+        opts.tbodyEl.appendChild(tr);
       });
     }
 
-    document.getElementById('tableCount').textContent = rows.length + ' baris';
+    opts.countEl.textContent = rows.length + ' baris';
+  }
+
+  // ---- Tabel Dashboard (per kategori, ikut filter atas) ----
+  function renderTable(fSpk, fHwa, fPur) {
+    var dataMap = { spk: fSpk, homeWithAi: fHwa, purchasing: fPur };
+    buildDataTable({
+      theadEl: document.querySelector('#dataTable thead'),
+      tbodyEl: document.querySelector('#dataTable tbody'),
+      countEl: document.getElementById('tableCount'),
+      rows: dataMap[activeTableTab],
+      columns: TABLE_COLUMNS[activeTableTab],
+      sortState: tableSort,
+      search: tableSearch,
+      onHeaderClick: function () { renderTable(getFilteredSpk(), getFilteredHomeWithAi(), getFilteredPurchasing()); },
+      onRowClick: openUnitDetail
+    });
   }
 
   document.getElementById('tableTabs').addEventListener('click', function (e) {
@@ -644,6 +723,131 @@
     tableSearch = e.target.value;
     renderTable(getFilteredSpk(), getFilteredHomeWithAi(), getFilteredPurchasing());
   });
+
+  // ---- Master Data SPK (semua kolom, semua GP kecuali difilter tab GP1-4) ----
+  function renderMasterSpk() {
+    var rows = rawData.spk;
+    if (masterSpkGp) rows = rows.filter(function (r) { return r.sourceTab === masterSpkGp; });
+    buildDataTable({
+      theadEl: document.querySelector('#masterSpkTable thead'),
+      tbodyEl: document.querySelector('#masterSpkTable tbody'),
+      countEl: document.getElementById('masterSpkCount'),
+      rows: rows,
+      columns: MASTER_SPK_COLUMNS,
+      sortState: masterSpkSort,
+      search: masterSpkSearch,
+      onHeaderClick: renderMasterSpk,
+      onRowClick: openUnitDetail
+    });
+  }
+  document.getElementById('masterSpkGpTabs').addEventListener('click', function (e) {
+    var btn = e.target.closest('button[data-gp]');
+    if (!btn) return;
+    masterSpkGp = btn.getAttribute('data-gp');
+    document.querySelectorAll('#masterSpkGpTabs button').forEach(function (b) { b.classList.toggle('active', b === btn); });
+    masterSpkSort = { key: null, dir: 1 };
+    renderMasterSpk();
+  });
+  document.getElementById('masterSpkSearch').addEventListener('input', function (e) {
+    masterSpkSearch = e.target.value;
+    renderMasterSpk();
+  });
+
+  // ---- Master Data Purchasing (semua kolom) ----
+  function renderMasterPurchasing() {
+    buildDataTable({
+      theadEl: document.querySelector('#masterPurTable thead'),
+      tbodyEl: document.querySelector('#masterPurTable tbody'),
+      countEl: document.getElementById('masterPurCount'),
+      rows: rawData.purchasing,
+      columns: MASTER_PUR_COLUMNS,
+      sortState: masterPurSort,
+      search: masterPurSearch,
+      onHeaderClick: renderMasterPurchasing,
+      onRowClick: openUnitDetail
+    });
+  }
+  document.getElementById('masterPurSearch').addEventListener('input', function (e) {
+    masterPurSearch = e.target.value;
+    renderMasterPurchasing();
+  });
+
+  // ---- Master Data Home With AI (semua kolom) ----
+  function renderMasterHwa() {
+    buildDataTable({
+      theadEl: document.querySelector('#masterHwaTable thead'),
+      tbodyEl: document.querySelector('#masterHwaTable tbody'),
+      countEl: document.getElementById('masterHwaCount'),
+      rows: rawData.homeWithAi,
+      columns: MASTER_HWA_COLUMNS,
+      sortState: masterHwaSort,
+      search: masterHwaSearch,
+      onHeaderClick: renderMasterHwa,
+      onRowClick: openUnitDetail
+    });
+  }
+  document.getElementById('masterHwaSearch').addEventListener('input', function (e) {
+    masterHwaSearch = e.target.value;
+    renderMasterHwa();
+  });
+
+  // ---------------------------------------------------------------------
+  // Navigasi antar halaman (Dashboard / Master Data)
+  // ---------------------------------------------------------------------
+  function renderCurrentView() {
+    if (currentView === 'dashboard') renderAll();
+    else if (currentView === 'master-spk') renderMasterSpk();
+    else if (currentView === 'master-purchasing') renderMasterPurchasing();
+    else if (currentView === 'master-hwa') renderMasterHwa();
+  }
+
+  document.getElementById('appNav').addEventListener('click', function (e) {
+    var btn = e.target.closest('button[data-view]');
+    if (!btn) return;
+    currentView = btn.getAttribute('data-view');
+    document.querySelectorAll('#appNav button').forEach(function (b) { b.classList.toggle('active', b === btn); });
+    document.querySelectorAll('.view').forEach(function (el) { el.hidden = (el.id !== 'view-' + currentView); });
+    renderCurrentView();
+  });
+
+  // ---------------------------------------------------------------------
+  // Auto-refresh interval (bisa diatur: 1/5/10/20/30 menit, tersimpan per browser)
+  // ---------------------------------------------------------------------
+  function loadSyncPreference() {
+    try {
+      var stored = parseInt(localStorage.getItem(SYNC_STORAGE_KEY), 10);
+      if (SYNC_OPTIONS.indexOf(stored) !== -1) return stored;
+    } catch (e) { /* localStorage tidak tersedia -- pakai default */ }
+    return DEFAULT_SYNC_MINUTES;
+  }
+  function saveSyncPreference(minutes) {
+    try { localStorage.setItem(SYNC_STORAGE_KEY, String(minutes)); } catch (e) { /* abaikan */ }
+  }
+  function scheduleAutoRefresh() {
+    if (refreshTimer) clearInterval(refreshTimer);
+    refreshTimer = setInterval(function () { loadData(false); }, syncMinutes * 60000);
+  }
+
+  syncMinutes = loadSyncPreference();
+  var syncIntervalSelect = document.getElementById('syncInterval');
+  syncIntervalSelect.value = String(syncMinutes);
+  syncIntervalSelect.addEventListener('change', function () {
+    syncMinutes = parseInt(syncIntervalSelect.value, 10) || DEFAULT_SYNC_MINUTES;
+    saveSyncPreference(syncMinutes);
+    scheduleAutoRefresh();
+    updateSyncStatus();
+  });
+
+  // ---------------------------------------------------------------------
+  // Sticky offset -- topbar sekarang 2 baris (info + menu nav), jadi tinggi
+  // realnya dihitung dari DOM, bukan angka tetap di CSS.
+  // ---------------------------------------------------------------------
+  function syncStickyOffsets() {
+    var topbar = document.querySelector('.topbar');
+    var filtersEl = document.getElementById('filters');
+    if (topbar && filtersEl) filtersEl.style.top = topbar.offsetHeight + 'px';
+  }
+  window.addEventListener('resize', syncStickyOffsets);
 
   // ---------------------------------------------------------------------
   // Unit detail modal
@@ -727,7 +931,8 @@
   // ---------------------------------------------------------------------
   // Init
   // ---------------------------------------------------------------------
+  syncStickyOffsets();
   loadData(true);
-  refreshTimer = setInterval(function () { loadData(false); }, 180000); // auto-refresh tiap 3 menit
+  scheduleAutoRefresh();
 })();
 </script>
