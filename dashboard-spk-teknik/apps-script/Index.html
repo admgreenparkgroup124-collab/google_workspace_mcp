@@ -228,13 +228,14 @@
             <tbody></tbody>
           </table>
         </div>
-        <p class="master-hint">Gabungan lintas SPK/Purchasing/Home With AI yang punya target SLA (diatur di tab "SLA Config"). Baris tanpa target SLA yang cocok tidak ditampilkan di sini.</p>
+        <p class="master-hint">Gabungan lintas SPK/Purchasing/Home With AI. Kolom "Target (Hari)" diisi manual langsung di sini per baris oleh PIC terkait (Haris/Ajis untuk SPK sesuai GP, Kahfi untuk Purchasing, Naufal untuk Home With AI) — dibandingkan ke hari berjalan sejak Tanggal Mulai baris itu untuk menentukan status Overdue/On Track. Pengguna lain melihat kolom ini sebagai angka biasa (baca-saja).</p>
       </section>
     </div>
 
     <footer class="footer-note">
       Data disinkronkan otomatis dari Google Sheets Master Database SPK Teknik GPG.
-      Dashboard ini read-only — perubahan data dilakukan langsung di spreadsheet oleh PIC masing-masing.
+      Dashboard ini read-only, kecuali kolom "Target (Hari)" di Master Data SLA yang bisa diisi
+      langsung oleh PIC terkait — perubahan data lain dilakukan langsung di spreadsheet oleh PIC masing-masing.
     </footer>
 
     <div class="unit-modal-backdrop" id="unitModalBackdrop">

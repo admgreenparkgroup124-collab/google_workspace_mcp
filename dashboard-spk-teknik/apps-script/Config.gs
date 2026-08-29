@@ -14,23 +14,16 @@ var CONFIG = {
   HOME_WITH_AI_TAB: 'Home With AI',
   PURCHASING_TAB: 'Purchasing',
   ACCESS_TAB: 'Akses',
-  SLA_CONFIG_TAB: 'SLA Config',
 
   // Jenis SPK yang Tanggal Selesai-nya otomatis dihitung (Tanggal Terbit + 5 bulan)
   UNIT_RUMAH_JENIS_SPK: 'UNIT RUMAH',
   UNIT_RUMAH_OVERDUE_MONTHS: 5,
 
-  // Dipakai sebagai fallback target SLA (hari) untuk SPK Unit Rumah kalau
-  // tidak ada baris yang cocok di tab "SLA Config" -- supaya nilainya
-  // tetap konsisten dengan aturan Tanggal Selesai otomatis di atas
-  // (5 bulan ~ 30 hari/bulan) walau admin belum mengisi SLA Config sama
-  // sekali.
-  UNIT_RUMAH_DEFAULT_SLA_DAYS: 150,
-
-  // Label Kategori dipakai sebagai kunci lookup ke tab "SLA Config"
-  SLA_KATEGORI_SPK: 'SPK',
-  SLA_KATEGORI_PURCHASING: 'Purchasing',
-  SLA_KATEGORI_HWA: 'Home With AI'
+  // Fallback target SLA (hari) untuk SPK Unit Rumah selama PIC belum
+  // mengisi "Target Hari (SLA)" manual utk baris itu -- supaya tetap
+  // konsisten dengan aturan Tanggal Selesai otomatis di atas (5 bulan
+  // ~ 30 hari/bulan) alih-alih kosong begitu saja.
+  UNIT_RUMAH_DEFAULT_SLA_DAYS: 150
 };
 
 function getSpreadsheet() {
@@ -62,7 +55,8 @@ var SPK_FIELD_DEFS = [
   { key: 'tanggalSelesai', candidates: ['tanggal selesai'] },
   { key: 'picAdminTeknik', candidates: ['pic admin teknik'] },
   { key: 'keterangan', candidates: ['keterangan'] },
-  { key: 'lampiran', candidates: ['lampiran'] }
+  { key: 'lampiran', candidates: ['lampiran'] },
+  { key: 'targetHariSla', candidates: ['target hari sla', 'target hari'] }
 ];
 
 var HOME_WITH_AI_FIELD_DEFS = [
@@ -81,7 +75,8 @@ var HOME_WITH_AI_FIELD_DEFS = [
   { key: 'tanggalTerpasang', candidates: ['tanggal terpasang'] },
   { key: 'tanggalSelesai', candidates: ['tanggal selesai'] },
   { key: 'lampiran', candidates: ['lampiran'] },
-  { key: 'keterangan', candidates: ['keterangan'] }
+  { key: 'keterangan', candidates: ['keterangan'] },
+  { key: 'targetHariSla', candidates: ['target hari sla', 'target hari'] }
 ];
 
 var PURCHASING_FIELD_DEFS = [
@@ -98,19 +93,16 @@ var PURCHASING_FIELD_DEFS = [
   { key: 'tanggalMulai', candidates: ['tanggal order mulai', 'tanggal mulai', 'tanggal order'] },
   { key: 'tanggal', candidates: ['tanggal'] },
   { key: 'lampiran', candidates: ['lampiran'] },
-  { key: 'keterangan', candidates: ['keterangan'] }
+  { key: 'keterangan', candidates: ['keterangan'] },
+  { key: 'targetHariSla', candidates: ['target hari sla', 'target hari'] }
 ];
 
 var ACCESS_FIELD_DEFS = [
   { key: 'email', candidates: ['email', 'alamat email', 'email address'] },
-  { key: 'nama', candidates: ['nama', 'nama lengkap'] }
-];
-
-var SLA_CONFIG_FIELD_DEFS = [
-  { key: 'kategori', candidates: ['kategori'] },
-  { key: 'jenis', candidates: ['jenis'] },
-  { key: 'targetHari', candidates: ['target hari', 'target'] },
-  { key: 'keterangan', candidates: ['keterangan'] }
+  { key: 'nama', candidates: ['nama', 'nama lengkap'] },
+  // Scope tulis-balik SLA per PIC, dipisah koma: "SPK:GP1,SPK:GP2,SPK:GP4",
+  // "Purchasing", "HomeWithAi". Kosong/tidak ada kolom = viewer (baca saja).
+  { key: 'role', candidates: ['role', 'peran'] }
 ];
 
 // Status yang valid, dipakai untuk validasi ringan & urutan tampilan di UI

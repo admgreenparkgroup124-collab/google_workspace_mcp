@@ -1,10 +1,12 @@
 # Dashboard Monitoring SPK & PO — Green Park Group
 
-Dashboard read-only untuk memantau SPK, Home With AI, dan Purchasing
-Departemen Teknik GPG, dibangun sesuai `PRD_Dashboard_SPK_Teknik_GPG.md`
-(v1.3, final). Backend berupa Google Apps Script **container-bound**
-(dibuat langsung dari dalam Google Sheets sumber data), disajikan sebagai
-Web App.
+Dashboard untuk memantau SPK, Home With AI, dan Purchasing Departemen
+Teknik GPG, dibangun sesuai `PRD_Dashboard_SPK_Teknik_GPG.md` (v1.3,
+final). Pada dasarnya read-only, kecuali satu fitur tulis-balik yang
+disengaja: PIC terkait bisa mengisi **Target Hari SLA** per baris
+langsung dari halaman Master Data SLA. Backend berupa Google Apps Script
+**container-bound** (dibuat langsung dari dalam Google Sheets sumber
+data), disajikan sebagai Web App.
 
 Spreadsheet sumber:
 https://docs.google.com/spreadsheets/d/1KyKiyRguYrFdCS2jQqKfrNhR4nvtbPVrV6abr0pR-48/edit
@@ -41,7 +43,7 @@ Buka spreadsheet-nya, lalu:
 Baris header (baris 1), persis urutan ini:
 
 ```
-Grup Proyek | Nama Proyek | Blok/No. Unit | Status | Nama Vendor | Satuan | Harga Satuan (Rp) | Harga Total (Rp) | Tanggal Order/Mulai | Tanggal Terpasang | Tanggal Selesai | Lampiran | Keterangan
+Grup Proyek | Nama Proyek | Blok/No. Unit | Status | Nama Vendor | Satuan | Harga Satuan (Rp) | Harga Total (Rp) | Tanggal Order/Mulai | Tanggal Terpasang | Tanggal Selesai | Lampiran | Keterangan | Target Hari (SLA)
 ```
 
 - Kolom **Status** hanya boleh salah satu dari: `Belum Order`, `On Proses`,
@@ -52,9 +54,14 @@ Grup Proyek | Nama Proyek | Blok/No. Unit | Status | Nama Vendor | Satuan | Harg
   per satuan vs nilai total paket). Kalau cuma ada satu angka lump-sum,
   isi di **Harga Total (Rp)** saja, **Harga Satuan (Rp)** & **Satuan** boleh
   dikosongkan.
-- **Tanggal Order/Mulai**: tanggal mulai proses (dipakai dashboard untuk
-  hitung SLA — lihat Bagian 2c). Kalau kosong, unit tsb tidak akan muncul
-  di halaman Master Data SLA sampai diisi.
+- **Tanggal Order/Mulai**: tanggal mulai proses (titik awal hitung SLA —
+  lihat Bagian 2c). Kalau kosong, unit tsb tidak akan muncul di halaman
+  Master Data SLA sampai diisi.
+- **Target Hari (SLA)**: kolom baru, **boleh dikosongkan** — diisi
+  otomatis oleh dashboard saat Naufal (atau PIC terkait) menginput Target
+  Hari langsung di halaman Master Data SLA (lihat Bagian 2c). Tidak perlu
+  diisi manual di spreadsheet, tapi kalau mau isi manual di sini juga
+  boleh, dashboard membacanya sama saja.
 - **Tanggal Terpasang**: tanggal instalasi (kosongkan kalau belum).
 - **Tanggal Selesai**: milestone terpisah dari Tanggal Terpasang — dipakai
   dashboard untuk tahu proses ini sudah benar-benar selesai (SLA berhenti
@@ -68,17 +75,20 @@ Grup Proyek | Nama Proyek | Blok/No. Unit | Status | Nama Vendor | Satuan | Harg
 Baris header:
 
 ```
-Grup Proyek | Nama Proyek | Blok/No. Unit | Jenis Pengadaan | Nama Barang/Item | Nama Vendor | Satuan | Harga Satuan (Rp) | Harga Total (Rp) | Status Pekerjaan | Tanggal Order/Mulai | Tanggal | Lampiran | Keterangan
+Grup Proyek | Nama Proyek | Blok/No. Unit | Jenis Pengadaan | Nama Barang/Item | Nama Vendor | Satuan | Harga Satuan (Rp) | Harga Total (Rp) | Status Pekerjaan | Tanggal Order/Mulai | Tanggal | Lampiran | Keterangan | Target Hari (SLA)
 ```
 
 - **Jenis Pengadaan**: `Promo Unit` / `Material PSU` / `Material Unit Bangunan` (Data Validation disarankan).
 - **Blok/No. Unit**: isi untuk Promo Unit & Material Unit Bangunan; **kosongkan** untuk Material PSU.
 - **Harga Satuan (Rp)** / **Harga Total (Rp)**: sama seperti Home With AI di atas — kalau cuma ada satu angka lump-sum, isi **Harga Total (Rp)** saja.
 - **Status Pekerjaan**: untuk Material → `Belum Order`/`On Proses`/`Sudah Order`; untuk Promo Unit → `Belum Terpasang`/`On Proses`/`Terpasang`.
-- **Tanggal Order/Mulai**: tanggal mulai proses, dipakai untuk hitung SLA
+- **Tanggal Order/Mulai**: tanggal mulai proses, titik awal hitung SLA
   (Bagian 2c) — **beda** dari kolom **Tanggal** yang sudah ada (yang tetap
   berarti tanggal transaksi/terakhir seperti sebelumnya).
 - **Lampiran**: link/nama file bukti, teks bebas.
+- **Target Hari (SLA)**: kolom baru, **boleh dikosongkan** — diisi otomatis
+  dashboard saat Kahfi menginput Target Hari di halaman Master Data SLA
+  (Bagian 2c).
 
 > Catatan kompatibilitas: kalau tab Purchasing/Home With AI sudah pernah
 > dibuat dengan header lama "Nilai (Rp)" (bukan "Harga Total (Rp)"), tidak
@@ -86,48 +96,46 @@ Grup Proyek | Nama Proyek | Blok/No. Unit | Jenis Pengadaan | Nama Barang/Item |
 > dengan benar. Rename ke "Harga Total (Rp)" kapan saja Anda sempat, biar
 > konsisten dengan label yang tampil di dashboard.
 
-### 2c. Tambah tab **"SLA Config"** (opsional, untuk fitur alert keterlambatan)
+### 2c. Kolom **"Target Hari (SLA)"** di tab GP1–GP4, dan cara kerja Master Data SLA
 
-Tab baru ini menentukan target hari untuk tiap jenis proses — dipakai
-halaman **Master Data SLA** di dashboard untuk otomatis menandai proses
-yang sudah lewat target ("Overdue"). Bisa diisi/diubah kapan saja tanpa
-perlu deploy ulang script. Baris header:
+Berbeda dari rencana awal (tab "SLA Config" terpisah, target per
+kategori): **Target Hari SLA diinput manual per baris/proses, langsung
+dari dashboard** (halaman Master Data SLA) oleh PIC yang berwenang untuk
+proses itu — bukan lookup dari kategori. Yang perlu Anda siapkan di
+spreadsheet cuma kolomnya; isinya nanti diisi lewat dashboard.
 
-```
-Kategori | Jenis | Target Hari | Keterangan
-```
+**Tambahkan kolom "Target Hari (SLA)" di ujung kanan tiap tab GP1, GP2,
+GP3, GP4** (tab Home With AI & Purchasing sudah otomatis mengikutkan
+kolom ini kalau Anda pakai header di Bagian 2a/2b di atas). Kolom ini
+**boleh dikosongkan** — dashboard akan mengisinya otomatis saat PIC
+menyimpan Target Hari lewat halaman Master Data SLA. Angka yang sudah
+tersimpan tetap bisa Anda lihat/ubah manual di sini juga kalau perlu,
+dashboard membacanya sama saja.
 
-Contoh isi (silakan sesuaikan angkanya dengan SLA riil GPG):
+**Cara kerja di dashboard:** di halaman **Master Data SLA**, tiap baris
+proses (SPK/Purchasing/Home With AI yang sudah punya Tanggal
+Terbit/Tanggal Order-Mulai) menampilkan kolom "Target (Hari)". PIC yang
+berwenang untuk baris itu (lihat kolom Role di Bagian 2d di bawah) melihat
+kolom ini sebagai kotak input angka — isi jumlah hari targetnya, tekan
+Tab/Enter atau klik keluar dari kotaknya, otomatis tersimpan ke sel yang
+bersangkutan di spreadsheet. Pengguna lain (yang bukan PIC proses itu)
+melihat kolom yang sama sebagai angka biasa, baca-saja. Dashboard lalu
+membandingkan Target Hari itu terhadap jumlah hari sejak Tanggal Mulai
+baris tsb untuk menandai status **Overdue**/**On Track**/**Selesai**.
 
-```
-Kategori      | Jenis                     | Target Hari | Keterangan
-SPK           | PSU                       | 30           | -
-SPK           | UNIT RUMAH                | 150          | -
-Purchasing    | Promo Unit                | 14           | -
-Purchasing    | Material PSU              | 21           | -
-Purchasing    | Material Unit Bangunan    | 21           | -
-Home With AI  | -                         | 21           | -
-```
+Khusus **SPK Jenis UNIT RUMAH**: kalau Target Hari belum diisi sama
+sekali, dashboard memakai fallback 150 hari (konsisten dengan alert
+overdue yang sudah ada di menu Dashboard, Bagian 5) — begitu PIC mengisi
+Target Hari manual untuk baris itu, nilai manual itu yang dipakai.
 
-- **Kategori** harus persis salah satu dari: `SPK`, `Purchasing`, `Home With AI`.
-- **Jenis**: untuk SPK isi `PSU` atau `UNIT RUMAH`; untuk Purchasing isi
-  salah satu Jenis Pengadaan (`Promo Unit`/`Material PSU`/`Material Unit
-  Bangunan`); untuk Home With AI (yang tidak punya sub-jenis) isi `-` atau
-  kosongkan saja.
-- Kalau tab ini belum dibuat sama sekali, atau ada Kategori+Jenis yang
-  belum ada baris SLA-nya, dashboard **tidak error** — baris data yang
-  bersangkutan cuma tidak muncul di halaman Master Data SLA (dianggap
-  tidak dilacak SLA-nya). **Kecuali SPK UNIT RUMAH**, yang selalu punya
-  target fallback 150 hari walau belum diisi di sini, supaya konsisten
-  dengan alert overdue yang sudah ada di menu Dashboard.
+### 2d. Tambah tab **"Akses"** (+ kolom **Role** untuk siapa boleh isi Target Hari SLA)
 
-### 2d. Tambah tab **"Akses"**
-
-Tab baru, ini yang menentukan siapa saja yang boleh membuka dashboard.
-Baris header:
+Tab baru, ini yang menentukan siapa saja yang boleh membuka dashboard —
+dan sekarang juga siapa saja yang boleh mengisi Target Hari SLA lewat
+dashboard. Baris header:
 
 ```
-Email | Nama
+Email | Nama | Role
 ```
 
 > **Penting:** akses dashboard murni berdasarkan daftar di tab ini — tidak
@@ -137,20 +145,33 @@ Email | Nama
 > sendiri akan melihat halaman "Akses Ditolak" saat mencoba Web App-nya
 > setelah deploy.
 
-Isi satu baris per orang, kolom Email diisi alamat Gmail masing-masing,
-misalnya:
+Kolom **Role** menentukan scope tulis-balik Target Hari SLA milik tiap
+orang (pisahkan dengan koma kalau lebih dari satu) — **kosongkan** untuk
+orang yang hanya boleh melihat dashboard (viewer), termasuk CEO/Dirops/
+Kadep Teknik. Isi satu baris per orang, misalnya:
 
 ```
-Email                          | Nama
-haris@...                      | Haris
-ajis@...                       | Ajis
-kahfi@...                      | Kahfi
-naufal@...                     | Naufal
-ceo@...                        | CEO
-dirops@...                     | Dirops (Faiz Muhammad Alfatih)
-yudi@...                       | Yudi (Kadep Teknik)
+Email          | Nama                          | Role
+haris@...      | Haris                         | SPK:GP1,SPK:GP2,SPK:GP4
+ajis@...       | Ajis                          | SPK:GP3
+kahfi@...      | Kahfi                         | Purchasing
+naufal@...     | Naufal                        | HomeWithAi
+ceo@...        | CEO                           |
+dirops@...     | Dirops (Faiz Muhammad Alfatih)|
+yudi@...       | Yudi (Kadep Teknik)           |
 ```
 
+- `SPK:GP1` / `SPK:GP2` / `SPK:GP3` / `SPK:GP4` — boleh isi Target Hari
+  SLA untuk baris SPK di GP yang bersangkutan saja.
+- `Purchasing` — boleh isi Target Hari SLA untuk semua baris Purchasing.
+- `HomeWithAi` — boleh isi Target Hari SLA untuk semua baris Home With AI.
+- Penulisan harus persis (huruf besar/kecil bebas, tapi kata & tanda `:`
+  harus sama) — kalau salah ketik, orang tsb dianggap tidak punya scope
+  itu (aman, gagal-tertutup: bukan malah jadi bisa edit segalanya).
+
+> Baris Akses lama yang belum punya kolom Role tetap valid — otomatis
+> diperlakukan sebagai viewer (tidak bisa isi Target Hari apapun), jadi
+> menambah kolom Role tidak merusak akses siapapun yang sudah ada.
 > Tambahkan/hapus baris di tab ini kapan saja tanpa perlu deploy ulang
 > script — perubahan langsung berlaku di request berikutnya.
 
@@ -173,9 +194,23 @@ di semua tab termasuk Home With AI & Purchasing.
    - Tab GP3 → hanya Ajis yang boleh edit.
    - Tab Purchasing → hanya Kahfi.
    - Tab Home With AI → hanya Naufal.
-   - Tab Akses & SLA Config → hanya Anda (admin/pemilik) — dua tab ini
-     mengatur siapa boleh akses dan target SLA, sebaiknya tidak semua
-     orang bisa ubah.
+   - Tab Akses → hanya Anda (admin/pemilik) — tab ini mengatur siapa boleh
+     akses dashboard sekaligus scope tulis-balik Target Hari SLA (kolom
+     Role, Bagian 2d), sebaiknya tidak semua orang bisa ubah langsung di
+     spreadsheet.
+
+> Catatan penting: karena Web App di-deploy dengan **Execute as: User
+> accessing the web app** (Bagian 3), tulisan ke kolom **Target Hari
+> (SLA)** dari dashboard benar-benar berjalan atas nama akun PIC yang
+> sedang login — tunduk pada Protect sheet yang sama seperti kalau dia
+> mengetik langsung di spreadsheet. Ini pas dengan setup Protect sheet di
+> atas (Haris editor GP1/GP2/GP4, Ajis editor GP3, Kahfi editor
+> Purchasing, Naufal editor Home With AI), jadi tidak perlu pengaturan
+> tambahan. Kalau nanti ada PIC yang di kolom Role tab Akses (Bagian 2d)
+> diberi scope untuk suatu tab tapi belum diberi akses **Editor** ke tab
+> itu di Bagian 2f, input Target Hari-nya akan gagal tersimpan (muncul
+> pesan error di dashboard) — pastikan scope Role dan hak edit Protect
+> sheet selalu sinkron untuk orang yang sama.
 
 ---
 
@@ -250,8 +285,9 @@ sendiri), cara update:
     adanya (termasuk Nama Vendor, Satuan, Harga Satuan, Harga Total, Tgl
     Mulai, Tgl Selesai, Lampiran) + filter GP/Proyek/Status.
   - **Master Data SLA** — gabungan proses SPK/Purchasing/Home With AI yang
-    punya target SLA (diatur di tab "SLA Config", Bagian 2c), dengan
-    kolom Target Hari/Elapsed Hari/Status SLA dan alert otomatis kalau ada
+    sudah punya Tanggal Terbit/Tanggal Order-Mulai, dengan kolom Target
+    Hari (**diisi manual langsung di kolom ini** oleh PIC terkait — lihat
+    Bagian 2c), Elapsed Hari, dan Status SLA, plus alert otomatis kalau ada
     yang **Overdue** (lewat target). Filter GP/Proyek/Kategori/Status SLA.
   Keempat menu Master Data ini punya kotak pencari sendiri dan **tidak**
   ikut filter Tahun/Bulan/Kategori di menu Dashboard — sengaja dibuat
@@ -272,25 +308,27 @@ sendiri), cara update:
 
 ## 5. Batasan v1 / hal yang perlu diketahui
 
-- **Dashboard ini read-only.** Semua input data tetap dilakukan langsung
-  di Google Sheets oleh Haris/Ajis (SPK), Kahfi (Purchasing), Naufal (Home
-  With AI) — sesuai PRD Bagian 5 (out-of-scope: edit data dari dashboard).
+- **Dashboard ini read-only, kecuali satu pengecualian yang disengaja**:
+  kolom **Target Hari (SLA)** di halaman Master Data SLA, yang boleh
+  diisi langsung dari dashboard oleh PIC terkait (Bagian 2c/2d). Semua
+  data lain tetap diinput langsung di Google Sheets oleh Haris/Ajis (SPK),
+  Kahfi (Purchasing), Naufal (Home With AI) — sesuai PRD Bagian 5.
 - **Overdue** (kartu & alert di menu Dashboard) hanya dihitung untuk SPK
   Jenis **UNIT RUMAH** (target otomatis Tanggal Terbit + 5 bulan) — ini
   tidak berubah walau ada fitur SLA baru. **Master Data SLA** adalah
   lapisan tambahan terpisah yang bisa melacak keterlambatan di jenis
-  proses lain juga (SPK PSU, Purchasing, Home With AI), berdasar tab
-  "SLA Config" (Bagian 2c) — dua sistem alert ini sengaja dipisah supaya
-  perilaku overdue yang sudah ada tidak berubah tanpa diminta.
-- Baris Purchasing/Home With AI yang belum diisi kolom **Tanggal
-  Order/Mulai** tidak akan dianggap overdue di Master Data SLA (bukan
-  berarti tidak overdue beneran — cuma dashboard tidak punya titik mulai
-  untuk menghitungnya). Isi kolom itu supaya SLA-nya ikut terlacak.
+  proses lain juga (SPK PSU, Purchasing, Home With AI), berdasar Target
+  Hari yang diinput manual per baris (Bagian 2c) — dua sistem alert ini
+  sengaja dipisah supaya perilaku overdue yang sudah ada tidak berubah
+  tanpa diminta.
+- Baris SPK/Purchasing/Home With AI yang belum diisi kolom **Tanggal
+  Terbit**/**Tanggal Order/Mulai** tidak akan muncul di Master Data SLA
+  sama sekali (dashboard tidak punya titik mulai untuk menghitung SLA-nya).
+  Isi kolom itu dulu supaya baris tsb muncul dan PIC bisa mengisi Target
+  Harinya.
 - Kalau tab "Home With AI" atau "Purchasing" belum dibuat sama sekali,
   dashboard tetap jalan normal untuk data SPK — bagian Home With AI/
-  Purchasing akan tampil kosong (0), bukan error. Tab "SLA Config" yang
-  belum dibuat juga tidak error — Master Data SLA cuma akan kosong
-  (kecuali SPK Unit Rumah, yang tetap punya fallback 150 hari).
+  Purchasing akan tampil kosong (0), bukan error.
 - Baris di tab manapun yang GP/Nama Proyek/Kolom pentingnya kosong total
   akan dilewati otomatis (dianggap baris kosong), supaya tidak muncul
   sebagai data "hantu" di dashboard.

@@ -40,3 +40,59 @@ function getAllowedEmails_() {
   }
   return emails;
 }
+
+// Scope tulis-balik SLA milik satu email, dibaca dari kolom "Role" di tab
+// Akses (dipisah koma, mis. "SPK:GP1,SPK:GP2,SPK:GP4"). Baris lama tanpa
+// kolom Role atau nilai kosong -> array kosong (viewer, tidak bisa edit
+// apapun) -- non-breaking terhadap data Akses yang sudah ada.
+function getUserScopes_(email) {
+  var normalizedEmail = String(email || '').toLowerCase().trim();
+  if (!normalizedEmail) return [];
+
+  var sheet = getSpreadsheet().getSheetByName(CONFIG.ACCESS_TAB);
+  if (!sheet) return [];
+
+  var values = sheet.getDataRange().getValues();
+  if (values.length < 2) return [];
+
+  var headerMap = buildHeaderMap(values[0], ACCESS_FIELD_DEFS);
+  var emailCol = headerMap.email >= 0 ? headerMap.email : 0;
+
+  for (var i = 1; i < values.length; i++) {
+    var rowEmail = safeText(values[i][emailCol]).toLowerCase();
+    if (rowEmail !== normalizedEmail) continue;
+    var roleRaw = safeText(cellValue(values[i], headerMap, 'role'));
+    if (!roleRaw) return [];
+    return roleRaw.split(',').map(function (s) { return s.trim(); }).filter(function (s) { return !!s; });
+  }
+  return [];
+}
+
+// Sama seperti canEditSla_ tapi terima `scopes` yang sudah diambil
+// sebelumnya (lihat getUserScopes_) -- dipakai DataService.gs saat
+// membangun banyak baris sekaligus, supaya tidak baca ulang tab Akses
+// per baris. recordType: 'spk' | 'purchasing' | 'homeWithAi'. gp hanya
+// dipakai untuk recordType 'spk' (scope-nya per GP, mis. "SPK:GP1");
+// diabaikan untuk dua recordType lainnya (scope-nya "Purchasing"/
+// "HomeWithAi" saja, tidak per GP).
+function hasScope_(scopes, recordType, gp) {
+  if (!scopes || !scopes.length) return false;
+
+  if (recordType === 'spk') {
+    var wantedScope = 'SPK:' + normalizeKey(gp);
+    return scopes.some(function (s) { return normalizeKey(s) === wantedScope; });
+  }
+  if (recordType === 'purchasing') {
+    return scopes.some(function (s) { return normalizeKey(s) === 'PURCHASING'; });
+  }
+  if (recordType === 'homeWithAi') {
+    return scopes.some(function (s) { return normalizeKey(s) === 'HOMEWITHAI'; });
+  }
+  return false;
+}
+
+// recordType: 'spk' | 'purchasing' | 'homeWithAi'. Dipakai saat mengecek
+// satu permintaan tulis-balik tunggal (updateSlaTargetHari di Code.gs).
+function canEditSla_(email, recordType, gp) {
+  return hasScope_(getUserScopes_(email), recordType, gp);
+}

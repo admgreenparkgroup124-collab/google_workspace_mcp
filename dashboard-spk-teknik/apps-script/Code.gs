@@ -34,7 +34,41 @@ function getDashboardData() {
   if (!access.allowed) {
     throw new Error('Akses ditolak. Email ' + (access.email || '(tidak terdeteksi)') + ' belum terdaftar di tab Akses.');
   }
-  return buildDashboardPayload_();
+  return buildDashboardPayload_(access.email);
+}
+
+// Dipanggil client dari halaman Master Data SLA saat PIC mengedit "Target
+// Hari" langsung di dashboard. payload: { recordType, id, gp, targetHari }.
+// Setelah tulis berhasil, kembalikan payload dashboard yang sudah
+// di-refresh penuh supaya client tinggal ganti rawData & render ulang
+// (tidak perlu logic partial-update terpisah di frontend).
+function updateSlaTargetHari(payload) {
+  var access = checkAccess();
+  if (!access.allowed) {
+    throw new Error('Akses ditolak. Email ' + (access.email || '(tidak terdeteksi)') + ' belum terdaftar di tab Akses.');
+  }
+
+  payload = payload || {};
+  var recordType = payload.recordType;
+  var id = payload.id;
+  var gp = payload.gp;
+  var targetHari = Number(payload.targetHari);
+
+  if (['spk', 'purchasing', 'homeWithAi'].indexOf(recordType) === -1) {
+    throw new Error('recordType tidak valid.');
+  }
+  if (!id) {
+    throw new Error('id baris tidak boleh kosong.');
+  }
+  if (!isFinite(targetHari) || targetHari < 0) {
+    throw new Error('Target Hari harus berupa angka >= 0.');
+  }
+  if (!canEditSla_(access.email, recordType, gp)) {
+    throw new Error('Anda tidak berwenang mengubah Target Hari SLA untuk data ini.');
+  }
+
+  writeTargetHariSla_(recordType, id, targetHari);
+  return buildDashboardPayload_(access.email);
 }
 
 function renderAccessDeniedHtml_(email) {

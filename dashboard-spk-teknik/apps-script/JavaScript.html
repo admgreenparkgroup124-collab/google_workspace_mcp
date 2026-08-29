@@ -169,7 +169,7 @@
     { key: 'unit', label: 'Unit' },
     { key: 'ref', label: 'Referensi' },
     { key: 'slaStartDate', label: 'Tanggal Mulai', format: 'date' },
-    { key: 'slaTargetHari', label: 'Target (Hari)' },
+    { key: 'slaTargetHari', label: 'Target (Hari)', editable: true },
     { key: 'slaElapsedHari', label: 'Elapsed (Hari)' },
     { key: 'slaStatusLabel', label: 'Status SLA', format: 'slaStatus' }
   ];
@@ -228,6 +228,20 @@
     return 'badge-gray';
   }
 
+  // Toast singkat di pojok bawah -- dipakai utk pesan error (merah, sudah
+  // ada sebelumnya) maupun sukses (hijau, dipakai simpan Target Hari SLA).
+  var toastTimer = null;
+  function showToast(kind, message) {
+    var banner = document.getElementById('errorBanner');
+    banner.textContent = message;
+    banner.classList.toggle('toast-success', kind === 'success');
+    banner.hidden = false;
+    clearTimeout(toastTimer);
+    if (kind === 'success') {
+      toastTimer = setTimeout(function () { banner.hidden = true; }, 2500);
+    }
+  }
+
   // ---------------------------------------------------------------------
   // Clock (WIB, real-time)
   // ---------------------------------------------------------------------
@@ -281,9 +295,7 @@
     isLoading = false;
     document.getElementById('loadingOverlay').hidden = true;
     document.getElementById('refreshBtn').disabled = false;
-    var banner = document.getElementById('errorBanner');
-    banner.textContent = 'Gagal memuat data: ' + (err && err.message ? err.message : err);
-    banner.hidden = false;
+    showToast('error', 'Gagal memuat data: ' + (err && err.message ? err.message : err));
     document.getElementById('syncStatus').textContent = 'Gagal sinkron';
   }
 
@@ -737,7 +749,29 @@
         columns.forEach(function (col) {
           var td = document.createElement('td');
           var val = r[col.key];
-          if (col.format === 'currency') td.textContent = formatRupiah(val);
+          if (col.editable && r.canEditSla && opts.onCellEdit) {
+            var input = document.createElement('input');
+            input.type = 'number';
+            input.min = '0';
+            input.step = '1';
+            input.className = 'sla-edit-input';
+            if (val != null) input.value = val;
+            input.placeholder = '–';
+            input.addEventListener('click', function (e) { e.stopPropagation(); });
+            input.addEventListener('change', function () {
+              var raw = input.value.trim();
+              if (raw === '') return;
+              var num = Number(raw);
+              if (!isFinite(num) || num < 0) {
+                showToast('error', 'Target Hari harus angka >= 0.');
+                input.value = val != null ? val : '';
+                return;
+              }
+              input.disabled = true;
+              opts.onCellEdit(r, num, function () { input.disabled = false; });
+            });
+            td.appendChild(input);
+          } else if (col.format === 'currency') td.textContent = formatRupiah(val);
           else if (col.format === 'overdue') td.innerHTML = val ? '<span class="badge badge-red">Overdue</span>' : '<span class="badge badge-green">Sesuai Jadwal</span>';
           else if (col.format === 'hwaStatus') td.innerHTML = '<span class="badge ' + statusBadgeClass(val) + '">' + escapeHtml(val) + '</span>';
           else if (col.format === 'slaStatus') td.innerHTML = '<span class="badge ' + slaStatusBadgeClass(val) + '">' + escapeHtml(val) + '</span>';
@@ -979,36 +1013,45 @@
     return 'On Track';
   }
 
-  // Bangun baris gabungan dari 3 array yang sudah ada di rawData -- hanya
-  // baris yang punya target SLA (slaTargetHari terisi, dari tab "SLA
-  // Config" atau fallback SPK Unit Rumah) yang ikut ditampilkan.
+  // Bangun baris gabungan dari 3 array yang sudah ada di rawData. Berbeda
+  // dari desain lama (SLA Config per kategori): SEMUA baris ditampilkan di
+  // sini, termasuk yang Target Hari-nya belum diisi -- supaya PIC terkait
+  // bisa langsung mengisinya lewat kolom "Target (Hari)" yang editable
+  // (lihat MASTER_SLA_COLUMNS/buildDataTable). recordType/underlyingId
+  // dibawa serta supaya onCellEdit tahu ke mana harus menulis balik.
   function buildSlaRows() {
     var rows = [];
     rawData.spk.forEach(function (r) {
-      if (r.slaTargetHari == null) return;
+      if (!r.slaStartDate) return; // tanpa Tanggal Terbit, tidak ada titik awal SLA
       rows.push({
-        id: 'sla-spk-' + r.id, kategori: 'SPK', jenis: r.jenisSpk,
+        id: 'sla-spk-' + r.id, recordType: 'spk', underlyingId: r.id,
+        kategori: 'SPK', jenis: r.jenisSpk,
         gp: r.gp, proyek: r.proyek, unit: r.unit, unitKey: r.unitKey, ref: r.noSpk,
         slaStartDate: r.slaStartDate, slaTargetHari: r.slaTargetHari,
-        slaElapsedHari: r.slaElapsedHari, slaOverdue: r.slaOverdue, slaDone: r.slaDone
+        slaElapsedHari: r.slaElapsedHari, slaOverdue: r.slaOverdue, slaDone: r.slaDone,
+        canEditSla: r.canEditSla
       });
     });
     rawData.purchasing.forEach(function (r) {
-      if (r.slaTargetHari == null) return;
+      if (!r.slaStartDate) return; // tanpa Tanggal Order/Mulai, tidak ada titik awal SLA
       rows.push({
-        id: 'sla-pur-' + r.id, kategori: 'Purchasing', jenis: r.jenisPengadaan,
+        id: 'sla-pur-' + r.id, recordType: 'purchasing', underlyingId: r.id,
+        kategori: 'Purchasing', jenis: r.jenisPengadaan,
         gp: r.gp, proyek: r.proyek, unit: r.unit, unitKey: r.unitKey, ref: r.namaBarang,
         slaStartDate: r.slaStartDate, slaTargetHari: r.slaTargetHari,
-        slaElapsedHari: r.slaElapsedHari, slaOverdue: r.slaOverdue, slaDone: r.slaDone
+        slaElapsedHari: r.slaElapsedHari, slaOverdue: r.slaOverdue, slaDone: r.slaDone,
+        canEditSla: r.canEditSla
       });
     });
     rawData.homeWithAi.forEach(function (r) {
-      if (r.slaTargetHari == null) return;
+      if (!r.slaStartDate) return; // tanpa Tanggal Order/Mulai, tidak ada titik awal SLA
       rows.push({
-        id: 'sla-hwa-' + r.id, kategori: 'Home With AI', jenis: '-',
+        id: 'sla-hwa-' + r.id, recordType: 'homeWithAi', underlyingId: r.id,
+        kategori: 'Home With AI', jenis: '-',
         gp: r.gp, proyek: r.proyek, unit: r.unit, unitKey: r.unitKey, ref: '-',
         slaStartDate: r.slaStartDate, slaTargetHari: r.slaTargetHari,
-        slaElapsedHari: r.slaElapsedHari, slaOverdue: r.slaOverdue, slaDone: r.slaDone
+        slaElapsedHari: r.slaElapsedHari, slaOverdue: r.slaOverdue, slaDone: r.slaDone,
+        canEditSla: r.canEditSla
       });
     });
     rows.forEach(function (r) { r.slaStatusLabel = slaStatusLabel(r); });
@@ -1040,8 +1083,37 @@
       tbodyEl: document.querySelector('#masterSlaTable tbody'),
       countEl: document.getElementById('masterSlaCount'),
       rows: rows, columns: MASTER_SLA_COLUMNS, sortState: masterSlaSort, search: masterSlaSearch,
-      onHeaderClick: renderMasterSla, onRowClick: openUnitDetail
+      onHeaderClick: renderMasterSla, onRowClick: openUnitDetail,
+      onCellEdit: onSlaTargetHariEdit
     });
+  }
+
+  // Dipanggil buildDataTable saat PIC menyimpan input Target Hari manual di
+  // halaman Master Data SLA. `row` adalah baris gabungan dari buildSlaRows
+  // (recordType/underlyingId/gp sudah dibawa serta). Setelah tersimpan,
+  // seluruh payload di-refresh dari server (respons updateSlaTargetHari
+  // sudah berisi data terbaru) supaya elapsed/overdue ikut terhitung ulang.
+  function onSlaTargetHariEdit(row, targetHari, done) {
+    google.script.run
+      .withSuccessHandler(function (payload) {
+        done();
+        rawData = payload;
+        updateSyncStatus();
+        populateFilterOptions();
+        populateMasterFilterOptions();
+        renderCurrentView();
+        showToast('success', 'Target Hari tersimpan.');
+      })
+      .withFailureHandler(function (err) {
+        done();
+        showToast('error', 'Gagal menyimpan: ' + (err && err.message ? err.message : err));
+      })
+      .updateSlaTargetHari({
+        recordType: row.recordType,
+        id: row.underlyingId,
+        gp: row.gp,
+        targetHari: targetHari
+      });
   }
   function pruneOrphanMasterSlaProyek() {
     if (!masterSlaProyek) return;

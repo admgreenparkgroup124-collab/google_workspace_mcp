@@ -10,17 +10,17 @@
  * sinkron dengan array aslinya.
  */
 
-function buildDashboardPayload_() {
+function buildDashboardPayload_(requestingEmail) {
   // Bandingkan per-tanggal (bukan timestamp persis) supaya unit yang jatuh
   // tempo HARI INI belum dianggap overdue -- baru overdue mulai besoknya,
   // sesuai PRD ("begitu tanggal hari ini melewati Tanggal Selesai").
   var now = new Date();
   var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  var slaConfig = getSlaConfig_();
+  var scopes = getUserScopes_(requestingEmail);
 
-  var spk = getSpkRows_(today, slaConfig);
-  var homeWithAi = getHomeWithAiRows_(today, slaConfig);
-  var purchasing = getPurchasingRows_(today, slaConfig);
+  var spk = getSpkRows_(today, scopes);
+  var homeWithAi = getHomeWithAiRows_(today, scopes);
+  var purchasing = getPurchasingRows_(today, scopes);
 
   return {
     generatedAt: new Date().toISOString(),
@@ -32,42 +32,21 @@ function buildDashboardPayload_() {
 }
 
 // ---------------------------------------------------------------------
-// SLA -- tab "SLA Config" (admin-editable) menentukan target hari per
-// Kategori+Jenis proses. Murni tambahan: tidak mengubah isOverdue/alert
-// overdue SPK Unit Rumah yang sudah ada (lihat komentar di getSpkRows_).
+// SLA -- "Target Hari" diinput manual per baris langsung dari dashboard
+// (kolom "Target Hari (SLA)" di tiap tab sumber, lihat writeTargetHariSla_
+// di bawah), BUKAN lookup dari kategori/jenis. Murni tambahan: tidak
+// mengubah isOverdue/alert overdue SPK Unit Rumah yang sudah ada (lihat
+// komentar di getSpkRows_).
 // ---------------------------------------------------------------------
-function getSlaConfig_() {
-  var map = {};
-  var sheet = getSpreadsheet().getSheetByName(CONFIG.SLA_CONFIG_TAB);
-  if (!sheet) return map;
 
-  var values = sheet.getDataRange().getValues();
-  if (values.length < 2) return map;
-
-  var headerMap = buildHeaderMap(values[0], SLA_CONFIG_FIELD_DEFS);
-  for (var r = 1; r < values.length; r++) {
-    var row = values[r];
-    var kategori = safeText(cellValue(row, headerMap, 'kategori'));
-    var jenisRaw = safeText(cellValue(row, headerMap, 'jenis'));
-    var jenis = jenisRaw === '-' ? '' : jenisRaw;
-    var targetHari = safeNumber(cellValue(row, headerMap, 'targetHari'));
-    if (!kategori || !targetHari) continue;
-    map[normalizeKey(kategori) + '|' + normalizeKey(jenis)] = targetHari;
-  }
-  return map;
-}
-
-function lookupSlaTargetHari_(slaConfig, kategori, jenis) {
-  var key = normalizeKey(kategori) + '|' + normalizeKey(jenis);
-  return slaConfig[key] !== undefined ? slaConfig[key] : null;
-}
-
-// startDate: Date atau null. done: proses sudah dianggap selesai (SLA
-// berhenti dihitung, tidak overdue). fallbackTargetHari: dipakai kalau
-// tidak ada baris SLA Config yang cocok (khusus SPK Unit Rumah, supaya
-// tetap ada target walau admin belum mengisi SLA Config sama sekali).
-function computeSla_(slaConfig, kategori, jenis, startDate, done, today, fallbackTargetHari) {
-  var targetHari = lookupSlaTargetHari_(slaConfig, kategori, jenis);
+// startDate: Date atau null. manualTargetHari: angka hasil input manual
+// PIC di baris itu, atau null kalau belum diisi. done: proses sudah
+// dianggap selesai (SLA berhenti dihitung, tidak overdue).
+// fallbackTargetHari: dipakai HANYA kalau manualTargetHari belum diisi
+// (khusus SPK Unit Rumah, supaya tetap ada target walau PIC belum
+// input Target Hari sama sekali).
+function computeSla_(startDate, manualTargetHari, done, today, fallbackTargetHari) {
+  var targetHari = (manualTargetHari != null) ? manualTargetHari : null;
   if (targetHari === null && fallbackTargetHari != null) targetHari = fallbackTargetHari;
 
   var targetDate = (startDate && targetHari !== null) ? addDays(startDate, targetHari) : null;
@@ -84,7 +63,43 @@ function computeSla_(slaConfig, kategori, jenis, startDate, done, today, fallbac
   };
 }
 
-function getSpkRows_(today, slaConfig) {
+// Tulis balik nilai Target Hari (SLA) manual ke sel yang tepat. `id`
+// sudah mengkodekan lokasi fisik baris (mis. "GP1-12", "PUR-5", "HWA-3"
+// -- lihat getSpkRows_/getPurchasingRows_/getHomeWithAiRows_), jadi cukup
+// di-parse untuk tahu tab & nomor baris, tanpa perlu index terpisah.
+function writeTargetHariSla_(recordType, id, value) {
+  var tabName, fieldDefs;
+  if (recordType === 'spk') {
+    var dashIdx = String(id).lastIndexOf('-');
+    tabName = String(id).substring(0, dashIdx);
+    fieldDefs = SPK_FIELD_DEFS;
+  } else if (recordType === 'purchasing') {
+    tabName = CONFIG.PURCHASING_TAB;
+    fieldDefs = PURCHASING_FIELD_DEFS;
+  } else if (recordType === 'homeWithAi') {
+    tabName = CONFIG.HOME_WITH_AI_TAB;
+    fieldDefs = HOME_WITH_AI_FIELD_DEFS;
+  } else {
+    throw new Error('recordType tidak dikenal: ' + recordType);
+  }
+
+  var rowNumber = Number(String(id).substring(String(id).lastIndexOf('-') + 1));
+  if (!rowNumber || rowNumber < 2) throw new Error('id baris tidak valid: ' + id);
+
+  var sheet = getSpreadsheet().getSheetByName(tabName);
+  if (!sheet) throw new Error('Tab tidak ditemukan: ' + tabName);
+
+  var headerRow = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  var headerMap = buildHeaderMap(headerRow, fieldDefs);
+  var col = headerMap.targetHariSla;
+  if (col === undefined || col < 0) {
+    throw new Error('Kolom "Target Hari (SLA)" belum ada di tab ' + tabName + '. Tambahkan kolomnya dulu (lihat README).');
+  }
+
+  sheet.getRange(rowNumber, col + 1).setValue(value);
+}
+
+function getSpkRows_(today, scopes) {
   var rows = [];
 
   CONFIG.SPK_TABS.forEach(function (tabName) {
@@ -122,10 +137,13 @@ function getSpkRows_(today, slaConfig) {
       var nilaiKontrak = safeNumber(nilaiKontrakRaw);
       var nilaiAddendum = safeNumber(cellValue(row, headerMap, 'nilaiAddendum'));
 
+      var targetHariRaw = safeNumber(cellValue(row, headerMap, 'targetHariSla'));
+      var targetHariManual = targetHariRaw > 0 ? targetHariRaw : null;
+
       // SLA murni tambahan (lihat komentar di computeSla_) -- tidak
       // mengganti isOverdue/tanggalSelesaiEfektif yang sudah ada di atas.
       var sla = computeSla_(
-        slaConfig, CONFIG.SLA_KATEGORI_SPK, jenisSpk, tanggalTerbit, false, today,
+        tanggalTerbit, targetHariManual, false, today,
         isUnitRumah ? CONFIG.UNIT_RUMAH_DEFAULT_SLA_DAYS : null
       );
 
@@ -162,6 +180,7 @@ function getSpkRows_(today, slaConfig) {
         slaDone: sla.slaDone,
         slaOverdue: sla.slaOverdue,
         slaElapsedHari: sla.slaElapsedHari,
+        canEditSla: hasScope_(scopes, 'spk', gp),
         tahun: tanggalTerbit ? tanggalTerbit.getFullYear() : null,
         bulan: tanggalTerbit ? tanggalTerbit.getMonth() + 1 : null
       });
@@ -171,7 +190,7 @@ function getSpkRows_(today, slaConfig) {
   return rows;
 }
 
-function getHomeWithAiRows_(today, slaConfig) {
+function getHomeWithAiRows_(today, scopes) {
   var sheet = getSpreadsheet().getSheetByName(CONFIG.HOME_WITH_AI_TAB);
   if (!sheet) return [];
 
@@ -194,7 +213,9 @@ function getHomeWithAiRows_(today, slaConfig) {
     var tanggalSelesai = parseDateCell(cellValue(row, headerMap, 'tanggalSelesai'));
 
     var done = status === 'Terpasang' || !!tanggalSelesai;
-    var sla = computeSla_(slaConfig, CONFIG.SLA_KATEGORI_HWA, '', tanggalMulai, done, today, null);
+    var targetHariRaw = safeNumber(cellValue(row, headerMap, 'targetHariSla'));
+    var targetHariManual = targetHariRaw > 0 ? targetHariRaw : null;
+    var sla = computeSla_(tanggalMulai, targetHariManual, done, today, null);
 
     rows.push({
       id: 'HWA-' + (r + 1),
@@ -219,6 +240,7 @@ function getHomeWithAiRows_(today, slaConfig) {
       slaDone: sla.slaDone,
       slaOverdue: sla.slaOverdue,
       slaElapsedHari: sla.slaElapsedHari,
+      canEditSla: hasScope_(scopes, 'homeWithAi'),
       tahun: tanggalTerpasang ? tanggalTerpasang.getFullYear() : null,
       bulan: tanggalTerpasang ? tanggalTerpasang.getMonth() + 1 : null
     });
@@ -235,7 +257,7 @@ function isPurchasingDone_(jenisPengadaan, statusPekerjaan) {
   return statusPekerjaan === 'Sudah Order';
 }
 
-function getPurchasingRows_(today, slaConfig) {
+function getPurchasingRows_(today, scopes) {
   var sheet = getSpreadsheet().getSheetByName(CONFIG.PURCHASING_TAB);
   if (!sheet) return [];
 
@@ -259,7 +281,9 @@ function getPurchasingRows_(today, slaConfig) {
     var tanggal = parseDateCell(cellValue(row, headerMap, 'tanggal'));
 
     var done = isPurchasingDone_(jenisPengadaan, statusPekerjaan);
-    var sla = computeSla_(slaConfig, CONFIG.SLA_KATEGORI_PURCHASING, jenisPengadaan, tanggalMulai, done, today, null);
+    var targetHariRaw = safeNumber(cellValue(row, headerMap, 'targetHariSla'));
+    var targetHariManual = targetHariRaw > 0 ? targetHariRaw : null;
+    var sla = computeSla_(tanggalMulai, targetHariManual, done, today, null);
 
     rows.push({
       id: 'PUR-' + (r + 1),
@@ -285,6 +309,7 @@ function getPurchasingRows_(today, slaConfig) {
       slaDone: sla.slaDone,
       slaOverdue: sla.slaOverdue,
       slaElapsedHari: sla.slaElapsedHari,
+      canEditSla: hasScope_(scopes, 'purchasing'),
       tahun: tanggal ? tanggal.getFullYear() : null,
       bulan: tanggal ? tanggal.getMonth() + 1 : null
     });
