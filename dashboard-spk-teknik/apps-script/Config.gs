@@ -17,11 +17,7 @@ var CONFIG = {
 
   // Jenis SPK yang Tanggal Selesai-nya otomatis dihitung (Tanggal Terbit + 5 bulan)
   UNIT_RUMAH_JENIS_SPK: 'UNIT RUMAH',
-  UNIT_RUMAH_OVERDUE_MONTHS: 5,
-
-  // Cache singkat supaya beberapa klik filter berturut-turut tidak selalu
-  // baca ulang spreadsheet, tapi tetap "near real-time" (< 5 menit PRD 8).
-  CACHE_SECONDS: 90
+  UNIT_RUMAH_OVERDUE_MONTHS: 5
 };
 
 function getSpreadsheet() {
