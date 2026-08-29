@@ -40,6 +40,7 @@
         <button data-view="master-spk" type="button">Master Data SPK</button>
         <button data-view="master-purchasing" type="button">Master Data Purchasing</button>
         <button data-view="master-hwa" type="button">Master Data Home With AI</button>
+        <button data-view="master-sla" type="button">Master Data SLA</button>
       </nav>
     </header>
 
@@ -196,6 +197,38 @@
           </table>
         </div>
         <p class="master-hint">Menampilkan seluruh kolom tab Home With AI di spreadsheet sumber (baca-saja).</p>
+      </section>
+    </div>
+
+    <!-- ============================== VIEW: Master Data SLA ============================== -->
+    <div id="view-master-sla" class="view" hidden>
+      <section class="alert-row" id="slaAlertZone"></section>
+      <section class="table-section">
+        <div class="table-toolbar">
+          <select id="masterSlaKategoriFilter">
+            <option value="">Semua Kategori</option>
+            <option value="SPK">SPK</option>
+            <option value="Purchasing">Purchasing</option>
+            <option value="Home With AI">Home With AI</option>
+          </select>
+          <select id="masterSlaGpFilter"><option value="">Semua GP</option></select>
+          <select id="masterSlaProyekFilter"><option value="">Semua Proyek</option></select>
+          <select id="masterSlaStatusFilter">
+            <option value="">Semua Status SLA</option>
+            <option value="overdue">Overdue</option>
+            <option value="ontrack">On Track</option>
+            <option value="done">Selesai</option>
+          </select>
+          <input type="text" id="masterSlaSearch" placeholder="Cari GP, proyek, unit, referensi…">
+          <span id="masterSlaCount" class="toolbar-count"></span>
+        </div>
+        <div class="table-wrap">
+          <table id="masterSlaTable">
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <p class="master-hint">Gabungan lintas SPK/Purchasing/Home With AI yang punya target SLA (diatur di tab "SLA Config"). Baris tanpa target SLA yang cocok tidak ditampilkan di sini.</p>
       </section>
     </div>
 

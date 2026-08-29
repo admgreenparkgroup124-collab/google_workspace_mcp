@@ -14,10 +14,23 @@ var CONFIG = {
   HOME_WITH_AI_TAB: 'Home With AI',
   PURCHASING_TAB: 'Purchasing',
   ACCESS_TAB: 'Akses',
+  SLA_CONFIG_TAB: 'SLA Config',
 
   // Jenis SPK yang Tanggal Selesai-nya otomatis dihitung (Tanggal Terbit + 5 bulan)
   UNIT_RUMAH_JENIS_SPK: 'UNIT RUMAH',
-  UNIT_RUMAH_OVERDUE_MONTHS: 5
+  UNIT_RUMAH_OVERDUE_MONTHS: 5,
+
+  // Dipakai sebagai fallback target SLA (hari) untuk SPK Unit Rumah kalau
+  // tidak ada baris yang cocok di tab "SLA Config" -- supaya nilainya
+  // tetap konsisten dengan aturan Tanggal Selesai otomatis di atas
+  // (5 bulan ~ 30 hari/bulan) walau admin belum mengisi SLA Config sama
+  // sekali.
+  UNIT_RUMAH_DEFAULT_SLA_DAYS: 150,
+
+  // Label Kategori dipakai sebagai kunci lookup ke tab "SLA Config"
+  SLA_KATEGORI_SPK: 'SPK',
+  SLA_KATEGORI_PURCHASING: 'Purchasing',
+  SLA_KATEGORI_HWA: 'Home With AI'
 };
 
 function getSpreadsheet() {
@@ -57,8 +70,17 @@ var HOME_WITH_AI_FIELD_DEFS = [
   { key: 'namaProyek', candidates: ['nama proyek'] },
   { key: 'blokUnit', candidates: ['blok no unit area kerja', 'blok no unit', 'blok unit', 'no unit'] },
   { key: 'status', candidates: ['status'] },
-  { key: 'nilai', candidates: ['nilai rp', 'nilai'] },
+  { key: 'namaVendor', candidates: ['nama vendor', 'vendor'] },
+  { key: 'satuan', candidates: ['satuan'] },
+  { key: 'hargaSatuan', candidates: ['harga satuan rp', 'harga satuan'] },
+  // "nilai" tetap nama field internal-nya; header sheet sekarang "Harga
+  // Total (Rp)" -- kandidat lama "Nilai (Rp)" dipertahankan di belakang
+  // supaya tetap kompatibel kalau sheet belum di-rename.
+  { key: 'nilai', candidates: ['harga total rp', 'harga total', 'nilai rp', 'nilai'] },
+  { key: 'tanggalMulai', candidates: ['tanggal order mulai', 'tanggal mulai', 'tanggal order'] },
   { key: 'tanggalTerpasang', candidates: ['tanggal terpasang'] },
+  { key: 'tanggalSelesai', candidates: ['tanggal selesai'] },
+  { key: 'lampiran', candidates: ['lampiran'] },
   { key: 'keterangan', candidates: ['keterangan'] }
 ];
 
@@ -68,15 +90,27 @@ var PURCHASING_FIELD_DEFS = [
   { key: 'blokUnit', candidates: ['blok no unit area kerja', 'blok no unit', 'blok unit', 'no unit'] },
   { key: 'jenisPengadaan', candidates: ['jenis pengadaan'] },
   { key: 'namaBarang', candidates: ['nama barang item', 'nama barang'] },
-  { key: 'nilai', candidates: ['nilai rp', 'nilai'] },
+  { key: 'namaVendor', candidates: ['nama vendor', 'vendor'] },
+  { key: 'satuan', candidates: ['satuan'] },
+  { key: 'hargaSatuan', candidates: ['harga satuan rp', 'harga satuan'] },
+  { key: 'nilai', candidates: ['harga total rp', 'harga total', 'nilai rp', 'nilai'] },
   { key: 'statusPekerjaan', candidates: ['status pekerjaan'] },
+  { key: 'tanggalMulai', candidates: ['tanggal order mulai', 'tanggal mulai', 'tanggal order'] },
   { key: 'tanggal', candidates: ['tanggal'] },
+  { key: 'lampiran', candidates: ['lampiran'] },
   { key: 'keterangan', candidates: ['keterangan'] }
 ];
 
 var ACCESS_FIELD_DEFS = [
   { key: 'email', candidates: ['email', 'alamat email', 'email address'] },
   { key: 'nama', candidates: ['nama', 'nama lengkap'] }
+];
+
+var SLA_CONFIG_FIELD_DEFS = [
+  { key: 'kategori', candidates: ['kategori'] },
+  { key: 'jenis', candidates: ['jenis'] },
+  { key: 'targetHari', candidates: ['target hari', 'target'] },
+  { key: 'keterangan', candidates: ['keterangan'] }
 ];
 
 // Status yang valid, dipakai untuk validasi ringan & urutan tampilan di UI

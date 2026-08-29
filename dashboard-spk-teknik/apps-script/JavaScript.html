@@ -23,7 +23,7 @@
   var refreshTimer = null;
   var isLoading = false;
 
-  var currentView = 'dashboard'; // 'dashboard' | 'master-spk' | 'master-purchasing' | 'master-hwa'
+  var currentView = 'dashboard'; // 'dashboard' | 'master-spk' | 'master-purchasing' | 'master-hwa' | 'master-sla'
   var masterSpkGp = '';          // '' = semua GP, else 'GP1'..'GP4' (cocok dengan sourceTab)
   var masterSpkProyek = '';
   var masterSpkJenis = '';       // '' | 'PSU' | 'UNIT RUMAH'
@@ -36,9 +36,15 @@
   var masterHwaProyek = '';
   var masterHwaStatus = '';      // '' | 'Belum Order' | 'On Proses' | 'Terpasang'
   var masterHwaSearch = '';
+  var masterSlaKategori = '';    // '' | 'SPK' | 'Purchasing' | 'Home With AI'
+  var masterSlaGp = '';
+  var masterSlaProyek = '';
+  var masterSlaStatus = '';      // '' | 'overdue' | 'ontrack' | 'done'
+  var masterSlaSearch = '';
   var masterSpkSort = { key: null, dir: 1 };
   var masterPurSort = { key: null, dir: 1 };
   var masterHwaSort = { key: null, dir: 1 };
+  var masterSlaSort = { key: null, dir: 1 };
 
   var SYNC_STORAGE_KEY = 'gpg_spk_dashboard_sync_minutes';
   var SYNC_OPTIONS = [1, 5, 10, 20, 30];
@@ -67,8 +73,13 @@
       { key: 'proyek', label: 'Proyek' },
       { key: 'unit', label: 'Unit' },
       { key: 'status', label: 'Status', format: 'hwaStatus' },
-      { key: 'nilai', label: 'Nilai (Rp)', format: 'currency' },
-      { key: 'tanggalTerpasang', label: 'Tgl Terpasang' },
+      { key: 'namaVendor', label: 'Vendor' },
+      { key: 'satuan', label: 'Satuan' },
+      { key: 'hargaSatuan', label: 'Harga Satuan (Rp)', format: 'currency' },
+      { key: 'nilai', label: 'Harga Total (Rp)', format: 'currency' },
+      { key: 'tanggalMulai', label: 'Tgl Mulai' },
+      { key: 'tanggalTerpasang', label: 'Tgl Pasang' },
+      { key: 'tanggalSelesai', label: 'Tgl Selesai' },
       { key: 'keterangan', label: 'Keterangan' }
     ],
     purchasing: [
@@ -77,8 +88,12 @@
       { key: 'unit', label: 'Unit' },
       { key: 'jenisPengadaan', label: 'Jenis Pengadaan' },
       { key: 'namaBarang', label: 'Nama Barang' },
-      { key: 'nilai', label: 'Nilai (Rp)', format: 'currency' },
+      { key: 'namaVendor', label: 'Vendor' },
+      { key: 'satuan', label: 'Satuan' },
+      { key: 'hargaSatuan', label: 'Harga Satuan (Rp)', format: 'currency' },
+      { key: 'nilai', label: 'Harga Total (Rp)', format: 'currency' },
       { key: 'statusPekerjaan', label: 'Status' },
+      { key: 'tanggalMulai', label: 'Tgl Mulai' },
       { key: 'tanggal', label: 'Tanggal' },
       { key: 'keterangan', label: 'Keterangan' }
     ]
@@ -117,9 +132,14 @@
     { key: 'unit', label: 'Blok/Unit' },
     { key: 'jenisPengadaan', label: 'Jenis Pengadaan' },
     { key: 'namaBarang', label: 'Nama Barang/Item' },
-    { key: 'nilai', label: 'Nilai (Rp)', format: 'currency' },
+    { key: 'namaVendor', label: 'Nama Vendor' },
+    { key: 'satuan', label: 'Satuan' },
+    { key: 'hargaSatuan', label: 'Harga Satuan (Rp)', format: 'currency' },
+    { key: 'nilai', label: 'Harga Total (Rp)', format: 'currency' },
     { key: 'statusPekerjaan', label: 'Status Pekerjaan' },
+    { key: 'tanggalMulai', label: 'Tanggal Order/Mulai' },
     { key: 'tanggal', label: 'Tanggal' },
+    { key: 'lampiran', label: 'Lampiran' },
     { key: 'keterangan', label: 'Keterangan' }
   ];
 
@@ -128,9 +148,30 @@
     { key: 'proyek', label: 'Nama Proyek' },
     { key: 'unit', label: 'Blok/Unit' },
     { key: 'status', label: 'Status', format: 'hwaStatus' },
-    { key: 'nilai', label: 'Nilai (Rp)', format: 'currency' },
-    { key: 'tanggalTerpasang', label: 'Tanggal Terpasang' },
+    { key: 'namaVendor', label: 'Nama Vendor' },
+    { key: 'satuan', label: 'Satuan' },
+    { key: 'hargaSatuan', label: 'Harga Satuan (Rp)', format: 'currency' },
+    { key: 'nilai', label: 'Harga Total (Rp)', format: 'currency' },
+    { key: 'tanggalMulai', label: 'Tanggal Order/Mulai' },
+    { key: 'tanggalTerpasang', label: 'Tanggal Pasang' },
+    { key: 'tanggalSelesai', label: 'Tanggal Selesai' },
+    { key: 'lampiran', label: 'Lampiran' },
     { key: 'keterangan', label: 'Keterangan' }
+  ];
+
+  // Baris gabungan lintas kategori dibangun di buildSlaRows() -- lihat
+  // bagian "Master Data SLA" di bawah -- bukan langsung dari payload.
+  var MASTER_SLA_COLUMNS = [
+    { key: 'kategori', label: 'Kategori' },
+    { key: 'jenis', label: 'Jenis' },
+    { key: 'gp', label: 'GP' },
+    { key: 'proyek', label: 'Proyek' },
+    { key: 'unit', label: 'Unit' },
+    { key: 'ref', label: 'Referensi' },
+    { key: 'slaStartDate', label: 'Tanggal Mulai', format: 'date' },
+    { key: 'slaTargetHari', label: 'Target (Hari)' },
+    { key: 'slaElapsedHari', label: 'Elapsed (Hari)' },
+    { key: 'slaStatusLabel', label: 'Status SLA', format: 'slaStatus' }
   ];
 
   // ---------------------------------------------------------------------
@@ -166,11 +207,24 @@
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
+  // Gabung beberapa potongan teks meta (yang kosong dibuang) jadi satu
+  // baris dipisah " · ", dipakai di kartu modal Detail per Unit.
+  function joinMeta(parts) {
+    return parts.filter(function (p) { return p; }).join(' · ');
+  }
+
   function statusBadgeClass(status) {
     var s = (status || '').toLowerCase();
     if (s.indexOf('terpasang') === 0 || s === 'sudah order') return 'badge-green';
     if (s.indexOf('on proses') === 0) return 'badge-amber';
     if (s.indexOf('belum') === 0) return 'badge-gray';
+    return 'badge-gray';
+  }
+
+  function slaStatusBadgeClass(label) {
+    if (label === 'Overdue') return 'badge-red';
+    if (label === 'Selesai') return 'badge-green';
+    if (label === 'On Track') return 'badge-amber';
     return 'badge-gray';
   }
 
@@ -679,14 +733,15 @@
     } else {
       rows.forEach(function (r) {
         var tr = document.createElement('tr');
-        if (r.isOverdue) tr.className = 'row-overdue';
+        if (r.isOverdue || r.slaOverdue) tr.className = 'row-overdue';
         columns.forEach(function (col) {
           var td = document.createElement('td');
           var val = r[col.key];
           if (col.format === 'currency') td.textContent = formatRupiah(val);
           else if (col.format === 'overdue') td.innerHTML = val ? '<span class="badge badge-red">Overdue</span>' : '<span class="badge badge-green">Sesuai Jadwal</span>';
           else if (col.format === 'hwaStatus') td.innerHTML = '<span class="badge ' + statusBadgeClass(val) + '">' + escapeHtml(val) + '</span>';
-          else if (col.key === 'tanggalTerbit' || col.key === 'tanggalSelesaiEfektif' || col.key === 'tanggalTerpasang' || col.key === 'tanggal') td.textContent = formatDate(val);
+          else if (col.format === 'slaStatus') td.innerHTML = '<span class="badge ' + slaStatusBadgeClass(val) + '">' + escapeHtml(val) + '</span>';
+          else if (col.format === 'date' || col.key.indexOf('tanggal') === 0) td.textContent = formatDate(val);
           else td.textContent = val === '' || val == null ? '–' : val;
           tr.appendChild(td);
         });
@@ -916,12 +971,136 @@
     renderMasterHwa();
   });
 
+  // ---- Master Data SLA (gabungan lintas SPK/Purchasing/Home With AI) ----
+  function slaStatusLabel(r) {
+    if (r.slaDone) return 'Selesai';
+    if (r.slaOverdue) return 'Overdue';
+    if (!r.slaStartDate) return 'Belum Ada Tanggal Mulai';
+    return 'On Track';
+  }
+
+  // Bangun baris gabungan dari 3 array yang sudah ada di rawData -- hanya
+  // baris yang punya target SLA (slaTargetHari terisi, dari tab "SLA
+  // Config" atau fallback SPK Unit Rumah) yang ikut ditampilkan.
+  function buildSlaRows() {
+    var rows = [];
+    rawData.spk.forEach(function (r) {
+      if (r.slaTargetHari == null) return;
+      rows.push({
+        id: 'sla-spk-' + r.id, kategori: 'SPK', jenis: r.jenisSpk,
+        gp: r.gp, proyek: r.proyek, unit: r.unit, unitKey: r.unitKey, ref: r.noSpk,
+        slaStartDate: r.slaStartDate, slaTargetHari: r.slaTargetHari,
+        slaElapsedHari: r.slaElapsedHari, slaOverdue: r.slaOverdue, slaDone: r.slaDone
+      });
+    });
+    rawData.purchasing.forEach(function (r) {
+      if (r.slaTargetHari == null) return;
+      rows.push({
+        id: 'sla-pur-' + r.id, kategori: 'Purchasing', jenis: r.jenisPengadaan,
+        gp: r.gp, proyek: r.proyek, unit: r.unit, unitKey: r.unitKey, ref: r.namaBarang,
+        slaStartDate: r.slaStartDate, slaTargetHari: r.slaTargetHari,
+        slaElapsedHari: r.slaElapsedHari, slaOverdue: r.slaOverdue, slaDone: r.slaDone
+      });
+    });
+    rawData.homeWithAi.forEach(function (r) {
+      if (r.slaTargetHari == null) return;
+      rows.push({
+        id: 'sla-hwa-' + r.id, kategori: 'Home With AI', jenis: '-',
+        gp: r.gp, proyek: r.proyek, unit: r.unit, unitKey: r.unitKey, ref: '-',
+        slaStartDate: r.slaStartDate, slaTargetHari: r.slaTargetHari,
+        slaElapsedHari: r.slaElapsedHari, slaOverdue: r.slaOverdue, slaDone: r.slaDone
+      });
+    });
+    rows.forEach(function (r) { r.slaStatusLabel = slaStatusLabel(r); });
+    return rows;
+  }
+
+  function renderMasterSla() {
+    var rows = buildSlaRows();
+    if (masterSlaKategori) rows = rows.filter(function (r) { return r.kategori === masterSlaKategori; });
+    if (masterSlaGp) rows = rows.filter(function (r) { return normKey(r.gp) === normKey(masterSlaGp); });
+    if (masterSlaProyek) rows = rows.filter(function (r) { return normKey(r.proyek) === normKey(masterSlaProyek); });
+    if (masterSlaStatus === 'overdue') rows = rows.filter(function (r) { return r.slaOverdue; });
+    else if (masterSlaStatus === 'ontrack') rows = rows.filter(function (r) { return !r.slaOverdue && !r.slaDone; });
+    else if (masterSlaStatus === 'done') rows = rows.filter(function (r) { return r.slaDone; });
+
+    var overdueCount = rows.filter(function (r) { return r.slaOverdue; }).length;
+    var alertZone = document.getElementById('slaAlertZone');
+    alertZone.innerHTML = '';
+    if (overdueCount > 0) {
+      var banner = document.createElement('div');
+      banner.className = 'alert-banner';
+      banner.innerHTML = '<span class="alert-icon">⚠️</span>' +
+        '<span>' + overdueCount + ' proses melewati target SLA (sesuai filter saat ini). Lihat tabel di bawah untuk detail.</span>';
+      alertZone.appendChild(banner);
+    }
+
+    buildDataTable({
+      theadEl: document.querySelector('#masterSlaTable thead'),
+      tbodyEl: document.querySelector('#masterSlaTable tbody'),
+      countEl: document.getElementById('masterSlaCount'),
+      rows: rows, columns: MASTER_SLA_COLUMNS, sortState: masterSlaSort, search: masterSlaSearch,
+      onHeaderClick: renderMasterSla, onRowClick: openUnitDetail
+    });
+  }
+  function pruneOrphanMasterSlaProyek() {
+    if (!masterSlaProyek) return;
+    var available = {};
+    proyekOptionsForGp(masterSlaGp).forEach(function (p) { available[p] = true; });
+    if (!available[masterSlaProyek]) masterSlaProyek = '';
+  }
+  function populateMasterSlaGpSelect() {
+    var sel = document.getElementById('masterSlaGpFilter');
+    var current = masterSlaGp;
+    sel.innerHTML = '<option value="">Semua GP</option>';
+    (rawData.meta.gpList || []).forEach(function (gp) {
+      var opt = document.createElement('option');
+      opt.value = gp;
+      opt.textContent = gp;
+      sel.appendChild(opt);
+    });
+    sel.value = current;
+    sel.onchange = function () {
+      masterSlaGp = sel.value;
+      pruneOrphanMasterSlaProyek();
+      populateMasterSlaProyekSelect();
+      renderMasterSla();
+    };
+  }
+  function populateMasterSlaProyekSelect() {
+    var sel = document.getElementById('masterSlaProyekFilter');
+    var current = masterSlaProyek;
+    sel.innerHTML = '<option value="">Semua Proyek</option>';
+    proyekOptionsForGp(masterSlaGp).forEach(function (p) {
+      var opt = document.createElement('option');
+      opt.value = p;
+      opt.textContent = p;
+      sel.appendChild(opt);
+    });
+    sel.value = current;
+    sel.onchange = function () { masterSlaProyek = sel.value; renderMasterSla(); };
+  }
+  document.getElementById('masterSlaKategoriFilter').addEventListener('change', function (e) {
+    masterSlaKategori = e.target.value;
+    renderMasterSla();
+  });
+  document.getElementById('masterSlaStatusFilter').addEventListener('change', function (e) {
+    masterSlaStatus = e.target.value;
+    renderMasterSla();
+  });
+  document.getElementById('masterSlaSearch').addEventListener('input', function (e) {
+    masterSlaSearch = e.target.value;
+    renderMasterSla();
+  });
+
   function populateMasterFilterOptions() {
     populateMasterSpkProyekSelect();
     populateMasterPurGpSelect();
     populateMasterPurProyekSelect();
     populateMasterHwaGpSelect();
     populateMasterHwaProyekSelect();
+    populateMasterSlaGpSelect();
+    populateMasterSlaProyekSelect();
   }
 
   // ---------------------------------------------------------------------
@@ -932,6 +1111,7 @@
     else if (currentView === 'master-spk') renderMasterSpk();
     else if (currentView === 'master-purchasing') renderMasterPurchasing();
     else if (currentView === 'master-hwa') renderMasterHwa();
+    else if (currentView === 'master-sla') renderMasterSla();
   }
 
   document.getElementById('appNav').addEventListener('click', function (e) {
@@ -1001,6 +1181,7 @@
       return '<div class="unit-item">' +
         '<div class="unit-item-title"><span>' + escapeHtml(r.noSpk) + ' — ' + escapeHtml(r.namaPekerjaan || r.itemSpk) + '</span>' +
         '<span>' + formatRupiah(r.nilaiTotal) + '</span></div>' +
+        '<div class="unit-item-meta">Jenis SPK: ' + escapeHtml(r.jenisSpk) + ' · Item SPK: ' + escapeHtml(r.itemSpk) + '</div>' +
         '<div class="unit-item-meta">Terbit: ' + formatDate(r.tanggalTerbit) + ' · Target selesai: ' + formatDate(r.tanggalSelesaiEfektif) +
         (r.isOverdue ? ' <span class="badge badge-red">Overdue</span>' : '') +
         (r.kontraktor ? ' · ' + escapeHtml(r.kontraktor) : '') + '</div>' +
@@ -1010,22 +1191,48 @@
 
     html += '<div class="unit-section"><h4>Home With AI</h4>';
     html += hwaList.length ? hwaList.map(function (r) {
+      var lines = [];
+      var vendorLine = joinMeta([
+        r.namaVendor ? 'Vendor: ' + escapeHtml(r.namaVendor) : '',
+        (r.satuan || r.hargaSatuan) ? 'Satuan: ' + escapeHtml(r.satuan || '-') + ' · Harga Satuan: ' + formatRupiah(r.hargaSatuan) : ''
+      ]);
+      if (vendorLine) lines.push(vendorLine);
+      lines.push(joinMeta([
+        r.tanggalMulai ? 'Mulai: ' + formatDate(r.tanggalMulai) : '',
+        r.tanggalTerpasang ? 'Terpasang: ' + formatDate(r.tanggalTerpasang) : 'Belum terpasang',
+        r.tanggalSelesai ? 'Selesai: ' + formatDate(r.tanggalSelesai) : '',
+        r.keterangan ? escapeHtml(r.keterangan) : ''
+      ]));
+      if (r.lampiran) lines.push('Lampiran: ' + escapeHtml(r.lampiran));
+
       return '<div class="unit-item">' +
         '<div class="unit-item-title"><span class="badge ' + statusBadgeClass(r.status) + '">' + escapeHtml(r.status) + '</span>' +
         '<span>' + formatRupiah(r.nilai) + '</span></div>' +
-        '<div class="unit-item-meta">' + (r.tanggalTerpasang ? 'Terpasang: ' + formatDate(r.tanggalTerpasang) : 'Belum terpasang') +
-        (r.keterangan ? ' · ' + escapeHtml(r.keterangan) : '') + '</div>' +
+        lines.map(function (l) { return '<div class="unit-item-meta">' + l + '</div>'; }).join('') +
         '</div>';
     }).join('') : '<p class="unit-empty">Belum ada data Home With AI untuk unit ini.</p>';
     html += '</div>';
 
     html += '<div class="unit-section"><h4>Purchasing (Promo &amp; Material Unit)</h4>';
     html += purList.length ? purList.map(function (r) {
+      var lines = [];
+      lines.push(joinMeta([
+        'Status: ' + escapeHtml(r.statusPekerjaan),
+        r.tanggal ? formatDate(r.tanggal) : '',
+        r.keterangan ? escapeHtml(r.keterangan) : ''
+      ]));
+      var vendorLine = joinMeta([
+        r.namaVendor ? 'Vendor: ' + escapeHtml(r.namaVendor) : '',
+        'Satuan: ' + escapeHtml(r.satuan || '-') + ' · Harga Satuan: ' + formatRupiah(r.hargaSatuan)
+      ]);
+      if (vendorLine) lines.push(vendorLine);
+      if (r.tanggalMulai) lines.push('Mulai: ' + formatDate(r.tanggalMulai));
+      if (r.lampiran) lines.push('Lampiran: ' + escapeHtml(r.lampiran));
+
       return '<div class="unit-item">' +
         '<div class="unit-item-title"><span>' + escapeHtml(r.namaBarang) + ' (' + escapeHtml(r.jenisPengadaan) + ')</span>' +
         '<span>' + formatRupiah(r.nilai) + '</span></div>' +
-        '<div class="unit-item-meta">Status: ' + escapeHtml(r.statusPekerjaan) + (r.tanggal ? ' · ' + formatDate(r.tanggal) : '') +
-        (r.keterangan ? ' · ' + escapeHtml(r.keterangan) : '') + '</div>' +
+        lines.map(function (l) { return '<div class="unit-item-meta">' + l + '</div>'; }).join('') +
         '</div>';
     }).join('') : '<p class="unit-empty">Belum ada data Purchasing untuk unit ini.</p>';
     html += '</div>';

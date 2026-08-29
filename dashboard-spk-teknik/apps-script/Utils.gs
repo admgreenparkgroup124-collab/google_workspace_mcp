@@ -99,6 +99,13 @@ function addMonths(date, months) {
   return d;
 }
 
+// Tambah N hari ke sebuah Date (dipakai untuk hitung target SLA).
+function addDays(date, days) {
+  var d = new Date(date.getTime());
+  d.setDate(d.getDate() + days);
+  return d;
+}
+
 function toIsoDateString(date) {
   if (!(date instanceof Date) || isNaN(date.getTime())) return '';
   var y = date.getFullYear();
