@@ -11,7 +11,7 @@
     kategori: { 'SPK': true, 'Purchasing': true, 'Home With AI': true },
     tahun: '',
     bulan: '',
-    gp: {},     // { displayValue: true } -- multi-select (chip)
+    gp: '',     // single value -- dropdown, '' = Semua
     proyek: '', // single value -- dropdown, '' = Semua
     search: ''
   };
@@ -25,8 +25,16 @@
 
   var currentView = 'dashboard'; // 'dashboard' | 'master-spk' | 'master-purchasing' | 'master-hwa'
   var masterSpkGp = '';          // '' = semua GP, else 'GP1'..'GP4' (cocok dengan sourceTab)
+  var masterSpkProyek = '';
+  var masterSpkJenis = '';       // '' | 'PSU' | 'UNIT RUMAH'
   var masterSpkSearch = '';
+  var masterPurGp = '';
+  var masterPurProyek = '';
+  var masterPurJenis = '';       // '' | 'Promo Unit' | 'Material PSU' | 'Material Unit Bangunan'
   var masterPurSearch = '';
+  var masterHwaGp = '';
+  var masterHwaProyek = '';
+  var masterHwaStatus = '';      // '' | 'Belum Order' | 'On Proses' | 'Terpasang'
   var masterHwaSearch = '';
   var masterSpkSort = { key: null, dir: 1 };
   var masterPurSort = { key: null, dir: 1 };
@@ -211,6 +219,7 @@
     rawData = payload;
     updateSyncStatus();
     populateFilterOptions();
+    populateMasterFilterOptions();
     renderCurrentView();
   }
 
@@ -280,39 +289,47 @@
     bulanSel.value = currentBulan;
     bulanSel.onchange = function () { filters.bulan = bulanSel.value; renderAll(); };
 
-    renderGpChips();
+    populateGpSelect();
     populateProyekSelect();
   }
 
-  function renderGpChips() {
-    var wrap = document.getElementById('filterGp');
-    wrap.innerHTML = '';
+  function populateGpSelect() {
+    var sel = document.getElementById('filterGp');
+    var current = filters.gp;
+    sel.innerHTML = '<option value="">Semua</option>';
     (rawData.meta.gpList || []).forEach(function (gp) {
-      var chip = document.createElement('button');
-      chip.type = 'button';
-      chip.className = 'chip' + (filters.gp[gp] ? ' active' : '');
-      chip.textContent = gp;
-      chip.addEventListener('click', function () {
-        filters.gp[gp] = !filters.gp[gp];
-        chip.classList.toggle('active');
-        pruneOrphanProyekFilter();
-        populateProyekSelect();
-        renderAll();
-      });
-      wrap.appendChild(chip);
+      var opt = document.createElement('option');
+      opt.value = gp;
+      opt.textContent = gp;
+      sel.appendChild(opt);
     });
+    sel.value = current;
+    sel.onchange = function () {
+      filters.gp = sel.value;
+      pruneOrphanProyekFilter();
+      populateProyekSelect();
+      renderAll();
+    };
   }
 
-  function selectedGpList() {
-    return Object.keys(filters.gp).filter(function (k) { return filters.gp[k]; });
+  // gpValue bisa berasal dari nilai display dropdown (sudah persis cocok
+  // dengan rawData.meta.gpList) ATAU dari konstanta tab literal seperti
+  // "GP1" (dipakai Master Data SPK) yang bisa saja tidak identik dengan
+  // teks tampilan di kolom Grup Proyek (lihat catatan inkonsistensi
+  // "GP1" vs "GP 2" di README) -- jadi resolve dulu lewat normalizeKey.
+  function resolveGpDisplay(gpValue) {
+    if (!gpValue) return '';
+    var target = normKey(gpValue);
+    var found = (rawData.meta.gpList || []).filter(function (g) { return normKey(g) === target; })[0];
+    return found || gpValue;
   }
 
-  function availableProyekList() {
-    var selectedGp = selectedGpList();
+  function proyekOptionsForGp(gpValue) {
+    var resolved = resolveGpDisplay(gpValue);
     var set = {};
     var order = [];
     var byGp = rawData.meta.projectsByGp || {};
-    var gpsToUse = selectedGp.length ? selectedGp : Object.keys(byGp);
+    var gpsToUse = resolved ? [resolved] : Object.keys(byGp);
     gpsToUse.forEach(function (gp) {
       (byGp[gp] || []).forEach(function (proyek) {
         if (!set[proyek]) { set[proyek] = true; order.push(proyek); }
@@ -320,6 +337,8 @@
     });
     return order;
   }
+
+  function availableProyekList() { return proyekOptionsForGp(filters.gp); }
 
   // Kalau proyek yang lagi dipilih sudah tidak ada di daftar proyek yang
   // tersedia (karena filter GP berubah), reset ke "Semua".
@@ -351,12 +370,7 @@
     if (!filters.kategori[kategoriKey]) return false;
     if (filters.tahun && String(rec.tahun || '') !== String(filters.tahun)) return false;
     if (filters.bulan && String(rec.bulan || '') !== String(filters.bulan)) return false;
-
-    var selectedGp = selectedGpList();
-    if (selectedGp.length) {
-      var gpKeys = selectedGp.map(normKey);
-      if (gpKeys.indexOf(normKey(rec.gp)) === -1) return false;
-    }
+    if (filters.gp && normKey(rec.gp) !== normKey(filters.gp)) return false;
     if (filters.proyek && normKey(rec.proyek) !== normKey(filters.proyek)) return false;
 
     if (filters.search) {
@@ -718,10 +732,12 @@
     renderTable(getFilteredSpk(), getFilteredHomeWithAi(), getFilteredPurchasing());
   });
 
-  // ---- Master Data SPK (semua kolom, semua GP kecuali difilter tab GP1-4) ----
+  // ---- Master Data SPK (semua kolom; filter GP via tab GP1-4, + Proyek + Jenis SPK) ----
   function renderMasterSpk() {
     var rows = rawData.spk;
     if (masterSpkGp) rows = rows.filter(function (r) { return r.sourceTab === masterSpkGp; });
+    if (masterSpkProyek) rows = rows.filter(function (r) { return normKey(r.proyek) === normKey(masterSpkProyek); });
+    if (masterSpkJenis) rows = rows.filter(function (r) { return r.jenisSpk === masterSpkJenis; });
     buildDataTable({
       theadEl: document.querySelector('#masterSpkTable thead'),
       tbodyEl: document.querySelector('#masterSpkTable tbody'),
@@ -734,12 +750,37 @@
       onRowClick: openUnitDetail
     });
   }
+  function pruneOrphanMasterSpkProyek() {
+    if (!masterSpkProyek) return;
+    var available = {};
+    proyekOptionsForGp(masterSpkGp).forEach(function (p) { available[p] = true; });
+    if (!available[masterSpkProyek]) masterSpkProyek = '';
+  }
+  function populateMasterSpkProyekSelect() {
+    var sel = document.getElementById('masterSpkProyekFilter');
+    var current = masterSpkProyek;
+    sel.innerHTML = '<option value="">Semua Proyek</option>';
+    proyekOptionsForGp(masterSpkGp).forEach(function (p) {
+      var opt = document.createElement('option');
+      opt.value = p;
+      opt.textContent = p;
+      sel.appendChild(opt);
+    });
+    sel.value = current;
+    sel.onchange = function () { masterSpkProyek = sel.value; renderMasterSpk(); };
+  }
   document.getElementById('masterSpkGpTabs').addEventListener('click', function (e) {
     var btn = e.target.closest('button[data-gp]');
     if (!btn) return;
     masterSpkGp = btn.getAttribute('data-gp');
     document.querySelectorAll('#masterSpkGpTabs button').forEach(function (b) { b.classList.toggle('active', b === btn); });
     masterSpkSort = { key: null, dir: 1 };
+    pruneOrphanMasterSpkProyek();
+    populateMasterSpkProyekSelect();
+    renderMasterSpk();
+  });
+  document.getElementById('masterSpkJenisFilter').addEventListener('change', function (e) {
+    masterSpkJenis = e.target.value;
     renderMasterSpk();
   });
   document.getElementById('masterSpkSearch').addEventListener('input', function (e) {
@@ -747,13 +788,17 @@
     renderMasterSpk();
   });
 
-  // ---- Master Data Purchasing (semua kolom) ----
+  // ---- Master Data Purchasing (semua kolom; filter GP + Proyek + Jenis Pengadaan) ----
   function renderMasterPurchasing() {
+    var rows = rawData.purchasing;
+    if (masterPurGp) rows = rows.filter(function (r) { return normKey(r.gp) === normKey(masterPurGp); });
+    if (masterPurProyek) rows = rows.filter(function (r) { return normKey(r.proyek) === normKey(masterPurProyek); });
+    if (masterPurJenis) rows = rows.filter(function (r) { return r.jenisPengadaan === masterPurJenis; });
     buildDataTable({
       theadEl: document.querySelector('#masterPurTable thead'),
       tbodyEl: document.querySelector('#masterPurTable tbody'),
       countEl: document.getElementById('masterPurCount'),
-      rows: rawData.purchasing,
+      rows: rows,
       columns: MASTER_PUR_COLUMNS,
       sortState: masterPurSort,
       search: masterPurSearch,
@@ -761,18 +806,63 @@
       onRowClick: openUnitDetail
     });
   }
+  function pruneOrphanMasterPurProyek() {
+    if (!masterPurProyek) return;
+    var available = {};
+    proyekOptionsForGp(masterPurGp).forEach(function (p) { available[p] = true; });
+    if (!available[masterPurProyek]) masterPurProyek = '';
+  }
+  function populateMasterPurGpSelect() {
+    var sel = document.getElementById('masterPurGpFilter');
+    var current = masterPurGp;
+    sel.innerHTML = '<option value="">Semua GP</option>';
+    (rawData.meta.gpList || []).forEach(function (gp) {
+      var opt = document.createElement('option');
+      opt.value = gp;
+      opt.textContent = gp;
+      sel.appendChild(opt);
+    });
+    sel.value = current;
+    sel.onchange = function () {
+      masterPurGp = sel.value;
+      pruneOrphanMasterPurProyek();
+      populateMasterPurProyekSelect();
+      renderMasterPurchasing();
+    };
+  }
+  function populateMasterPurProyekSelect() {
+    var sel = document.getElementById('masterPurProyekFilter');
+    var current = masterPurProyek;
+    sel.innerHTML = '<option value="">Semua Proyek</option>';
+    proyekOptionsForGp(masterPurGp).forEach(function (p) {
+      var opt = document.createElement('option');
+      opt.value = p;
+      opt.textContent = p;
+      sel.appendChild(opt);
+    });
+    sel.value = current;
+    sel.onchange = function () { masterPurProyek = sel.value; renderMasterPurchasing(); };
+  }
+  document.getElementById('masterPurJenisFilter').addEventListener('change', function (e) {
+    masterPurJenis = e.target.value;
+    renderMasterPurchasing();
+  });
   document.getElementById('masterPurSearch').addEventListener('input', function (e) {
     masterPurSearch = e.target.value;
     renderMasterPurchasing();
   });
 
-  // ---- Master Data Home With AI (semua kolom) ----
+  // ---- Master Data Home With AI (semua kolom; filter GP + Proyek + Status) ----
   function renderMasterHwa() {
+    var rows = rawData.homeWithAi;
+    if (masterHwaGp) rows = rows.filter(function (r) { return normKey(r.gp) === normKey(masterHwaGp); });
+    if (masterHwaProyek) rows = rows.filter(function (r) { return normKey(r.proyek) === normKey(masterHwaProyek); });
+    if (masterHwaStatus) rows = rows.filter(function (r) { return r.status === masterHwaStatus; });
     buildDataTable({
       theadEl: document.querySelector('#masterHwaTable thead'),
       tbodyEl: document.querySelector('#masterHwaTable tbody'),
       countEl: document.getElementById('masterHwaCount'),
-      rows: rawData.homeWithAi,
+      rows: rows,
       columns: MASTER_HWA_COLUMNS,
       sortState: masterHwaSort,
       search: masterHwaSearch,
@@ -780,10 +870,59 @@
       onRowClick: openUnitDetail
     });
   }
+  function pruneOrphanMasterHwaProyek() {
+    if (!masterHwaProyek) return;
+    var available = {};
+    proyekOptionsForGp(masterHwaGp).forEach(function (p) { available[p] = true; });
+    if (!available[masterHwaProyek]) masterHwaProyek = '';
+  }
+  function populateMasterHwaGpSelect() {
+    var sel = document.getElementById('masterHwaGpFilter');
+    var current = masterHwaGp;
+    sel.innerHTML = '<option value="">Semua GP</option>';
+    (rawData.meta.gpList || []).forEach(function (gp) {
+      var opt = document.createElement('option');
+      opt.value = gp;
+      opt.textContent = gp;
+      sel.appendChild(opt);
+    });
+    sel.value = current;
+    sel.onchange = function () {
+      masterHwaGp = sel.value;
+      pruneOrphanMasterHwaProyek();
+      populateMasterHwaProyekSelect();
+      renderMasterHwa();
+    };
+  }
+  function populateMasterHwaProyekSelect() {
+    var sel = document.getElementById('masterHwaProyekFilter');
+    var current = masterHwaProyek;
+    sel.innerHTML = '<option value="">Semua Proyek</option>';
+    proyekOptionsForGp(masterHwaGp).forEach(function (p) {
+      var opt = document.createElement('option');
+      opt.value = p;
+      opt.textContent = p;
+      sel.appendChild(opt);
+    });
+    sel.value = current;
+    sel.onchange = function () { masterHwaProyek = sel.value; renderMasterHwa(); };
+  }
+  document.getElementById('masterHwaStatusFilter').addEventListener('change', function (e) {
+    masterHwaStatus = e.target.value;
+    renderMasterHwa();
+  });
   document.getElementById('masterHwaSearch').addEventListener('input', function (e) {
     masterHwaSearch = e.target.value;
     renderMasterHwa();
   });
+
+  function populateMasterFilterOptions() {
+    populateMasterSpkProyekSelect();
+    populateMasterPurGpSelect();
+    populateMasterPurProyekSelect();
+    populateMasterHwaGpSelect();
+    populateMasterHwaProyekSelect();
+  }
 
   // ---------------------------------------------------------------------
   // Navigasi antar halaman (Dashboard / Master Data)
@@ -916,7 +1055,7 @@
   });
 
   document.getElementById('resetFiltersBtn').addEventListener('click', function () {
-    filters = { kategori: { 'SPK': true, 'Purchasing': true, 'Home With AI': true }, tahun: '', bulan: '', gp: {}, proyek: '', search: '' };
+    filters = { kategori: { 'SPK': true, 'Purchasing': true, 'Home With AI': true }, tahun: '', bulan: '', gp: '', proyek: '', search: '' };
     document.getElementById('filterSearch').value = '';
     populateFilterOptions();
     renderAll();

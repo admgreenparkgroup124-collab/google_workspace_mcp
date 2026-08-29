@@ -265,7 +265,7 @@
     border-bottom: none;
   }
   .table-tabs button.active { background: var(--navy-900); color: var(--white); border-color: var(--navy-900); }
-  .table-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; gap: 10px; flex-wrap: wrap; }
+  .table-toolbar { display: flex; align-items: center; margin-bottom: 8px; gap: 10px; flex-wrap: wrap; }
   .table-toolbar input {
     border: 1px solid var(--line);
     border-radius: 6px;
@@ -273,7 +273,15 @@
     font-size: 13px;
     min-width: 220px;
   }
-  #tableCount { font-size: 12px; color: var(--ink-soft); }
+  .table-toolbar select {
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 7px 10px;
+    font-size: 13px;
+    color: var(--ink);
+    background: var(--white);
+  }
+  .toolbar-count { margin-left: auto; font-size: 12px; color: var(--ink-soft); }
   .table-wrap {
     background: var(--white);
     border: 1px solid var(--line);

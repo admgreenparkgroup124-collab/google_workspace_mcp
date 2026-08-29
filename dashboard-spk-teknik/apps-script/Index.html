@@ -47,10 +47,6 @@
     <div id="view-dashboard" class="view">
       <section class="filters" id="filters" aria-label="Filter data">
         <div class="filter-group">
-          <label>Kategori</label>
-          <div class="chip-multiselect" id="filterKategori"></div>
-        </div>
-        <div class="filter-group">
           <label for="filterTahun">Tahun</label>
           <select id="filterTahun"><option value="">Semua</option></select>
         </div>
@@ -58,13 +54,17 @@
           <label for="filterBulan">Bulan</label>
           <select id="filterBulan"><option value="">Semua</option></select>
         </div>
-        <div class="filter-group filter-group-wide">
-          <label>Grup Proyek</label>
-          <div class="chip-multiselect" id="filterGp"></div>
+        <div class="filter-group">
+          <label for="filterGp">Grup Proyek</label>
+          <select id="filterGp"><option value="">Semua</option></select>
         </div>
         <div class="filter-group filter-group-wide">
           <label for="filterProyek">Proyek</label>
           <select id="filterProyek"><option value="">Semua</option></select>
+        </div>
+        <div class="filter-group">
+          <label>Kategori</label>
+          <div class="chip-multiselect" id="filterKategori"></div>
         </div>
         <div class="filter-group filter-search">
           <label for="filterSearch">Cari</label>
@@ -108,7 +108,7 @@
         </div>
         <div class="table-toolbar">
           <input type="text" id="tableSearch" placeholder="Cari di tabel ini…">
-          <span id="tableCount"></span>
+          <span id="tableCount" class="toolbar-count"></span>
         </div>
         <div class="table-wrap">
           <table id="dataTable">
@@ -130,8 +130,14 @@
           <button data-gp="GP4" type="button">GP4</button>
         </div>
         <div class="table-toolbar">
+          <select id="masterSpkProyekFilter"><option value="">Semua Proyek</option></select>
+          <select id="masterSpkJenisFilter">
+            <option value="">Semua Jenis SPK</option>
+            <option value="PSU">PSU</option>
+            <option value="UNIT RUMAH">UNIT RUMAH</option>
+          </select>
           <input type="text" id="masterSpkSearch" placeholder="Cari No. SPK, kontraktor, item, unit…">
-          <span id="masterSpkCount"></span>
+          <span id="masterSpkCount" class="toolbar-count"></span>
         </div>
         <div class="table-wrap">
           <table id="masterSpkTable">
@@ -147,8 +153,16 @@
     <div id="view-master-purchasing" class="view" hidden>
       <section class="table-section">
         <div class="table-toolbar">
+          <select id="masterPurGpFilter"><option value="">Semua GP</option></select>
+          <select id="masterPurProyekFilter"><option value="">Semua Proyek</option></select>
+          <select id="masterPurJenisFilter">
+            <option value="">Semua Jenis Pengadaan</option>
+            <option value="Promo Unit">Promo Unit</option>
+            <option value="Material PSU">Material PSU</option>
+            <option value="Material Unit Bangunan">Material Unit Bangunan</option>
+          </select>
           <input type="text" id="masterPurSearch" placeholder="Cari GP, proyek, unit, nama barang…">
-          <span id="masterPurCount"></span>
+          <span id="masterPurCount" class="toolbar-count"></span>
         </div>
         <div class="table-wrap">
           <table id="masterPurTable">
@@ -164,8 +178,16 @@
     <div id="view-master-hwa" class="view" hidden>
       <section class="table-section">
         <div class="table-toolbar">
+          <select id="masterHwaGpFilter"><option value="">Semua GP</option></select>
+          <select id="masterHwaProyekFilter"><option value="">Semua Proyek</option></select>
+          <select id="masterHwaStatusFilter">
+            <option value="">Semua Status</option>
+            <option value="Belum Order">Belum Order</option>
+            <option value="On Proses">On Proses</option>
+            <option value="Terpasang">Terpasang</option>
+          </select>
           <input type="text" id="masterHwaSearch" placeholder="Cari GP, proyek, unit…">
-          <span id="masterHwaCount"></span>
+          <span id="masterHwaCount" class="toolbar-count"></span>
         </div>
         <div class="table-wrap">
           <table id="masterHwaTable">
