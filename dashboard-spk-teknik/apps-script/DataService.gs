@@ -167,7 +167,20 @@ function writeNewRecord_(recordType, gp, fields) {
     row[col] = value;
   });
 
-  sheet.getRange(sheet.getLastRow() + 1, 1, 1, width).setValues([row]);
+  // Kunci script-wide sebelum baca "baris terakhir" lalu tulis baris baru
+  // -- tanpa ini, dua submit yang datang persis bersamaan (mis. dua SPV
+  // beda GP yang sama-sama menulis ke tab Realisasi Progres yang dipakai
+  // bersama lintas GP) bisa "rebutan" nomor baris yang sama dan salah
+  // satu baris hilang tertimpa. LockService.getScriptLock() berlaku
+  // lintas semua eksekusi script (lintas user yang sedang login berbeda),
+  // bukan cuma lintas panggilan dari user yang sama.
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    sheet.getRange(sheet.getLastRow() + 1, 1, 1, width).setValues([row]);
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 function getSpkRows_(today, scopes) {

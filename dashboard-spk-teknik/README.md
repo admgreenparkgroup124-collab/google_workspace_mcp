@@ -499,6 +499,17 @@ sendiri), cara update:
   (pilihan: 1/5/10/20/30 menit, default 5 menit). Pilihan interval
   tersimpan per browser (lewat localStorage), jadi tidak perlu diatur
   ulang tiap kali dibuka.
+- **Aman dipakai bersamaan oleh beberapa PIC/SPV sekaligus.** "+ Tambah
+  Data" dan Input Progres menambah baris baru dengan pola baca-baris-
+  terakhir-lalu-tulis — kalau dua orang submit ke tab yang sama (mis. dua
+  SPV beda GP yang sama-sama menulis ke tab Realisasi Progres, yang
+  dipakai bersama lintas GP) persis di detik yang sama, ada risiko kecil
+  keduanya "rebutan" nomor baris yang sama. `writeNewRecord_`
+  (DataService.gs) sudah dibungkus `LockService.getScriptLock()` untuk
+  menutup celah ini — submit yang bersamaan otomatis antre (biasanya
+  cuma tertunda sepersekian detik), bukan saling menimpa. Mengedit sel
+  yang berbeda (mis. Target Hari SLA di baris lain) tidak perlu
+  pengamanan ini karena Google Sheets sendiri sudah aman untuk itu.
 
 ---
 
