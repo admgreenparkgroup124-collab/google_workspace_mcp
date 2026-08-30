@@ -697,23 +697,18 @@
   // digabung.
   // ---------------------------------------------------------------------
   function computeDelayGroups_(fSpk, fPur, fHwa) {
-    function items(rows, filterFn, labelFn) {
-      return rows.filter(filterFn).map(labelFn);
-    }
-    function unitLabel(r) { return (r.proyek || '-') + (r.unit ? ' – ' + r.unit : ''); }
     return {
       spk: {
         label: 'SPK',
-        items: items(fSpk, function (r) { return r.isOverdue || r.slaOverdue; }, unitLabel)
+        rows: fSpk.filter(function (r) { return r.isOverdue || r.slaOverdue; })
       },
       purchasing: {
         label: 'Purchasing',
-        items: items(fPur, function (r) { return r.slaOverdue; },
-          function (r) { return unitLabel(r) + ' (' + (r.namaBarang || '-') + ')'; })
+        rows: fPur.filter(function (r) { return r.slaOverdue; })
       },
       homeWithAi: {
         label: 'Home With AI',
-        items: items(fHwa, function (r) { return r.slaOverdue; }, unitLabel)
+        rows: fHwa.filter(function (r) { return r.slaOverdue; })
       }
     };
   }
@@ -721,13 +716,14 @@
   // `keys` menentukan kategori mana yang ditampilkan di container ini --
   // ['spk','purchasing','homeWithAi'] utk banner gabungan di "Semua",
   // atau satu key saja utk banner khusus tiap sub-tab kategori. Tiap
-  // kategori jadi segmen yang bisa diklik utk expand daftar proyek/unit
-  // yang terlambat (pola yang sama dgn breakdown card & rincian chart).
+  // kategori jadi segmen yang bisa diklik utk buka modal popup berisi
+  // daftar proyek/unit yang terlambat (mirip modal Riwayat Detail per
+  // Unit -- lihat openDelayModal_ di bawah).
   function renderDelayAlert(containerId, groups, keys) {
     var el = document.getElementById(containerId);
     if (!el) return;
     el.innerHTML = '';
-    var totalCount = keys.reduce(function (sum, k) { return sum + groups[k].items.length; }, 0);
+    var totalCount = keys.reduce(function (sum, k) { return sum + groups[k].rows.length; }, 0);
     if (totalCount === 0) { el.hidden = true; return; }
     el.hidden = false;
 
@@ -744,33 +740,72 @@
     segWrap.className = 'alert-delay-segments';
     keys.forEach(function (k) {
       var g = groups[k];
-      if (!g.items.length) return;
-
-      var block = document.createElement('div');
-      block.className = 'alert-delay-block';
+      if (!g.rows.length) return;
 
       var seg = document.createElement('button');
       seg.type = 'button';
       seg.className = 'alert-delay-seg';
-      seg.innerHTML = '<span>' + escapeHtml(g.label) + '</span><span class="alert-delay-seg-count">' + g.items.length + '</span>';
+      seg.innerHTML = '<span>' + escapeHtml(g.label) + '</span><span class="alert-delay-seg-count">' + g.rows.length + '</span>';
+      seg.addEventListener('click', function () { openDelayModal_(k, g); });
 
-      var details = document.createElement('div');
-      details.className = 'alert-delay-details';
-      details.hidden = true;
-      details.innerHTML = g.items.map(function (t) { return '<span class="badge badge-red">' + escapeHtml(t) + '</span>'; }).join('');
-
-      seg.addEventListener('click', function () {
-        var willShow = details.hidden;
-        details.hidden = !willShow;
-        seg.classList.toggle('expanded', willShow);
-      });
-
-      block.appendChild(seg);
-      block.appendChild(details);
-      segWrap.appendChild(block);
+      segWrap.appendChild(seg);
     });
     banner.appendChild(segWrap);
     el.appendChild(banner);
+  }
+
+  // Judul & alasan keterlambatan tiap baris -- dipakai openDelayModal_ di
+  // bawah, pola persis .unit-item/.unit-item-title/.unit-item-meta yang
+  // sudah dipakai modal Riwayat (openUnitDetail).
+  function delayItemTitle_(groupKey, r) {
+    var unitPart = (r.proyek || '-') + (r.unit ? ' – ' + r.unit : '');
+    if (groupKey === 'spk') return (r.noSpk || '-') + ' — ' + unitPart;
+    if (groupKey === 'purchasing') return (r.namaBarang || '-') + ' — ' + unitPart;
+    return unitPart; // homeWithAi
+  }
+  function delayItemValue_(groupKey, r) {
+    return groupKey === 'spk' ? r.nilaiTotal : r.nilai;
+  }
+  function delayReasonMeta_(r) {
+    var lines = [];
+    if (r.isOverdue) {
+      lines.push('Overdue: melewati target Tanggal Selesai (' + formatDate(r.tanggalSelesaiEfektif) + ')');
+    }
+    if (r.slaOverdue) {
+      lines.push('SLA terlambat: target ' + formatDate(r.slaTargetDate) +
+        ' · mulai ' + formatDate(r.slaStartDate) +
+        ' · target ' + r.slaTargetHari + ' hari · sudah ' + r.slaElapsedHari + ' hari berjalan');
+    }
+    return lines;
+  }
+
+  // Modal popup daftar keterlambatan per kategori (dipicu klik segmen di
+  // renderDelayAlert) -- backdrop TERPISAH dari unitModalBackdrop (Detail
+  // per Unit) supaya kedua modal tidak berebut state kalau user buka
+  // Riwayat unit dari sini nanti.
+  function openDelayModal_(groupKey, group) {
+    var html = '<div class="unit-header"><h2>Keterlambatan — ' + escapeHtml(group.label) + '</h2>' +
+      '<p>' + group.rows.length + ' proses terlambat</p></div>';
+    html += '<div class="unit-section">';
+    html += group.rows.map(function (r) {
+      var reasonLines = delayReasonMeta_(r);
+      return '<div class="unit-item">' +
+        '<div class="unit-item-title"><span>' + escapeHtml(delayItemTitle_(groupKey, r)) + '</span>' +
+        '<span>' + formatRupiah(delayItemValue_(groupKey, r)) + '</span></div>' +
+        reasonLines.map(function (l) { return '<div class="unit-item-meta">' + escapeHtml(l) + '</div>'; }).join('') +
+        '</div>';
+    }).join('');
+    html += '</div>';
+
+    document.getElementById('delayModalContent').innerHTML = html;
+    document.getElementById('delayModalBackdrop').classList.add('open');
+  }
+  document.getElementById('delayModalClose').addEventListener('click', closeDelayModal_);
+  document.getElementById('delayModalBackdrop').addEventListener('click', function (e) {
+    if (e.target === document.getElementById('delayModalBackdrop')) closeDelayModal_();
+  });
+  function closeDelayModal_() {
+    document.getElementById('delayModalBackdrop').classList.remove('open');
   }
 
   // ---------------------------------------------------------------------

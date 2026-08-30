@@ -298,22 +298,20 @@
   .alert-banner .alert-icon { font-size: 16px; }
 
   /* ---------- Alert keterlambatan progres (Dashboard "Semua" + tiap
-     sub-tab kategori) -- banner dgn segmen per kategori, klik utk expand
-     daftar proyek/unit yang terlambat ---------- */
+     sub-tab kategori) -- banner dgn segmen per kategori, klik utk buka
+     modal popup (delayModalBackdrop) berisi daftar proyek/unit yang
+     terlambat ---------- */
   .alert-banner-delay { flex-direction: column; align-items: stretch; gap: 12px; }
   .alert-banner-summary { display: flex; align-items: center; gap: 10px; }
   .alert-delay-segments { display: flex; flex-wrap: wrap; gap: 10px; }
-  .alert-delay-block { display: flex; flex-direction: column; }
   .alert-delay-seg {
     display: flex; align-items: center; gap: 8px;
     background: var(--white); border: 1px solid #f3c1c1; color: var(--red);
     border-radius: 999px; padding: 5px 12px; font-size: 12.5px; font-weight: 600;
     cursor: pointer;
   }
-  .alert-delay-seg:hover, .alert-delay-seg.expanded { background: #fde2e2; }
+  .alert-delay-seg:hover { background: #fde2e2; }
   .alert-delay-seg-count { background: var(--red); color: var(--white); border-radius: 999px; padding: 1px 8px; font-size: 11.5px; }
-  .alert-delay-details { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-  .alert-delay-details[hidden] { display: none; }
 
   /* ---------- Summary cards ---------- */
   .summary-cards {

@@ -455,8 +455,11 @@ sendiri), cara update:
     ketiga kategori (segmen "SPK · Purchasing · Home With AI" dengan
     jumlah masing-masing), sedangkan di sub-tab SPK/Purchasing/Home With
     AI banner-nya cuma segmen kategori itu sendiri. Klik salah satu
-    segmen untuk expand daftar proyek/unit yang terlambat; kalau tidak
-    ada yang terlambat, banner-nya otomatis tersembunyi.
+    segmen untuk membuka **modal popup** berisi daftar proses yang
+    terlambat (No. SPK/Nama Barang, proyek/unit, nilai, dan alasan
+    terlambatnya — overdue tanggal atau SLA) — mirip modal Riwayat di
+    Detail per Unit, bukan expand di tempat. Kalau tidak ada yang
+    terlambat, banner-nya otomatis tersembunyi.
   - **Master Data SPK** — seluruh kolom SPK apa adanya (persis tab GP1–GP4
     di spreadsheet), + kartu ringkasan (**Total SPK** & Total Nilai) di
     atas tabel, + filter Proyek & Jenis SPK.
