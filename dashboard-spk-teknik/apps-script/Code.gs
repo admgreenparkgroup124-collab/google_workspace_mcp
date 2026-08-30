@@ -71,6 +71,49 @@ function updateSlaTargetHari(payload) {
   return buildDashboardPayload_(access.email);
 }
 
+// Dipanggil client dari tombol "+ Tambah Data" di halaman Master Data
+// SPK/Purchasing/Home With AI. payload: { recordType, gp, fields }. Pola
+// sama dengan updateSlaTargetHari: cek akses+scope, tulis, kembalikan
+// payload dashboard yang sudah di-refresh penuh. Validasi di sini
+// sengaja minimal (Nama Proyek terisi, field tanggal utama terisi, field
+// nilai numerik valid) -- cukup untuk mencegah baris kosong/rusak, bukan
+// validasi bisnis penuh (itu tanggung jawab PIC saat mengisi).
+function addRecord(payload) {
+  var access = checkAccess();
+  if (!access.allowed) {
+    throw new Error('Akses ditolak. Email ' + (access.email || '(tidak terdeteksi)') + ' belum terdaftar di tab Akses.');
+  }
+
+  payload = payload || {};
+  var recordType = payload.recordType;
+  var gp = payload.gp;
+  var fields = payload.fields || {};
+
+  if (['spk', 'purchasing', 'homeWithAi'].indexOf(recordType) === -1) {
+    throw new Error('recordType tidak valid.');
+  }
+  if (!canEditSla_(access.email, recordType, gp)) {
+    throw new Error('Anda tidak berwenang menambah data ini.');
+  }
+  if (!safeText(fields.namaProyek)) {
+    throw new Error('Nama Proyek tidak boleh kosong.');
+  }
+
+  var mainDateKey = recordType === 'spk' ? 'tanggalTerbit' : 'tanggalMulai';
+  if (!safeText(fields[mainDateKey])) {
+    throw new Error((recordType === 'spk' ? 'Tanggal Terbit' : 'Tanggal Order/Mulai') + ' tidak boleh kosong.');
+  }
+
+  var mainValueKey = recordType === 'spk' ? 'nilaiKontrak' : 'nilai';
+  var mainValue = Number(fields[mainValueKey]);
+  if (!isFinite(mainValue) || mainValue < 0) {
+    throw new Error((recordType === 'spk' ? 'Nilai Kontrak' : 'Harga Total') + ' harus berupa angka >= 0.');
+  }
+
+  writeNewRecord_(recordType, gp, fields);
+  return buildDashboardPayload_(access.email);
+}
+
 function renderAccessDeniedHtml_(email) {
   var safeEmail = email ? String(email).replace(/[<>&]/g, '') : '(tidak terdeteksi)';
   return '<!DOCTYPE html><html><head><meta charset="utf-8">' +

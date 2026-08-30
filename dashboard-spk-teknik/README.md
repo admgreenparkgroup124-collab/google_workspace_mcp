@@ -2,11 +2,14 @@
 
 Dashboard untuk memantau SPK, Home With AI, dan Purchasing Departemen
 Teknik GPG, dibangun sesuai `PRD_Dashboard_SPK_Teknik_GPG.md` (v1.3,
-final). Pada dasarnya read-only, kecuali satu fitur tulis-balik yang
+final). Pada dasarnya read-only, kecuali dua fitur tulis-balik yang
 disengaja: PIC terkait bisa mengisi **Target Hari SLA** per baris
-langsung dari halaman Master Data SLA. Backend berupa Google Apps Script
-**container-bound** (dibuat langsung dari dalam Google Sheets sumber
-data), disajikan sebagai Web App.
+langsung dari halaman Master Data SLA, dan bisa **menambah data baru**
+(SPK/Purchasing/Home With AI) langsung dari dashboard lewat tombol
+"+ Tambah Data" — keduanya tertulis langsung ke Google Sheets, tidak perlu
+diketik dua kali. Backend berupa Google Apps Script **container-bound**
+(dibuat langsung dari dalam Google Sheets sumber data), disajikan sebagai
+Web App.
 
 Spreadsheet sumber:
 https://docs.google.com/spreadsheets/d/1KyKiyRguYrFdCS2jQqKfrNhR4nvtbPVrV6abr0pR-48/edit
@@ -128,11 +131,13 @@ sekali, dashboard memakai fallback 150 hari (konsisten dengan alert
 overdue yang sudah ada di menu Dashboard, Bagian 5) — begitu PIC mengisi
 Target Hari manual untuk baris itu, nilai manual itu yang dipakai.
 
-### 2d. Tambah tab **"Akses"** (+ kolom **Role** untuk siapa boleh isi Target Hari SLA)
+### 2d. Tambah tab **"Akses"** (+ kolom **Role** untuk siapa boleh menulis balik ke Sheets)
 
 Tab baru, ini yang menentukan siapa saja yang boleh membuka dashboard —
-dan sekarang juga siapa saja yang boleh mengisi Target Hari SLA lewat
-dashboard. Baris header:
+dan sekarang juga siapa saja yang boleh menulis balik ke Sheets lewat
+dashboard: mengisi Target Hari SLA (Bagian 2c) **dan** menambah data baru
+lewat tombol "+ Tambah Data" (Bagian 4) — dua fitur ini pakai scope Role
+yang sama persis, tidak ada pengaturan terpisah. Baris header:
 
 ```
 Email | Nama | Role
@@ -145,10 +150,11 @@ Email | Nama | Role
 > sendiri akan melihat halaman "Akses Ditolak" saat mencoba Web App-nya
 > setelah deploy.
 
-Kolom **Role** menentukan scope tulis-balik Target Hari SLA milik tiap
-orang (pisahkan dengan koma kalau lebih dari satu) — **kosongkan** untuk
-orang yang hanya boleh melihat dashboard (viewer), termasuk CEO/Dirops/
-Kadep Teknik. Isi satu baris per orang, misalnya:
+Kolom **Role** menentukan scope tulis-balik (Target Hari SLA **dan**
+Tambah Data) milik tiap orang (pisahkan dengan koma kalau lebih dari
+satu) — **kosongkan** untuk orang yang hanya boleh melihat dashboard
+(viewer), termasuk CEO/Dirops/Kadep Teknik. Isi satu baris per orang,
+misalnya:
 
 ```
 Email          | Nama                          | Role
@@ -162,18 +168,18 @@ yudi@...       | Yudi (Kadep Teknik)           |
 ```
 
 - `SPK:GP1` / `SPK:GP2` / `SPK:GP3` / `SPK:GP4` — boleh isi Target Hari
-  SLA untuk baris SPK di GP yang bersangkutan saja.
-- `Purchasing` — boleh isi Target Hari SLA untuk semua baris Purchasing.
-- `HomeWithAi` — boleh isi Target Hari SLA untuk semua baris Home With AI.
+  SLA & tambah SPK baru untuk GP yang bersangkutan saja.
+- `Purchasing` — boleh isi Target Hari SLA & tambah data Purchasing baru.
+- `HomeWithAi` — boleh isi Target Hari SLA & tambah data Home With AI baru.
 - Penulisan harus persis (huruf besar/kecil bebas, tapi kata & tanda `:`
   harus sama) — kalau salah ketik, orang tsb dianggap tidak punya scope
   itu (aman, gagal-tertutup: bukan malah jadi bisa edit segalanya).
 
 > Baris Akses lama yang belum punya kolom Role tetap valid — otomatis
-> diperlakukan sebagai viewer (tidak bisa isi Target Hari apapun), jadi
-> menambah kolom Role tidak merusak akses siapapun yang sudah ada.
-> Tambahkan/hapus baris di tab ini kapan saja tanpa perlu deploy ulang
-> script — perubahan langsung berlaku di request berikutnya.
+> diperlakukan sebagai viewer (tidak bisa isi Target Hari atau tambah
+> data apapun), jadi menambah kolom Role tidak merusak akses siapapun
+> yang sudah ada. Tambahkan/hapus baris di tab ini kapan saja tanpa perlu
+> deploy ulang script — perubahan langsung berlaku di request berikutnya.
 
 ### 2e. Penulisan Grup Proyek — penting
 
@@ -200,17 +206,17 @@ di semua tab termasuk Home With AI & Purchasing.
      spreadsheet.
 
 > Catatan penting: karena Web App di-deploy dengan **Execute as: User
-> accessing the web app** (Bagian 3), tulisan ke kolom **Target Hari
-> (SLA)** dari dashboard benar-benar berjalan atas nama akun PIC yang
-> sedang login — tunduk pada Protect sheet yang sama seperti kalau dia
-> mengetik langsung di spreadsheet. Ini pas dengan setup Protect sheet di
-> atas (Haris editor GP1/GP2/GP4, Ajis editor GP3, Kahfi editor
-> Purchasing, Naufal editor Home With AI), jadi tidak perlu pengaturan
-> tambahan. Kalau nanti ada PIC yang di kolom Role tab Akses (Bagian 2d)
-> diberi scope untuk suatu tab tapi belum diberi akses **Editor** ke tab
-> itu di Bagian 2f, input Target Hari-nya akan gagal tersimpan (muncul
-> pesan error di dashboard) — pastikan scope Role dan hak edit Protect
-> sheet selalu sinkron untuk orang yang sama.
+> accessing the web app** (Bagian 3), SEMUA tulisan dari dashboard ke
+> Sheets — kolom **Target Hari (SLA)** maupun baris baru dari **"+ Tambah
+> Data"** — benar-benar berjalan atas nama akun PIC yang sedang login,
+> tunduk pada Protect sheet yang sama seperti kalau dia mengetik langsung
+> di spreadsheet. Ini pas dengan setup Protect sheet di atas (Haris editor
+> GP1/GP2/GP4, Ajis editor GP3, Kahfi editor Purchasing, Naufal editor
+> Home With AI), jadi tidak perlu pengaturan tambahan. Kalau nanti ada PIC
+> yang di kolom Role tab Akses (Bagian 2d) diberi scope untuk suatu tab
+> tapi belum diberi akses **Editor** ke tab itu di Bagian 2f, tulisannya
+> akan gagal tersimpan (muncul pesan error di dashboard) — pastikan scope
+> Role dan hak edit Protect sheet selalu sinkron untuk orang yang sama.
 
 ---
 
@@ -271,19 +277,27 @@ sendiri), cara update:
   benar-benar ada di tab Akses (tanpa spasi/typo), (b) file spreadsheet
   sudah di-share ke email tsb.
 - Ada 5 menu di bagian atas (di bawah header), masing-masing punya filter
-  GP/Proyek sendiri (menyesuaikan GP yang dipilih) selain filter yang
-  disebut di bawah:
-  - **Dashboard** — ringkasan: filter Tahun/Bulan/GP/Proyek/Kategori +
-    kotak pencarian, kartu ringkasan, alert overdue, 5 grafik, dan tabel
-    per kategori (SPK/Home With AI/Purchasing) yang mengikuti filter aktif.
+  GP (bentuk tab tombol Semua/GP1/GP2/GP3/GP4, konsisten di ketiga menu
+  Master Data) + Proyek sendiri (menyesuaikan GP yang dipilih) selain
+  filter yang disebut di bawah:
+  - **Dashboard** — punya 4 sub-tab: **Semua** (ringkasan gabungan: filter
+    Tahun/Bulan/GP/Proyek/Kategori + kotak pencarian, kartu ringkasan,
+    alert overdue, 5 grafik, dan tabel per kategori SPK/Home With
+    AI/Purchasing), **SPK**, **Purchasing**, **Home With AI** — tiga
+    sub-tab terakhir menampilkan kartu & grafik khusus kategori itu saja
+    (Total Keseluruhan, breakdown per Jenis/Status, Total Nilai Transaksi,
+    Total Nilai per Jenis/Status, tren jumlah per bulan, proporsi status
+    progres). Filter Tahun/Bulan/GP/Proyek/Cari tetap berlaku di semua
+    sub-tab; chip Kategori cuma tampil di sub-tab Semua.
   - **Master Data SPK** — seluruh kolom SPK apa adanya (persis tab GP1–GP4
-    di spreadsheet), sub-tab GP1–GP4, + filter Proyek & Jenis SPK.
+    di spreadsheet), + kartu ringkasan (Total Baris & Total Nilai) di
+    atas tabel, + filter Proyek & Jenis SPK.
   - **Master Data Purchasing** — seluruh kolom tab Purchasing apa adanya
     (termasuk Nama Vendor, Satuan, Harga Satuan, Harga Total, Lampiran) +
-    filter GP/Proyek/Jenis Pengadaan.
+    kartu ringkasan + filter Proyek/Jenis Pengadaan.
   - **Master Data Home With AI** — seluruh kolom tab Home With AI apa
     adanya (termasuk Nama Vendor, Satuan, Harga Satuan, Harga Total, Tgl
-    Mulai, Tgl Selesai, Lampiran) + filter GP/Proyek/Status.
+    Mulai, Tgl Selesai, Lampiran) + kartu ringkasan + filter Proyek/Status.
   - **Master Data SLA** — gabungan proses SPK/Purchasing/Home With AI yang
     sudah punya Tanggal Terbit/Tanggal Order-Mulai, dengan kolom Target
     Hari (**diisi manual langsung di kolom ini** oleh PIC terkait — lihat
@@ -292,6 +306,18 @@ sendiri), cara update:
   Keempat menu Master Data ini punya kotak pencari sendiri dan **tidak**
   ikut filter Tahun/Bulan/Kategori di menu Dashboard — sengaja dibuat
   sebagai tampilan "apa adanya" dari data mentah per tab/proses.
+- **Tombol "+ Tambah Data"** — muncul di toolbar Master Data SPK/
+  Purchasing/Home With AI, **hanya untuk PIC yang punya scope Role**
+  terkait (Bagian 2d; Haris/Ajis untuk SPK sesuai GP yang aktif, Kahfi
+  untuk Purchasing, Naufal untuk Home With AI — CEO/Dirops/Yudi tidak
+  melihat tombol ini sama sekali). Klik tombol → isi form → **Simpan**
+  langsung menulis baris baru di Sheets (di tab GP yang sesuai untuk SPK)
+  dan dashboard otomatis me-refresh. Kalau sedang di sub-tab GP tertentu
+  di Master Data SPK, kolom Grup Proyek di form otomatis terkunci ke GP
+  itu; kalau di "Semua", pilih dulu GP tujuan (hanya GP yang PIC punya
+  scope-nya yang muncul di pilihan). Field Nama Proyek punya saran
+  ketik-otomatis dari proyek yang sudah ada (untuk GP terpilih) supaya
+  tidak salah ketik, tapi tetap boleh mengetik nama proyek baru.
 - Klik satu baris di tabel manapun (Dashboard maupun Master Data) yang
   punya nilai Unit (Blok/No. Unit terisi) untuk membuka **Detail per
   Unit** — riwayat SPK (dengan Jenis SPK & Item SPK-nya), Home With AI,
@@ -308,11 +334,15 @@ sendiri), cara update:
 
 ## 5. Batasan v1 / hal yang perlu diketahui
 
-- **Dashboard ini read-only, kecuali satu pengecualian yang disengaja**:
-  kolom **Target Hari (SLA)** di halaman Master Data SLA, yang boleh
-  diisi langsung dari dashboard oleh PIC terkait (Bagian 2c/2d). Semua
-  data lain tetap diinput langsung di Google Sheets oleh Haris/Ajis (SPK),
-  Kahfi (Purchasing), Naufal (Home With AI) — sesuai PRD Bagian 5.
+- **Dashboard ini read-only, kecuali dua pengecualian yang disengaja**:
+  kolom **Target Hari (SLA)** di halaman Master Data SLA, dan tombol
+  **"+ Tambah Data"** di Master Data SPK/Purchasing/Home With AI (Bagian
+  2c/2d/4) — keduanya boleh ditulis langsung dari dashboard oleh PIC
+  terkait. "+ Tambah Data" **cuma bisa menambah baris baru**, belum bisa
+  mengedit atau menghapus baris yang sudah ada — kalau ada baris lama yang
+  salah, tetap perlu diperbaiki langsung di Google Sheets. Selebihnya
+  (edit data existing) tetap dilakukan langsung di Sheets oleh Haris/Ajis
+  (SPK), Kahfi (Purchasing), Naufal (Home With AI) — sesuai PRD Bagian 5.
 - **Overdue** (kartu & alert di menu Dashboard) hanya dihitung untuk SPK
   Jenis **UNIT RUMAH** (target otomatis Tanggal Terbit + 5 bulan) — ini
   tidak berubah walau ada fitur SLA baru. **Master Data SLA** adalah

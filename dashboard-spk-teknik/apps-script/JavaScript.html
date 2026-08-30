@@ -24,6 +24,7 @@
   var isLoading = false;
 
   var currentView = 'dashboard'; // 'dashboard' | 'master-spk' | 'master-purchasing' | 'master-hwa' | 'master-sla'
+  var dashboardSubTab = 'semua'; // 'semua' | 'spk' | 'purchasing' | 'hwa' -- sub-tab di dalam menu Dashboard
   var masterSpkGp = '';          // '' = semua GP, else 'GP1'..'GP4' (cocok dengan sourceTab)
   var masterSpkProyek = '';
   var masterSpkJenis = '';       // '' | 'PSU' | 'UNIT RUMAH'
@@ -52,6 +53,31 @@
   var syncMinutes = DEFAULT_SYNC_MINUTES;
 
   var MONTHS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+
+  // Daftar nilai valid per dropdown -- satu sumber, dipakai ulang oleh
+  // filter Master Data (populateOptionLists di bawah) DAN form "Tambah
+  // Data" (ADD_RECORD_FIELD_DEFS), supaya tidak didefinisikan dua kali.
+  var GP_OPTIONS = ['GP1', 'GP2', 'GP3', 'GP4'];
+  var SPK_JENIS_OPTIONS = ['PSU', 'UNIT RUMAH'];
+  var JENIS_PENGADAAN_OPTIONS = ['Promo Unit', 'Material PSU', 'Material Unit Bangunan'];
+  var HOME_WITH_AI_STATUS_OPTIONS = ['Belum Order', 'On Proses', 'Terpasang'];
+  var PURCHASING_STATUS_OPTIONS = ['Belum Order', 'On Proses', 'Sudah Order', 'Belum Terpasang', 'Terpasang'];
+
+  function populateOptionLists() {
+    function fill(selId, options) {
+      var sel = document.getElementById(selId);
+      options.forEach(function (v) {
+        var opt = document.createElement('option');
+        opt.value = v;
+        opt.textContent = v;
+        sel.appendChild(opt);
+      });
+    }
+    fill('masterSpkJenisFilter', SPK_JENIS_OPTIONS);
+    fill('masterPurJenisFilter', JENIS_PENGADAAN_OPTIONS);
+    fill('masterHwaStatusFilter', HOME_WITH_AI_STATUS_OPTIONS);
+  }
+  populateOptionLists();
 
   var TABLE_COLUMNS = {
     spk: [
@@ -288,6 +314,7 @@
     updateSyncStatus();
     populateFilterOptions();
     populateMasterFilterOptions();
+    updateAddButtonsVisibility();
     renderCurrentView();
   }
 
@@ -453,18 +480,86 @@
   // ---------------------------------------------------------------------
   // Render orchestration
   // ---------------------------------------------------------------------
+  // Dispatch berdasar sub-tab Dashboard yang aktif (Semua/SPK/Purchasing/
+  // Home With AI) -- tab "Semua" perilakunya identik dengan sebelum
+  // sub-tab ini ada (renderSummary+renderCharts+renderTable gabungan).
   function renderAll() {
     var fSpk = getFilteredSpk();
     var fHwa = getFilteredHomeWithAi();
     var fPur = getFilteredPurchasing();
 
-    renderSummary(fSpk, fHwa, fPur);
-    renderCharts(fSpk, fHwa, fPur);
-    renderTable(fSpk, fHwa, fPur);
+    if (dashboardSubTab === 'spk') {
+      renderSpkOverview(fSpk);
+    } else if (dashboardSubTab === 'purchasing') {
+      renderPurchasingOverview(fPur);
+    } else if (dashboardSubTab === 'hwa') {
+      renderHwaOverview(fHwa);
+    } else {
+      renderSummary(fSpk, fHwa, fPur);
+      renderCharts(fSpk, fHwa, fPur);
+      renderTable(fSpk, fHwa, fPur);
+    }
+  }
+
+  document.getElementById('dashboardSubTabs').addEventListener('click', function (e) {
+    var btn = e.target.closest('button[data-subtab]');
+    if (!btn) return;
+    dashboardSubTab = btn.getAttribute('data-subtab');
+    document.querySelectorAll('#dashboardSubTabs button').forEach(function (b) { b.classList.toggle('active', b === btn); });
+    document.querySelectorAll('.dashboard-subview').forEach(function (el) { el.hidden = (el.id !== 'dashboardSubview-' + dashboardSubTab); });
+    document.getElementById('filterKategoriGroup').hidden = (dashboardSubTab !== 'semua');
+    renderAll();
+  });
+
+  // ---------------------------------------------------------------------
+  // Card grid generik -- dipakai renderSummary (tab Semua) + overview per
+  // kategori (renderSpkOverview/renderPurchasingOverview/renderHwaOverview)
+  // + renderMasterSummary di halaman Master Data.
+  // ---------------------------------------------------------------------
+  function renderCardGrid(elId, cards) {
+    var wrap = document.getElementById(elId);
+    wrap.innerHTML = '';
+    cards.forEach(function (c) {
+      var el = document.createElement('div');
+      el.className = 'card' + (c.alert ? ' card-alert' : '');
+      el.innerHTML =
+        '<div class="card-label">' + escapeHtml(c.label) + '</div>' +
+        '<div class="card-value">' + escapeHtml(String(c.value)) + '</div>' +
+        (c.sub ? '<div class="card-sub">' + escapeHtml(c.sub) + '</div>' : '') +
+        (c.breakdown ? '<div class="card-breakdown">' + c.breakdown + '</div>' : '');
+      wrap.appendChild(el);
+    });
+  }
+
+  // Breakdown pill list generik (dipakai renderSummary + overview per
+  // kategori) -- kelompokkan `rows` berdasar `keyFn`, hitung count & total
+  // nilai (`valueFn`) per kelompok, kembalikan { order, countPills,
+  // nilaiPills } siap ditempel ke card.breakdown.
+  function buildBreakdown(rows, keyFn, valueFn, pillClassFn) {
+    var order = [];
+    var count = {};
+    var nilai = {};
+    rows.forEach(function (r) {
+      var k = keyFn(r) || '(Tidak diisi)';
+      if (count[k] === undefined) { count[k] = 0; nilai[k] = 0; order.push(k); }
+      count[k]++;
+      nilai[k] += valueFn(r);
+    });
+    function pill(k, text) {
+      var cls = pillClassFn ? pillClassFn(k) : 'badge-gray';
+      return '<span class="badge ' + cls + '">' + escapeHtml(k) + ': ' + text + '</span>';
+    }
+    return {
+      order: order,
+      count: count,
+      nilai: nilai,
+      countPills: order.map(function (k) { return pill(k, count[k]); }).join(''),
+      nilaiPills: order.map(function (k) { return pill(k, formatRupiah(nilai[k])); }).join('')
+    };
   }
 
   // ---------------------------------------------------------------------
-  // Summary cards + overdue alert
+  // Summary cards + overdue alert (tab Dashboard "Semua")
   // ---------------------------------------------------------------------
   function renderSummary(fSpk, fHwa, fPur) {
     var totalSpk = fSpk.length;
@@ -515,26 +610,13 @@
       breakdown: purBreakdown
     });
 
-    var wrap = document.getElementById('summaryCards');
-    wrap.innerHTML = '';
-    cards.forEach(function (c) {
-      var el = document.createElement('div');
-      el.className = 'card';
-      el.innerHTML =
-        '<div class="card-label">' + escapeHtml(c.label) + '</div>' +
-        '<div class="card-value">' + escapeHtml(String(c.value)) + '</div>' +
-        (c.sub ? '<div class="card-sub">' + escapeHtml(c.sub) + '</div>' : '') +
-        (c.breakdown ? '<div class="card-breakdown">' + c.breakdown + '</div>' : '');
-      wrap.appendChild(el);
+    cards.push({
+      label: 'Unit Overdue (SPK Unit Rumah)',
+      value: overdueCount,
+      sub: 'Melewati target Tanggal Selesai',
+      alert: overdueCount > 0
     });
-
-    var alertCard = document.createElement('div');
-    alertCard.className = 'card' + (overdueCount > 0 ? ' card-alert' : '');
-    alertCard.innerHTML =
-      '<div class="card-label">Unit Overdue (SPK Unit Rumah)</div>' +
-      '<div class="card-value">' + overdueCount + '</div>' +
-      '<div class="card-sub">Melewati target Tanggal Selesai</div>';
-    wrap.appendChild(alertCard);
+    renderCardGrid('summaryCards', cards);
 
     var alertRow = document.getElementById('alertRow');
     alertRow.innerHTML = '';
@@ -576,11 +658,13 @@
     return { labels: order, values: order.map(function (k) { return map[k]; }) };
   }
 
-  function renderChartJenisPekerjaan(fSpk) {
-    destroyChart('jenisPekerjaan');
+  function renderChartJenisPekerjaan(fSpk, canvasId, chartKey) {
+    canvasId = canvasId || 'chartJenisPekerjaan';
+    chartKey = chartKey || 'jenisPekerjaan';
+    destroyChart(chartKey);
     var g = groupSum(fSpk, function (r) { return r.itemSpk; });
-    var ctx = document.getElementById('chartJenisPekerjaan').getContext('2d');
-    charts.jenisPekerjaan = new Chart(ctx, {
+    var ctx = document.getElementById(canvasId).getContext('2d');
+    charts[chartKey] = new Chart(ctx, {
       type: 'bar',
       data: { labels: g.labels, datasets: [{ label: 'Jumlah SPK', data: g.values, backgroundColor: '#2f5d8a', borderRadius: 4 }] },
       options: baseBarOptions('Jumlah SPK')
@@ -610,11 +694,13 @@
     });
   }
 
-  function renderChartProporsiGp(fSpk) {
-    destroyChart('proporsiGp');
+  function renderChartProporsiGp(fSpk, canvasId, chartKey) {
+    canvasId = canvasId || 'chartProporsiGp';
+    chartKey = chartKey || 'proporsiGp';
+    destroyChart(chartKey);
     var g = groupSum(fSpk, function (r) { return r.gp; }, function (r) { return r.nilaiTotal; });
-    var ctx = document.getElementById('chartProporsiGp').getContext('2d');
-    charts.proporsiGp = new Chart(ctx, {
+    var ctx = document.getElementById(canvasId).getContext('2d');
+    charts[chartKey] = new Chart(ctx, {
       type: 'doughnut',
       data: { labels: g.labels, datasets: [{ data: g.values, backgroundColor: PALETTE }] },
       options: {
@@ -624,8 +710,10 @@
     });
   }
 
-  function renderChartHwaStatus(fHwa) {
-    destroyChart('hwaStatus');
+  function renderChartHwaStatus(fHwa, canvasId, chartKey) {
+    canvasId = canvasId || 'chartHwaStatus';
+    chartKey = chartKey || 'hwaStatus';
+    destroyChart(chartKey);
     var proyekOrder = [];
     var byProyekStatus = {};
     fHwa.forEach(function (r) {
@@ -642,8 +730,8 @@
         backgroundColor: STATUS_COLORS[status]
       };
     });
-    var ctx = document.getElementById('chartHwaStatus').getContext('2d');
-    charts.hwaStatus = new Chart(ctx, {
+    var ctx = document.getElementById(canvasId).getContext('2d');
+    charts[chartKey] = new Chart(ctx, {
       type: 'bar',
       data: { labels: proyekOrder, datasets: datasets },
       options: {
@@ -654,15 +742,113 @@
     });
   }
 
-  function renderChartPurchasing(fPur) {
-    destroyChart('purchasing');
+  function renderChartPurchasing(fPur, canvasId, chartKey) {
+    canvasId = canvasId || 'chartPurchasing';
+    chartKey = chartKey || 'purchasing';
+    destroyChart(chartKey);
     var g = groupSum(fPur, function (r) { return r.jenisPengadaan; }, function (r) { return r.nilai; });
-    var ctx = document.getElementById('chartPurchasing').getContext('2d');
-    charts.purchasing = new Chart(ctx, {
+    var ctx = document.getElementById(canvasId).getContext('2d');
+    charts[chartKey] = new Chart(ctx, {
       type: 'bar',
       data: { labels: g.labels, datasets: [{ label: 'Nilai (Rp)', data: g.values, backgroundColor: PALETTE.slice(0, g.labels.length), borderRadius: 4 }] },
       options: baseBarOptions('Rp', true, true)
     });
+  }
+
+  // ---------------------------------------------------------------------
+  // Chart baru khusus dashboard sub-tab per kategori (Trend count per
+  // bulan, Status Progres) -- tidak ada versi lama yang bisa dipakai ulang.
+  // ---------------------------------------------------------------------
+  function renderTrendCountChart(canvasId, chartKey, rows, dateKey, label, color) {
+    destroyChart(chartKey);
+    var map = {};
+    rows.forEach(function (r) {
+      var iso = r[dateKey];
+      if (!iso) return;
+      var key = iso.slice(0, 7); // 'YYYY-MM'
+      if (!map[key]) map[key] = 0;
+      map[key] += 1;
+    });
+    var keys = Object.keys(map).sort();
+    var labels = keys.map(function (k) {
+      var parts = k.split('-');
+      return MONTHS[parseInt(parts[1], 10) - 1].slice(0, 3) + ' ' + parts[0];
+    });
+    var values = keys.map(function (k) { return map[k]; });
+    var ctx = document.getElementById(canvasId).getContext('2d');
+    charts[chartKey] = new Chart(ctx, {
+      type: 'bar',
+      data: { labels: labels, datasets: [{ label: label, data: values, backgroundColor: color, borderRadius: 4 }] },
+      options: baseBarOptions('Jumlah')
+    });
+  }
+
+  function renderStatusProportionChart(canvasId, chartKey, labels, values, colors) {
+    destroyChart(chartKey);
+    var ctx = document.getElementById(canvasId).getContext('2d');
+    charts[chartKey] = new Chart(ctx, {
+      type: 'doughnut',
+      data: { labels: labels, datasets: [{ data: values, backgroundColor: colors }] },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } } }
+      }
+    });
+  }
+
+  // ---- Overview SPK (dashboard sub-tab) ----
+  function renderSpkOverview(fSpk) {
+    var totalNilai = fSpk.reduce(function (s, r) { return s + r.nilaiTotal; }, 0);
+    var overdueCount = fSpk.filter(function (r) { return r.isOverdue; }).length;
+    var jenis = buildBreakdown(fSpk, function (r) { return r.jenisSpk; }, function (r) { return r.nilaiTotal; });
+
+    renderCardGrid('spkSummaryCards', [
+      { label: 'Total SPK Keseluruhan', value: fSpk.length, sub: overdueCount + ' overdue (Unit Rumah)' },
+      { label: 'Total per Jenis SPK', value: jenis.order.length + ' jenis', breakdown: jenis.countPills },
+      { label: 'Total Nilai Transaksi SPK', value: formatRupiah(totalNilai) },
+      { label: 'Total Nilai per Jenis SPK', value: '–', breakdown: jenis.nilaiPills }
+    ]);
+
+    renderChartJenisPekerjaan(fSpk, 'chartSpkJenisPekerjaan', 'spkJenisPekerjaan');
+    renderChartProporsiGp(fSpk, 'chartSpkProporsiGp', 'spkProporsiGp');
+    renderTrendCountChart('chartSpkTrenPenerbitan', 'spkTrenPenerbitan', fSpk, 'tanggalTerbit', 'Jumlah SPK Terbit', '#5b8fb9');
+    renderStatusProportionChart('chartSpkStatusProgres', 'spkStatusProgres',
+      ['Sesuai Jadwal', 'Overdue'], [fSpk.length - overdueCount, overdueCount], ['#1f9d55', '#c53030']);
+  }
+
+  // ---- Overview Purchasing (dashboard sub-tab) ----
+  function renderPurchasingOverview(fPur) {
+    var totalNilai = fPur.reduce(function (s, r) { return s + r.nilai; }, 0);
+    var jenis = buildBreakdown(fPur, function (r) { return r.jenisPengadaan; }, function (r) { return r.nilai; });
+    var status = buildBreakdown(fPur, function (r) { return r.statusPekerjaan; }, function () { return 0; });
+
+    renderCardGrid('purSummaryCards', [
+      { label: 'Total Purchasing Keseluruhan', value: fPur.length },
+      { label: 'Total per Jenis Pengadaan', value: jenis.order.length + ' jenis', breakdown: jenis.countPills },
+      { label: 'Total Nilai Transaksi Purchasing', value: formatRupiah(totalNilai) },
+      { label: 'Total Nilai per Jenis Pengadaan', value: '–', breakdown: jenis.nilaiPills }
+    ]);
+
+    renderChartPurchasing(fPur, 'chartPurJenis', 'purJenis');
+    renderTrendCountChart('chartPurTren', 'purTren', fPur, 'tanggalMulai', 'Jumlah Transaksi', '#5b8fb9');
+    renderStatusProportionChart('chartPurStatus', 'purStatus',
+      status.order, status.order.map(function (k) { return status.count[k]; }), PALETTE);
+  }
+
+  // ---- Overview Home With AI (dashboard sub-tab) ----
+  function renderHwaOverview(fHwa) {
+    var totalNilai = fHwa.reduce(function (s, r) { return s + r.nilai; }, 0);
+    var status = buildBreakdown(fHwa, function (r) { return r.status; }, function (r) { return r.nilai; }, statusBadgeClass);
+
+    renderCardGrid('hwaSummaryCards', [
+      { label: 'Total Home With AI Keseluruhan', value: fHwa.length },
+      { label: 'Total per Status', value: status.order.length + ' status', breakdown: status.countPills },
+      { label: 'Total Nilai Transaksi Home With AI', value: formatRupiah(totalNilai) },
+      { label: 'Total Nilai per Status', value: '–', breakdown: status.nilaiPills }
+    ]);
+
+    renderChartHwaStatus(fHwa, 'chartHwaStatusPerProyek', 'hwaStatusPerProyek');
+    renderTrendCountChart('chartHwaTren', 'hwaTren', fHwa, 'tanggalMulai', 'Jumlah Order', '#5b8fb9');
   }
 
   function baseBarOptions(axisLabel, isCurrency, horizontal) {
@@ -821,12 +1007,23 @@
     renderTable(getFilteredSpk(), getFilteredHomeWithAi(), getFilteredPurchasing());
   });
 
+  // Card ringkasan generik ("Keterangan Total") dipakai di 3 halaman Master
+  // Data -- Total Baris + Total Nilai (Rp) dari rows yang SEDANG ter-filter.
+  function renderMasterSummary(elId, rows, valueKey) {
+    var totalNilai = rows.reduce(function (sum, r) { return sum + (Number(r[valueKey]) || 0); }, 0);
+    renderCardGrid(elId, [
+      { label: 'Total Baris', value: rows.length },
+      { label: 'Total Nilai (Rp)', value: formatRupiah(totalNilai) }
+    ]);
+  }
+
   // ---- Master Data SPK (semua kolom; filter GP via tab GP1-4, + Proyek + Jenis SPK) ----
   function renderMasterSpk() {
     var rows = rawData.spk;
     if (masterSpkGp) rows = rows.filter(function (r) { return r.sourceTab === masterSpkGp; });
     if (masterSpkProyek) rows = rows.filter(function (r) { return normKey(r.proyek) === normKey(masterSpkProyek); });
     if (masterSpkJenis) rows = rows.filter(function (r) { return r.jenisSpk === masterSpkJenis; });
+    renderMasterSummary('masterSpkSummary', rows, 'nilaiTotal');
     buildDataTable({
       theadEl: document.querySelector('#masterSpkTable thead'),
       tbodyEl: document.querySelector('#masterSpkTable tbody'),
@@ -883,6 +1080,7 @@
     if (masterPurGp) rows = rows.filter(function (r) { return normKey(r.gp) === normKey(masterPurGp); });
     if (masterPurProyek) rows = rows.filter(function (r) { return normKey(r.proyek) === normKey(masterPurProyek); });
     if (masterPurJenis) rows = rows.filter(function (r) { return r.jenisPengadaan === masterPurJenis; });
+    renderMasterSummary('masterPurSummary', rows, 'nilai');
     buildDataTable({
       theadEl: document.querySelector('#masterPurTable thead'),
       tbodyEl: document.querySelector('#masterPurTable tbody'),
@@ -901,24 +1099,15 @@
     proyekOptionsForGp(masterPurGp).forEach(function (p) { available[p] = true; });
     if (!available[masterPurProyek]) masterPurProyek = '';
   }
-  function populateMasterPurGpSelect() {
-    var sel = document.getElementById('masterPurGpFilter');
-    var current = masterPurGp;
-    sel.innerHTML = '<option value="">Semua GP</option>';
-    (rawData.meta.gpList || []).forEach(function (gp) {
-      var opt = document.createElement('option');
-      opt.value = gp;
-      opt.textContent = gp;
-      sel.appendChild(opt);
-    });
-    sel.value = current;
-    sel.onchange = function () {
-      masterPurGp = sel.value;
-      pruneOrphanMasterPurProyek();
-      populateMasterPurProyekSelect();
-      renderMasterPurchasing();
-    };
-  }
+  document.getElementById('masterPurGpTabs').addEventListener('click', function (e) {
+    var btn = e.target.closest('button[data-gp]');
+    if (!btn) return;
+    masterPurGp = btn.getAttribute('data-gp');
+    document.querySelectorAll('#masterPurGpTabs button').forEach(function (b) { b.classList.toggle('active', b === btn); });
+    pruneOrphanMasterPurProyek();
+    populateMasterPurProyekSelect();
+    renderMasterPurchasing();
+  });
   function populateMasterPurProyekSelect() {
     var sel = document.getElementById('masterPurProyekFilter');
     var current = masterPurProyek;
@@ -947,6 +1136,7 @@
     if (masterHwaGp) rows = rows.filter(function (r) { return normKey(r.gp) === normKey(masterHwaGp); });
     if (masterHwaProyek) rows = rows.filter(function (r) { return normKey(r.proyek) === normKey(masterHwaProyek); });
     if (masterHwaStatus) rows = rows.filter(function (r) { return r.status === masterHwaStatus; });
+    renderMasterSummary('masterHwaSummary', rows, 'nilai');
     buildDataTable({
       theadEl: document.querySelector('#masterHwaTable thead'),
       tbodyEl: document.querySelector('#masterHwaTable tbody'),
@@ -965,24 +1155,15 @@
     proyekOptionsForGp(masterHwaGp).forEach(function (p) { available[p] = true; });
     if (!available[masterHwaProyek]) masterHwaProyek = '';
   }
-  function populateMasterHwaGpSelect() {
-    var sel = document.getElementById('masterHwaGpFilter');
-    var current = masterHwaGp;
-    sel.innerHTML = '<option value="">Semua GP</option>';
-    (rawData.meta.gpList || []).forEach(function (gp) {
-      var opt = document.createElement('option');
-      opt.value = gp;
-      opt.textContent = gp;
-      sel.appendChild(opt);
-    });
-    sel.value = current;
-    sel.onchange = function () {
-      masterHwaGp = sel.value;
-      pruneOrphanMasterHwaProyek();
-      populateMasterHwaProyekSelect();
-      renderMasterHwa();
-    };
-  }
+  document.getElementById('masterHwaGpTabs').addEventListener('click', function (e) {
+    var btn = e.target.closest('button[data-gp]');
+    if (!btn) return;
+    masterHwaGp = btn.getAttribute('data-gp');
+    document.querySelectorAll('#masterHwaGpTabs button').forEach(function (b) { b.classList.toggle('active', b === btn); });
+    pruneOrphanMasterHwaProyek();
+    populateMasterHwaProyekSelect();
+    renderMasterHwa();
+  });
   function populateMasterHwaProyekSelect() {
     var sel = document.getElementById('masterHwaProyekFilter');
     var current = masterHwaProyek;
@@ -1167,9 +1348,7 @@
 
   function populateMasterFilterOptions() {
     populateMasterSpkProyekSelect();
-    populateMasterPurGpSelect();
     populateMasterPurProyekSelect();
-    populateMasterHwaGpSelect();
     populateMasterHwaProyekSelect();
     populateMasterSlaGpSelect();
     populateMasterSlaProyekSelect();
@@ -1320,6 +1499,269 @@
   function closeUnitModal() {
     document.getElementById('unitModalBackdrop').classList.remove('open');
   }
+
+  // ---------------------------------------------------------------------
+  // "Tambah Data" -- input baru dari dashboard, tertulis langsung ke
+  // Sheets (Addendum 5.A). Tombol per halaman Master Data hanya muncul
+  // kalau viewer punya scope yang relevan (lihat updateAddButtonsVisibility
+  // & meta.viewerScopes dari server).
+  // ---------------------------------------------------------------------
+  var ADD_RECORD_FIELD_DEFS = {
+    spk: [
+      { key: 'noSpk', label: 'No. SPK', type: 'text', required: true },
+      { key: 'jenisSpk', label: 'Jenis SPK', type: 'select', options: SPK_JENIS_OPTIONS, required: true },
+      { key: 'itemSpk', label: 'Item SPK', type: 'text' },
+      { key: 'namaProyek', label: 'Nama Proyek', type: 'text', datalist: true, required: true },
+      { key: 'blokUnit', label: 'Blok/No. Unit', type: 'text' },
+      { key: 'kontraktor', label: 'Kontraktor/Vendor', type: 'text' },
+      { key: 'subKontraktor', label: 'Sub Kontraktor', type: 'text' },
+      { key: 'namaPekerjaan', label: 'Nama Pekerjaan', type: 'text', wide: true },
+      { key: 'volume', label: 'Volume', type: 'number' },
+      { key: 'satuan', label: 'Satuan', type: 'text' },
+      { key: 'hargaPerMeter', label: 'Harga/Meter (Rp)', type: 'number' },
+      { key: 'nilaiKontrak', label: 'Nilai Kontrak (Rp)', type: 'number', required: true },
+      { key: 'nilaiAddendum', label: 'Nilai Addendum (Rp)', type: 'number' },
+      { key: 'tanggalTerbit', label: 'Tanggal Terbit', type: 'date', required: true },
+      { key: 'tanggalSelesai', label: 'Tanggal Selesai (kosongkan agar dihitung otomatis utk Unit Rumah)', type: 'date' },
+      { key: 'picAdminTeknik', label: 'PIC Admin Teknik', type: 'text' },
+      { key: 'lampiran', label: 'Lampiran', type: 'text' },
+      { key: 'keterangan', label: 'Keterangan', type: 'text', wide: true }
+    ],
+    purchasing: [
+      { key: 'grupProyek', label: 'Grup Proyek', type: 'select', options: GP_OPTIONS, required: true },
+      { key: 'namaProyek', label: 'Nama Proyek', type: 'text', datalist: true, required: true },
+      { key: 'blokUnit', label: 'Blok/No. Unit (kosongkan utk Material PSU)', type: 'text' },
+      { key: 'jenisPengadaan', label: 'Jenis Pengadaan', type: 'select', options: JENIS_PENGADAAN_OPTIONS, required: true },
+      { key: 'namaBarang', label: 'Nama Barang/Item', type: 'text', required: true },
+      { key: 'namaVendor', label: 'Nama Vendor', type: 'text' },
+      { key: 'satuan', label: 'Satuan', type: 'text' },
+      { key: 'hargaSatuan', label: 'Harga Satuan (Rp)', type: 'number' },
+      { key: 'nilai', label: 'Harga Total (Rp)', type: 'number', required: true },
+      { key: 'statusPekerjaan', label: 'Status Pekerjaan', type: 'select', options: PURCHASING_STATUS_OPTIONS, required: true },
+      { key: 'tanggalMulai', label: 'Tanggal Order/Mulai', type: 'date', required: true },
+      { key: 'tanggal', label: 'Tanggal', type: 'date' },
+      { key: 'lampiran', label: 'Lampiran', type: 'text' },
+      { key: 'keterangan', label: 'Keterangan', type: 'text', wide: true }
+    ],
+    homeWithAi: [
+      { key: 'grupProyek', label: 'Grup Proyek', type: 'select', options: GP_OPTIONS, required: true },
+      { key: 'namaProyek', label: 'Nama Proyek', type: 'text', datalist: true, required: true },
+      { key: 'blokUnit', label: 'Blok/No. Unit', type: 'text', required: true },
+      { key: 'status', label: 'Status', type: 'select', options: HOME_WITH_AI_STATUS_OPTIONS, required: true },
+      { key: 'namaVendor', label: 'Nama Vendor', type: 'text' },
+      { key: 'satuan', label: 'Satuan', type: 'text' },
+      { key: 'hargaSatuan', label: 'Harga Satuan (Rp)', type: 'number' },
+      { key: 'nilai', label: 'Harga Total (Rp)', type: 'number', required: true },
+      { key: 'tanggalMulai', label: 'Tanggal Order/Mulai', type: 'date', required: true },
+      { key: 'tanggalTerpasang', label: 'Tanggal Pasang', type: 'date' },
+      { key: 'tanggalSelesai', label: 'Tanggal Selesai', type: 'date' },
+      { key: 'lampiran', label: 'Lampiran', type: 'text' },
+      { key: 'keterangan', label: 'Keterangan', type: 'text', wide: true }
+    ]
+  };
+
+  // Builder generik (pola sama dgn buildDataTable(opts)) -- render form ke
+  // opts.containerEl, panggil opts.onSubmit(gp, fields, done) saat submit
+  // valid. `done(errMessage)` dipanggil balik dari pemanggil setelah
+  // request selesai -- tanpa argumen (sukses, modal ditutup di pemanggil)
+  // atau dgn pesan error (form tetap terbuka, tampilkan errMessage).
+  function buildAddRecordForm(opts) {
+    var recordType = opts.recordType;
+    var defs = ADD_RECORD_FIELD_DEFS[recordType];
+    var container = opts.containerEl;
+    container.innerHTML = '';
+
+    var titles = { spk: 'Tambah SPK Baru', purchasing: 'Tambah Data Purchasing', homeWithAi: 'Tambah Data Home With AI' };
+    var heading = document.createElement('h3');
+    heading.textContent = titles[recordType];
+    container.appendChild(heading);
+
+    var form = document.createElement('form');
+    form.className = 'form-grid';
+    var inputs = {};
+
+    // Field GP khusus utk SPK -- scope-nya per-GP (menentukan tab tujuan
+    // di Sheets), jadi ditangani terpisah dari ADD_RECORD_FIELD_DEFS.
+    if (recordType === 'spk') {
+      var gpField = document.createElement('div');
+      gpField.className = 'form-field';
+      var gpLabel = document.createElement('label');
+      gpLabel.innerHTML = 'Grup Proyek <span class="required-mark">*</span>';
+      var gpSelect = document.createElement('select');
+      (opts.allowedGps || []).forEach(function (gp) {
+        var o = document.createElement('option'); o.value = gp; o.textContent = gp; gpSelect.appendChild(o);
+      });
+      if (opts.lockedGp) { gpSelect.value = opts.lockedGp; gpSelect.disabled = true; }
+      gpField.appendChild(gpLabel);
+      gpField.appendChild(gpSelect);
+      form.appendChild(gpField);
+      inputs.__gp = gpSelect;
+    }
+
+    var namaProyekDatalist = null;
+    defs.forEach(function (def) {
+      var field = document.createElement('div');
+      field.className = 'form-field' + (def.wide ? ' form-field-wide' : '');
+      var label = document.createElement('label');
+      label.innerHTML = escapeHtml(def.label) + (def.required ? ' <span class="required-mark">*</span>' : '');
+      field.appendChild(label);
+
+      var input;
+      if (def.type === 'select') {
+        input = document.createElement('select');
+        var placeholderOpt = document.createElement('option');
+        placeholderOpt.value = '';
+        placeholderOpt.textContent = '– Pilih –';
+        input.appendChild(placeholderOpt);
+        def.options.forEach(function (v) {
+          var o = document.createElement('option'); o.value = v; o.textContent = v; input.appendChild(o);
+        });
+      } else {
+        input = document.createElement('input');
+        input.type = def.type === 'number' ? 'number' : (def.type === 'date' ? 'date' : 'text');
+        if (def.type === 'number') input.step = 'any';
+        if (def.datalist) {
+          input.setAttribute('list', 'addRecordProyekList');
+          namaProyekDatalist = namaProyekDatalist || document.createElement('datalist');
+          namaProyekDatalist.id = 'addRecordProyekList';
+        }
+      }
+      field.appendChild(input);
+      form.appendChild(field);
+      inputs[def.key] = input;
+    });
+
+    if (namaProyekDatalist) form.appendChild(namaProyekDatalist);
+
+    // Datalist Nama Proyek menyesuaikan GP yang dipilih (proyekOptionsForGp
+    // sudah ada, dipakai juga oleh filter Master Data) -- bantu cegah typo
+    // tanpa mengunci ke daftar lama.
+    function refreshProyekDatalist() {
+      if (!namaProyekDatalist) return;
+      var gpForProyek = inputs.__gp ? inputs.__gp.value : (inputs.grupProyek ? inputs.grupProyek.value : '');
+      namaProyekDatalist.innerHTML = '';
+      proyekOptionsForGp(gpForProyek).forEach(function (p) {
+        var o = document.createElement('option'); o.value = p; namaProyekDatalist.appendChild(o);
+      });
+    }
+    refreshProyekDatalist();
+    if (inputs.__gp && !opts.lockedGp) inputs.__gp.addEventListener('change', refreshProyekDatalist);
+    if (inputs.grupProyek) inputs.grupProyek.addEventListener('change', refreshProyekDatalist);
+
+    var errorEl = document.createElement('div');
+    errorEl.className = 'form-error';
+    errorEl.hidden = true;
+
+    var actions = document.createElement('div');
+    actions.className = 'form-actions';
+    var cancelBtn = document.createElement('button');
+    cancelBtn.type = 'button'; cancelBtn.className = 'btn-secondary'; cancelBtn.textContent = 'Batal';
+    cancelBtn.addEventListener('click', closeAddRecordModal);
+    var submitBtn = document.createElement('button');
+    submitBtn.type = 'submit'; submitBtn.className = 'btn-primary'; submitBtn.textContent = 'Simpan';
+    actions.appendChild(cancelBtn);
+    actions.appendChild(submitBtn);
+    form.appendChild(actions);
+
+    container.appendChild(form);
+    container.appendChild(errorEl);
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      errorEl.hidden = true;
+
+      var fields = {};
+      var missing = [];
+      defs.forEach(function (def) {
+        var el = inputs[def.key];
+        var val = el.value;
+        if (def.required && !val) missing.push(def.label);
+        fields[def.key] = (def.type === 'number') ? (val === '' ? '' : Number(val)) : val;
+      });
+      var gpValue = inputs.__gp ? inputs.__gp.value : fields.grupProyek;
+      if (recordType === 'spk' && !gpValue) missing.push('Grup Proyek');
+
+      if (missing.length) {
+        errorEl.textContent = 'Wajib diisi: ' + missing.join(', ') + '.';
+        errorEl.hidden = false;
+        return;
+      }
+
+      submitBtn.disabled = true;
+      opts.onSubmit(gpValue, fields, function (errMessage) {
+        submitBtn.disabled = false;
+        if (errMessage) {
+          errorEl.textContent = errMessage;
+          errorEl.hidden = false;
+        }
+      });
+    });
+  }
+
+  function openAddRecordModal(recordType) {
+    var lockedGp = '';
+    var allowedGps = [];
+    if (recordType === 'spk') {
+      (rawData.meta.viewerScopes || []).forEach(function (s) {
+        var m = /^SPK:(.+)$/i.exec(String(s).trim());
+        if (m) allowedGps.push(m[1]);
+      });
+      if (!allowedGps.length) { showToast('error', 'Anda tidak punya scope SPK untuk GP manapun.'); return; }
+      if (masterSpkGp && allowedGps.indexOf(masterSpkGp) !== -1) lockedGp = masterSpkGp;
+    }
+
+    buildAddRecordForm({
+      recordType: recordType,
+      containerEl: document.getElementById('addRecordModalContent'),
+      lockedGp: lockedGp,
+      allowedGps: allowedGps,
+      onSubmit: function (gp, fields, done) {
+        google.script.run
+          .withSuccessHandler(function (payload) {
+            done();
+            rawData = payload;
+            updateSyncStatus();
+            populateFilterOptions();
+            populateMasterFilterOptions();
+            updateAddButtonsVisibility();
+            renderCurrentView();
+            closeAddRecordModal();
+            showToast('success', 'Data tersimpan.');
+          })
+          .withFailureHandler(function (err) {
+            done(err && err.message ? err.message : String(err));
+          })
+          .addRecord({ recordType: recordType, gp: gp, fields: fields });
+      }
+    });
+
+    document.getElementById('addRecordModalBackdrop').classList.add('open');
+  }
+
+  function closeAddRecordModal() {
+    document.getElementById('addRecordModalBackdrop').classList.remove('open');
+  }
+  document.getElementById('addRecordModalClose').addEventListener('click', closeAddRecordModal);
+  document.getElementById('addRecordModalBackdrop').addEventListener('click', function (e) {
+    if (e.target === document.getElementById('addRecordModalBackdrop')) closeAddRecordModal();
+  });
+
+  // Tombol "+ Tambah Data" hanya tampil kalau viewer punya scope yang
+  // relevan (dari meta.viewerScopes, lihat buildDashboardPayload_ di
+  // DataService.gs) -- dipanggil ulang tiap kali rawData berganti.
+  function updateAddButtonsVisibility() {
+    var scopes = rawData.meta.viewerScopes || [];
+    var hasSpkScope = scopes.some(function (s) { return /^SPK:/i.test(String(s).trim()); });
+    var hasPurScope = scopes.some(function (s) { return normKey(s) === 'PURCHASING'; });
+    var hasHwaScope = scopes.some(function (s) { return normKey(s) === 'HOMEWITHAI'; });
+    document.getElementById('addSpkBtn').hidden = !hasSpkScope;
+    document.getElementById('addPurBtn').hidden = !hasPurScope;
+    document.getElementById('addHwaBtn').hidden = !hasHwaScope;
+  }
+
+  document.getElementById('addSpkBtn').addEventListener('click', function () { openAddRecordModal('spk'); });
+  document.getElementById('addPurBtn').addEventListener('click', function () { openAddRecordModal('purchasing'); });
+  document.getElementById('addHwaBtn').addEventListener('click', function () { openAddRecordModal('homeWithAi'); });
 
   // ---------------------------------------------------------------------
   // Global controls

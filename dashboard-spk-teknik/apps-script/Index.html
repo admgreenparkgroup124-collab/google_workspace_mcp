@@ -63,7 +63,7 @@
           <label for="filterProyek">Proyek</label>
           <select id="filterProyek"><option value="">Semua</option></select>
         </div>
-        <div class="filter-group">
+        <div class="filter-group" id="filterKategoriGroup">
           <label>Kategori</label>
           <div class="chip-multiselect" id="filterKategori"></div>
         </div>
@@ -74,54 +74,122 @@
         <button id="resetFiltersBtn" class="btn-reset" type="button">Reset Filter</button>
       </section>
 
-      <section class="alert-row" id="alertRow"></section>
+      <div class="table-tabs" id="dashboardSubTabs">
+        <button data-subtab="semua" class="active" type="button">Semua</button>
+        <button data-subtab="spk" type="button">SPK</button>
+        <button data-subtab="purchasing" type="button">Purchasing</button>
+        <button data-subtab="hwa" type="button">Home With AI</button>
+      </div>
 
-      <section class="summary-cards" id="summaryCards"></section>
+      <div id="dashboardSubview-semua" class="dashboard-subview">
+        <section class="alert-row" id="alertRow"></section>
 
-      <section class="charts-grid">
-        <div class="chart-card">
-          <h3>SPK per Jenis Pekerjaan</h3>
-          <div class="chart-canvas-wrap"><canvas id="chartJenisPekerjaan"></canvas></div>
-        </div>
-        <div class="chart-card">
-          <h3>Tren Nilai Kontrak per Bulan</h3>
-          <div class="chart-canvas-wrap"><canvas id="chartTrenNilai"></canvas></div>
-        </div>
-        <div class="chart-card">
-          <h3>Proporsi Nilai per Grup Proyek</h3>
-          <div class="chart-canvas-wrap"><canvas id="chartProporsiGp"></canvas></div>
-        </div>
-        <div class="chart-card">
-          <h3>Status Home With AI per Proyek</h3>
-          <div class="chart-canvas-wrap"><canvas id="chartHwaStatus"></canvas></div>
-        </div>
-        <div class="chart-card chart-card-wide">
-          <h3>Nilai Purchasing per Jenis Pengadaan</h3>
-          <div class="chart-canvas-wrap"><canvas id="chartPurchasing"></canvas></div>
-        </div>
-      </section>
+        <section class="summary-cards" id="summaryCards"></section>
 
-      <section class="table-section">
-        <div class="table-tabs" id="tableTabs">
-          <button data-tab="spk" class="active" type="button">SPK</button>
-          <button data-tab="homeWithAi" type="button">Home With AI</button>
-          <button data-tab="purchasing" type="button">Purchasing</button>
-        </div>
-        <div class="table-toolbar">
-          <input type="text" id="tableSearch" placeholder="Cari di tabel ini…">
-          <span id="tableCount" class="toolbar-count"></span>
-        </div>
-        <div class="table-wrap">
-          <table id="dataTable">
-            <thead></thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </section>
+        <section class="charts-grid">
+          <div class="chart-card">
+            <h3>SPK per Jenis Pekerjaan</h3>
+            <div class="chart-canvas-wrap"><canvas id="chartJenisPekerjaan"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <h3>Tren Nilai Kontrak per Bulan</h3>
+            <div class="chart-canvas-wrap"><canvas id="chartTrenNilai"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <h3>Proporsi Nilai per Grup Proyek</h3>
+            <div class="chart-canvas-wrap"><canvas id="chartProporsiGp"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <h3>Status Home With AI per Proyek</h3>
+            <div class="chart-canvas-wrap"><canvas id="chartHwaStatus"></canvas></div>
+          </div>
+          <div class="chart-card chart-card-wide">
+            <h3>Nilai Purchasing per Jenis Pengadaan</h3>
+            <div class="chart-canvas-wrap"><canvas id="chartPurchasing"></canvas></div>
+          </div>
+        </section>
+
+        <section class="table-section">
+          <div class="table-tabs" id="tableTabs">
+            <button data-tab="spk" class="active" type="button">SPK</button>
+            <button data-tab="homeWithAi" type="button">Home With AI</button>
+            <button data-tab="purchasing" type="button">Purchasing</button>
+          </div>
+          <div class="table-toolbar">
+            <input type="text" id="tableSearch" placeholder="Cari di tabel ini…">
+            <span id="tableCount" class="toolbar-count"></span>
+          </div>
+          <div class="table-wrap">
+            <table id="dataTable">
+              <thead></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+      <!-- /dashboardSubview-semua -->
+
+      <div id="dashboardSubview-spk" class="dashboard-subview" hidden>
+        <section class="summary-cards" id="spkSummaryCards"></section>
+        <section class="charts-grid">
+          <div class="chart-card">
+            <h3>SPK per Jenis Pekerjaan</h3>
+            <div class="chart-canvas-wrap"><canvas id="chartSpkJenisPekerjaan"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <h3>Trend Penerbitan SPK</h3>
+            <div class="chart-canvas-wrap"><canvas id="chartSpkTrenPenerbitan"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <h3>Proporsi Nilai per Grup Proyek</h3>
+            <div class="chart-canvas-wrap"><canvas id="chartSpkProporsiGp"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <h3>Status Progres</h3>
+            <div class="chart-canvas-wrap"><canvas id="chartSpkStatusProgres"></canvas></div>
+          </div>
+        </section>
+      </div>
+      <!-- /dashboardSubview-spk -->
+
+      <div id="dashboardSubview-purchasing" class="dashboard-subview" hidden>
+        <section class="summary-cards" id="purSummaryCards"></section>
+        <section class="charts-grid">
+          <div class="chart-card">
+            <h3>Nilai Purchasing per Jenis Pengadaan</h3>
+            <div class="chart-canvas-wrap"><canvas id="chartPurJenis"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <h3>Trend Transaksi Purchasing</h3>
+            <div class="chart-canvas-wrap"><canvas id="chartPurTren"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <h3>Status Progres</h3>
+            <div class="chart-canvas-wrap"><canvas id="chartPurStatus"></canvas></div>
+          </div>
+        </section>
+      </div>
+      <!-- /dashboardSubview-purchasing -->
+
+      <div id="dashboardSubview-hwa" class="dashboard-subview" hidden>
+        <section class="summary-cards" id="hwaSummaryCards"></section>
+        <section class="charts-grid">
+          <div class="chart-card">
+            <h3>Status Progres (per Proyek)</h3>
+            <div class="chart-canvas-wrap"><canvas id="chartHwaStatusPerProyek"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <h3>Trend Order Home With AI</h3>
+            <div class="chart-canvas-wrap"><canvas id="chartHwaTren"></canvas></div>
+          </div>
+        </section>
+      </div>
+      <!-- /dashboardSubview-hwa -->
     </div>
 
     <!-- ============================== VIEW: Master Data SPK ============================== -->
     <div id="view-master-spk" class="view" hidden>
+      <section class="master-summary" id="masterSpkSummary"></section>
       <section class="table-section">
         <div class="table-tabs" id="masterSpkGpTabs">
           <button data-gp="" class="active" type="button">Semua</button>
@@ -132,12 +200,9 @@
         </div>
         <div class="table-toolbar">
           <select id="masterSpkProyekFilter"><option value="">Semua Proyek</option></select>
-          <select id="masterSpkJenisFilter">
-            <option value="">Semua Jenis SPK</option>
-            <option value="PSU">PSU</option>
-            <option value="UNIT RUMAH">UNIT RUMAH</option>
-          </select>
+          <select id="masterSpkJenisFilter"><option value="">Semua Jenis SPK</option></select>
           <input type="text" id="masterSpkSearch" placeholder="Cari No. SPK, kontraktor, item, unit…">
+          <button id="addSpkBtn" class="btn-add" type="button" hidden>+ Tambah Data</button>
           <span id="masterSpkCount" class="toolbar-count"></span>
         </div>
         <div class="table-wrap">
@@ -152,17 +217,20 @@
 
     <!-- ============================== VIEW: Master Data Purchasing ============================== -->
     <div id="view-master-purchasing" class="view" hidden>
+      <section class="master-summary" id="masterPurSummary"></section>
       <section class="table-section">
+        <div class="table-tabs" id="masterPurGpTabs">
+          <button data-gp="" class="active" type="button">Semua</button>
+          <button data-gp="GP1" type="button">GP1</button>
+          <button data-gp="GP2" type="button">GP2</button>
+          <button data-gp="GP3" type="button">GP3</button>
+          <button data-gp="GP4" type="button">GP4</button>
+        </div>
         <div class="table-toolbar">
-          <select id="masterPurGpFilter"><option value="">Semua GP</option></select>
           <select id="masterPurProyekFilter"><option value="">Semua Proyek</option></select>
-          <select id="masterPurJenisFilter">
-            <option value="">Semua Jenis Pengadaan</option>
-            <option value="Promo Unit">Promo Unit</option>
-            <option value="Material PSU">Material PSU</option>
-            <option value="Material Unit Bangunan">Material Unit Bangunan</option>
-          </select>
+          <select id="masterPurJenisFilter"><option value="">Semua Jenis Pengadaan</option></select>
           <input type="text" id="masterPurSearch" placeholder="Cari GP, proyek, unit, nama barang…">
+          <button id="addPurBtn" class="btn-add" type="button" hidden>+ Tambah Data</button>
           <span id="masterPurCount" class="toolbar-count"></span>
         </div>
         <div class="table-wrap">
@@ -177,17 +245,20 @@
 
     <!-- ============================== VIEW: Master Data Home With AI ============================== -->
     <div id="view-master-hwa" class="view" hidden>
+      <section class="master-summary" id="masterHwaSummary"></section>
       <section class="table-section">
+        <div class="table-tabs" id="masterHwaGpTabs">
+          <button data-gp="" class="active" type="button">Semua</button>
+          <button data-gp="GP1" type="button">GP1</button>
+          <button data-gp="GP2" type="button">GP2</button>
+          <button data-gp="GP3" type="button">GP3</button>
+          <button data-gp="GP4" type="button">GP4</button>
+        </div>
         <div class="table-toolbar">
-          <select id="masterHwaGpFilter"><option value="">Semua GP</option></select>
           <select id="masterHwaProyekFilter"><option value="">Semua Proyek</option></select>
-          <select id="masterHwaStatusFilter">
-            <option value="">Semua Status</option>
-            <option value="Belum Order">Belum Order</option>
-            <option value="On Proses">On Proses</option>
-            <option value="Terpasang">Terpasang</option>
-          </select>
+          <select id="masterHwaStatusFilter"><option value="">Semua Status</option></select>
           <input type="text" id="masterHwaSearch" placeholder="Cari GP, proyek, unit…">
+          <button id="addHwaBtn" class="btn-add" type="button" hidden>+ Tambah Data</button>
           <span id="masterHwaCount" class="toolbar-count"></span>
         </div>
         <div class="table-wrap">
@@ -242,6 +313,13 @@
       <div class="unit-modal" role="dialog" aria-modal="true">
         <button class="unit-modal-close" id="unitModalClose" type="button" aria-label="Tutup">×</button>
         <div id="unitModalContent"></div>
+      </div>
+    </div>
+
+    <div class="unit-modal-backdrop" id="addRecordModalBackdrop">
+      <div class="unit-modal" role="dialog" aria-modal="true">
+        <button class="unit-modal-close" id="addRecordModalClose" type="button" aria-label="Tutup">×</button>
+        <div id="addRecordModalContent"></div>
       </div>
     </div>
 

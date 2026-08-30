@@ -22,12 +22,18 @@ function buildDashboardPayload_(requestingEmail) {
   var homeWithAi = getHomeWithAiRows_(today, scopes);
   var purchasing = getPurchasingRows_(today, scopes);
 
+  var meta = buildMeta_(spk, homeWithAi, purchasing);
+  // Scope mentah viewer sendiri (mis. ['SPK:GP1','SPK:GP2','SPK:GP4']) --
+  // dipakai client utk memutuskan tombol "+ Tambah Data" mana yang
+  // ditampilkan, tanpa perlu endpoint terpisah.
+  meta.viewerScopes = scopes;
+
   return {
     generatedAt: new Date().toISOString(),
     spk: spk,
     homeWithAi: homeWithAi,
     purchasing: purchasing,
-    meta: buildMeta_(spk, homeWithAi, purchasing)
+    meta: meta
   };
 }
 
@@ -97,6 +103,64 @@ function writeTargetHariSla_(recordType, id, value) {
   }
 
   sheet.getRange(rowNumber, col + 1).setValue(value);
+}
+
+// ---------------------------------------------------------------------
+// "Tambah Data" -- input baris baru langsung dari dashboard (Addendum 5.A).
+// Sama seperti writeTargetHariSla_ di atas: satu-satunya jalur tulis
+// selain input manual di Sheets, dibatasi ketat lewat canEditSla_ (dicek
+// di Code.gs sebelum fungsi ini dipanggil).
+// ---------------------------------------------------------------------
+
+// recordType: 'spk'|'purchasing'|'homeWithAi'. gp: nama tab GP1-4 (wajib
+// utk spk, menentukan tab tujuan; diabaikan utk purchasing/homeWithAi
+// krn tabnya tunggal). fields: object { fieldKey: value, ... } sesuai key
+// di *_FIELD_DEFS Config.gs. Menulis SATU baris baru di akhir sheet
+// dengan SATU panggilan setValues (bukan per-sel) supaya atomik & cepat.
+function writeNewRecord_(recordType, gp, fields) {
+  var tabName, fieldDefs;
+  if (recordType === 'spk') {
+    if (CONFIG.SPK_TABS.indexOf(gp) === -1) throw new Error('GP tidak valid: ' + gp);
+    tabName = gp;
+    fieldDefs = SPK_FIELD_DEFS;
+    fields.grupProyek = gp; // pastikan kolom Grup Proyek konsisten dgn tab tujuan
+  } else if (recordType === 'purchasing') {
+    tabName = CONFIG.PURCHASING_TAB;
+    fieldDefs = PURCHASING_FIELD_DEFS;
+  } else if (recordType === 'homeWithAi') {
+    tabName = CONFIG.HOME_WITH_AI_TAB;
+    fieldDefs = HOME_WITH_AI_FIELD_DEFS;
+  } else {
+    throw new Error('recordType tidak dikenal: ' + recordType);
+  }
+
+  var sheet = getSpreadsheet().getSheetByName(tabName);
+  if (!sheet) throw new Error('Tab tidak ditemukan: ' + tabName);
+
+  var width = sheet.getLastColumn();
+  var headerRow = sheet.getRange(1, 1, 1, width).getValues()[0];
+  var headerMap = buildHeaderMap(headerRow, fieldDefs);
+
+  var row = new Array(width).fill('');
+  fieldDefs.forEach(function (def) {
+    var col = headerMap[def.key];
+    if (col === undefined || col < 0) return; // kolom tidak ada di sheet ini, lewati
+    var value = fields[def.key];
+    if (value === undefined || value === null || value === '') return; // biarkan kosong, jangan tulis 0/""
+
+    // Field tanggal (key diawali "tanggal") dikirim client sbg string
+    // "YYYY-MM-DD" -- konversi ke Date lokal, pola sama dgn parseDateCell/
+    // addDays yg sudah dipakai di seluruh DataService.gs.
+    if (def.key.indexOf('tanggal') === 0 && typeof value === 'string') {
+      var parts = value.split('-');
+      if (parts.length === 3) {
+        value = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+      }
+    }
+    row[col] = value;
+  });
+
+  sheet.getRange(sheet.getLastRow() + 1, 1, 1, width).setValues([row]);
 }
 
 function getSpkRows_(today, scopes) {
