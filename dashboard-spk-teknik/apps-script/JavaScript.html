@@ -22,6 +22,7 @@
   var charts = {};
   var refreshTimer = null;
   var isLoading = false;
+  var hasLoadedOnce = false; // false pada load pertama -- supaya notifikasi "data baru" tidak muncul saat halaman baru dibuka
 
   var currentView = 'dashboard'; // 'dashboard' | 'master-spk' | 'master-purchasing' | 'master-hwa' | 'master-sla' | 'progres-input'
   var dashboardSubTab = 'semua'; // 'semua' | 'spk' | 'purchasing' | 'hwa' -- sub-tab di dalam menu Dashboard
@@ -329,12 +330,47 @@
     document.getElementById('refreshBtn').disabled = false;
     document.getElementById('errorBanner').hidden = true;
 
+    // Notifikasi "data baru" -- bandingkan id baris sebelum & sesudah
+    // refresh (manual maupun auto-refresh berkala) supaya PIC/CEO yang
+    // sedang membuka dashboard tahu ada input baru dari PIC lain, tanpa
+    // perlu reload halaman sendiri. Dilewati pada load pertama (belum ada
+    // "data lama" utk dibandingkan).
+    var newCount = hasLoadedOnce ? countNewRecords_(rawData, payload) : 0;
+
     rawData = payload;
     updateSyncStatus();
     populateFilterOptions();
     populateMasterFilterOptions();
     updateAddButtonsVisibility();
     renderCurrentView();
+    hasLoadedOnce = true;
+
+    if (newCount > 0) {
+      showToast('success', newCount + ' data baru masuk sejak sinkron terakhir.');
+    }
+  }
+
+  // Hitung baris dgn id yang belum ada di data lama -- dipakai utk
+  // notifikasi "data baru" di atas. id tiap record (mis. "GP1-14",
+  // "PUR-8") berbasis nomor baris di sheet-nya, stabil selama baris lama
+  // tidak dihapus/diurutkan ulang -- konsisten dgn asumsi yang sama yang
+  // sudah dipakai `id` di seluruh DataService.gs.
+  function countNewRecords_(oldData, newData) {
+    function idSet(rows) {
+      var s = {};
+      (rows || []).forEach(function (r) { s[r.id] = true; });
+      return s;
+    }
+    function countNew(oldRows, newRows) {
+      var oldIds = idSet(oldRows);
+      var c = 0;
+      (newRows || []).forEach(function (r) { if (!oldIds[r.id]) c++; });
+      return c;
+    }
+    return countNew(oldData.spk, newData.spk) +
+      countNew(oldData.purchasing, newData.purchasing) +
+      countNew(oldData.homeWithAi, newData.homeWithAi) +
+      countNew(oldData.progressRealisasi, newData.progressRealisasi);
   }
 
   function onDataError(err) {

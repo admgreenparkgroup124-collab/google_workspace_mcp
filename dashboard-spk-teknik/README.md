@@ -524,6 +524,13 @@ sendiri), cara update:
   (pilihan: 1/5/10/20/30 menit, default 5 menit). Pilihan interval
   tersimpan per browser (lewat localStorage), jadi tidak perlu diatur
   ulang tiap kali dibuka.
+- **Notifikasi otomatis kalau ada data baru.** Setiap kali Refresh
+  (manual atau auto) berhasil, dashboard membandingkan data yang baru
+  ditarik dengan yang sedang ditampilkan — kalau ada baris SPK/
+  Purchasing/Home With AI/Realisasi Progres yang belum pernah terlihat
+  sebelumnya (mis. baru saja diinput PIC/SPV lain), muncul toast singkat
+  "N data baru masuk sejak sinkron terakhir" di pojok bawah. Tidak perlu
+  reload halaman sendiri untuk tahu ada input baru dari orang lain.
 - **Aman dipakai bersamaan oleh beberapa PIC/SPV sekaligus.** "+ Tambah
   Data" dan Input Progres menambah baris baru dengan pola baca-baris-
   terakhir-lalu-tulis — kalau dua orang submit ke tab yang sama (mis. dua
