@@ -152,17 +152,14 @@
       <div id="dashboardSubview-spk" class="dashboard-subview" hidden>
         <section class="summary-cards" id="spkSummaryCards"></section>
         <section class="charts-grid">
-          <div class="chart-card">
-            <h3>SPK per Jenis Pekerjaan</h3>
-            <div class="chart-canvas-wrap"><canvas id="chartSpkJenisPekerjaan"></canvas></div>
-          </div>
-          <div class="chart-card">
-            <h3>Trend Penerbitan SPK</h3>
+          <div class="chart-card chart-card-wide">
+            <h3>Trend Penerbitan SPK
+              <span class="chart-toggle" data-toggle-group="spkTrend">
+                <button data-granularity="month" class="active" type="button">Bulan</button>
+                <button data-granularity="year" type="button">Tahun</button>
+              </span>
+            </h3>
             <div class="chart-canvas-wrap"><canvas id="chartSpkTrenPenerbitan"></canvas></div>
-          </div>
-          <div class="chart-card">
-            <h3>Proporsi Nilai per Grup Proyek</h3>
-            <div class="chart-canvas-wrap"><canvas id="chartSpkProporsiGp"></canvas></div>
           </div>
           <div class="chart-card">
             <h3>Status Progres</h3>
@@ -175,12 +172,13 @@
       <div id="dashboardSubview-purchasing" class="dashboard-subview" hidden>
         <section class="summary-cards" id="purSummaryCards"></section>
         <section class="charts-grid">
-          <div class="chart-card">
-            <h3>Nilai Purchasing per Jenis Pengadaan</h3>
-            <div class="chart-canvas-wrap"><canvas id="chartPurJenis"></canvas></div>
-          </div>
-          <div class="chart-card">
-            <h3>Trend Transaksi Purchasing</h3>
+          <div class="chart-card chart-card-wide">
+            <h3>Trend PO Purchasing
+              <span class="chart-toggle" data-toggle-group="purTrend">
+                <button data-granularity="month" class="active" type="button">Bulan</button>
+                <button data-granularity="year" type="button">Tahun</button>
+              </span>
+            </h3>
             <div class="chart-canvas-wrap"><canvas id="chartPurTren"></canvas></div>
           </div>
           <div class="chart-card">
@@ -194,13 +192,18 @@
       <div id="dashboardSubview-hwa" class="dashboard-subview" hidden>
         <section class="summary-cards" id="hwaSummaryCards"></section>
         <section class="charts-grid">
-          <div class="chart-card">
-            <h3>Status Progres (per Proyek)</h3>
-            <div class="chart-canvas-wrap"><canvas id="chartHwaStatusPerProyek"></canvas></div>
+          <div class="chart-card chart-card-wide">
+            <h3>Trend PO Home With AI
+              <span class="chart-toggle" data-toggle-group="hwaTrend">
+                <button data-granularity="month" class="active" type="button">Bulan</button>
+                <button data-granularity="year" type="button">Tahun</button>
+              </span>
+            </h3>
+            <div class="chart-canvas-wrap"><canvas id="chartHwaTren"></canvas></div>
           </div>
           <div class="chart-card">
-            <h3>Trend Order Home With AI</h3>
-            <div class="chart-canvas-wrap"><canvas id="chartHwaTren"></canvas></div>
+            <h3>Status Progres</h3>
+            <div class="chart-canvas-wrap"><canvas id="chartHwaStatusProgres"></canvas></div>
           </div>
         </section>
       </div>

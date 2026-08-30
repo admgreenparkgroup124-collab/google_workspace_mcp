@@ -343,9 +343,28 @@
     padding: 14px 16px 10px;
     box-shadow: var(--shadow);
   }
-  .chart-card h3 { margin: 0 0 10px; font-size: 12.5px; font-weight: 700; color: var(--navy-800); text-transform: uppercase; letter-spacing: .03em; }
+  .chart-card h3 {
+    margin: 0 0 10px; font-size: 12.5px; font-weight: 700; color: var(--navy-800);
+    text-transform: uppercase; letter-spacing: .03em;
+    display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;
+  }
   .chart-card-wide { grid-column: span 2; }
   .chart-canvas-wrap { position: relative; height: 240px; }
+
+  /* ---------- Toggle Bulan/Tahun di header chart-card (trend SPK/Purchasing/HWA) ---------- */
+  .chart-toggle { display: inline-flex; gap: 2px; text-transform: none; letter-spacing: normal; }
+  .chart-toggle button {
+    background: var(--white);
+    border: 1px solid var(--line);
+    color: var(--ink-soft);
+    padding: 3px 9px;
+    border-radius: 5px;
+    font-size: 10.5px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .chart-toggle button:hover { border-color: var(--navy-500); color: var(--navy-700); }
+  .chart-toggle button.active { background: var(--navy-700); color: var(--white); border-color: var(--navy-700); }
   @media (max-width: 900px) {
     .chart-card-wide { grid-column: span 1; }
   }

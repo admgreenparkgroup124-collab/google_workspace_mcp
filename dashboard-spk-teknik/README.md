@@ -414,10 +414,20 @@ sendiri), cara update:
     Tahun/Bulan/GP/Proyek/Kategori + kotak pencarian, kartu ringkasan,
     alert overdue, 5 grafik, dan tabel per kategori SPK/Home With
     AI/Purchasing), **SPK**, **Purchasing**, **Home With AI** — tiga
-    sub-tab terakhir menampilkan kartu & grafik khusus kategori itu saja
-    (Total Keseluruhan, breakdown per Jenis/Status, Total Nilai Transaksi,
-    Total Nilai per Jenis/Status, tren jumlah per bulan, proporsi status
-    progres). Filter Tahun/Bulan/GP/Proyek/Cari tetap berlaku di semua
+    sub-tab terakhir menampilkan kartu & grafik khusus kategori itu saja:
+    - **SPK**: card Total Proyek, Total SPK (rincian PSU/Unit Rumah),
+      Total Nilai Transaksi (rincian PSU/Unit Rumah), Unit Tertinggal
+      Jadwal Konstruksi (Bagian 2g/2h); grafik **garis** Trend Penerbitan
+      SPK dengan toggle **Bulan/Tahun**, dan chart Status Progres (Sesuai
+      Jadwal vs Overdue).
+    - **Purchasing**: card Total PO Purchasing (rincian Jenis Pengadaan),
+      Total Nilai PO Purchasing; grafik garis Trend PO Purchasing (toggle
+      Bulan/Tahun), chart Status Progres (proporsi status pekerjaan).
+    - **Home With AI**: card Total PO Home With AI (rincian Status),
+      Total Nilai Transaksi Home With AI; grafik garis Trend PO Home With
+      AI (toggle Bulan/Tahun), chart Status Progres (proporsi Belum
+      Order/On Proses/Terpasang).
+    Filter Tahun/Bulan/GP/Proyek/Cari tetap berlaku di semua
     sub-tab; chip Kategori cuma tampil di sub-tab Semua.
   - **Master Data SPK** — seluruh kolom SPK apa adanya (persis tab GP1–GP4
     di spreadsheet), + kartu ringkasan (**Total SPK** & Total Nilai) di

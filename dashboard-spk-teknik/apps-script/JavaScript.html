@@ -25,6 +25,9 @@
 
   var currentView = 'dashboard'; // 'dashboard' | 'master-spk' | 'master-purchasing' | 'master-hwa' | 'master-sla' | 'progres-input'
   var dashboardSubTab = 'semua'; // 'semua' | 'spk' | 'purchasing' | 'hwa' -- sub-tab di dalam menu Dashboard
+  var spkTrendGranularity = 'month';   // 'month' | 'year' -- toggle chart Trend Penerbitan SPK
+  var purTrendGranularity = 'month';   // toggle chart Trend PO Purchasing
+  var hwaTrendGranularity = 'month';   // toggle chart Trend PO Home With AI
   var masterSpkGp = '';          // '' = semua GP, else 'GP1'..'GP4' (cocok dengan sourceTab)
   var masterSpkProyek = '';
   var masterSpkJenis = '';       // '' | 'PSU' | 'UNIT RUMAH'
@@ -523,6 +526,23 @@
     renderAll();
   });
 
+  // Toggle Bulan/Tahun generik pada chart-card trend (SPK/Purchasing/Home
+  // With AI di sub-tab masing-masing punya toggle sendiri, ditandai
+  // `data-toggle-group` yang cocok dgn salah satu var granularity di atas).
+  document.querySelectorAll('.chart-toggle').forEach(function (group) {
+    group.addEventListener('click', function (e) {
+      var btn = e.target.closest('button[data-granularity]');
+      if (!btn) return;
+      group.querySelectorAll('button').forEach(function (b) { b.classList.toggle('active', b === btn); });
+      var granularity = btn.getAttribute('data-granularity');
+      var key = group.getAttribute('data-toggle-group');
+      if (key === 'spkTrend') spkTrendGranularity = granularity;
+      else if (key === 'purTrend') purTrendGranularity = granularity;
+      else if (key === 'hwaTrend') hwaTrendGranularity = granularity;
+      renderAll();
+    });
+  });
+
   // ---------------------------------------------------------------------
   // Card grid generik -- dipakai renderSummary (tab Semua) + overview per
   // kategori (renderSpkOverview/renderPurchasingOverview/renderHwaOverview)
@@ -779,26 +799,31 @@
   // Chart baru khusus dashboard sub-tab per kategori (Trend count per
   // bulan, Status Progres) -- tidak ada versi lama yang bisa dipakai ulang.
   // ---------------------------------------------------------------------
-  function renderTrendCountChart(canvasId, chartKey, rows, dateKey, label, color) {
+  // granularity: 'month' (default, satu titik per bulan-tahun, mis. "Jan
+  // 2026") atau 'year' (satu titik per tahun, jumlah seluruh baris tahun
+  // itu) -- dipakai chart trend SPK/Purchasing/Home With AI yang masing-
+  // masing punya toggle Bulan/Tahun sendiri (lihat .chart-toggle).
+  function renderTrendCountChart(canvasId, chartKey, rows, dateKey, label, color, granularity) {
+    granularity = granularity || 'month';
     destroyChart(chartKey);
     var map = {};
     rows.forEach(function (r) {
       var iso = r[dateKey];
       if (!iso) return;
-      var key = iso.slice(0, 7); // 'YYYY-MM'
+      var key = granularity === 'year' ? iso.slice(0, 4) : iso.slice(0, 7); // 'YYYY' atau 'YYYY-MM'
       if (!map[key]) map[key] = 0;
       map[key] += 1;
     });
     var keys = Object.keys(map).sort();
-    var labels = keys.map(function (k) {
+    var labels = granularity === 'year' ? keys : keys.map(function (k) {
       var parts = k.split('-');
       return MONTHS[parseInt(parts[1], 10) - 1].slice(0, 3) + ' ' + parts[0];
     });
     var values = keys.map(function (k) { return map[k]; });
     var ctx = document.getElementById(canvasId).getContext('2d');
     charts[chartKey] = new Chart(ctx, {
-      type: 'bar',
-      data: { labels: labels, datasets: [{ label: label, data: values, backgroundColor: color, borderRadius: 4 }] },
+      type: 'line',
+      data: { labels: labels, datasets: [{ label: label, data: values, borderColor: color, backgroundColor: 'transparent', tension: 0.25, pointRadius: 3 }] },
       options: baseBarOptions('Jumlah')
     });
   }
@@ -821,6 +846,7 @@
     var totalNilai = fSpk.reduce(function (s, r) { return s + r.nilaiTotal; }, 0);
     var overdueCount = fSpk.filter(function (r) { return r.isOverdue; }).length;
     var jenis = buildBreakdown(fSpk, function (r) { return r.jenisSpk; }, function (r) { return r.nilaiTotal; });
+    var totalProyek = {}; fSpk.forEach(function (r) { if (r.proyek) totalProyek[normKey(r.proyek)] = true; });
 
     // Unit tertinggal jadwal konstruksi (Addendum 8) -- dedup per unitKey
     // (satu unit bisa punya >1 baris SPK), dihitung dari unit-unit yang
@@ -835,14 +861,13 @@
     });
 
     renderCardGrid('spkSummaryCards', [
-      { label: 'Total SPK Keseluruhan', value: fSpk.length, sub: overdueCount + ' overdue (Unit Rumah)', breakdown: jenis.countPills },
-      { label: 'Total Nilai Transaksi SPK', value: formatRupiah(totalNilai), breakdown: jenis.nilaiPills },
+      { label: 'Total Proyek', value: Object.keys(totalProyek).length },
+      { label: 'Total SPK', value: fSpk.length, sub: overdueCount + ' overdue (Unit Rumah)', breakdown: jenis.countPills },
+      { label: 'Total Nilai Transaksi', value: formatRupiah(totalNilai), breakdown: jenis.nilaiPills },
       { label: 'Unit Tertinggal Jadwal Konstruksi', value: behindCount, sub: 'Realisasi kumulatif di bawah rencana s/d minggu berjalan', alert: behindCount > 0 }
     ]);
 
-    renderChartJenisPekerjaan(fSpk, 'chartSpkJenisPekerjaan', 'spkJenisPekerjaan');
-    renderChartProporsiGp(fSpk, 'chartSpkProporsiGp', 'spkProporsiGp');
-    renderTrendCountChart('chartSpkTrenPenerbitan', 'spkTrenPenerbitan', fSpk, 'tanggalTerbit', 'Jumlah SPK Terbit', '#5b8fb9');
+    renderTrendCountChart('chartSpkTrenPenerbitan', 'spkTrenPenerbitan', fSpk, 'tanggalTerbit', 'Jumlah SPK Terbit', '#5b8fb9', spkTrendGranularity);
     renderStatusProportionChart('chartSpkStatusProgres', 'spkStatusProgres',
       ['Sesuai Jadwal', 'Overdue'], [fSpk.length - overdueCount, overdueCount], ['#1f9d55', '#c53030']);
   }
@@ -854,12 +879,11 @@
     var status = buildBreakdown(fPur, function (r) { return r.statusPekerjaan; }, function () { return 0; });
 
     renderCardGrid('purSummaryCards', [
-      { label: 'Total Purchasing Keseluruhan', value: fPur.length, breakdown: jenis.countPills },
-      { label: 'Total Nilai Transaksi Purchasing', value: formatRupiah(totalNilai), breakdown: jenis.nilaiPills }
+      { label: 'Total PO Purchasing', value: fPur.length, breakdown: jenis.countPills },
+      { label: 'Total Nilai PO Purchasing', value: formatRupiah(totalNilai), breakdown: jenis.nilaiPills }
     ]);
 
-    renderChartPurchasing(fPur, 'chartPurJenis', 'purJenis');
-    renderTrendCountChart('chartPurTren', 'purTren', fPur, 'tanggalMulai', 'Jumlah Transaksi', '#5b8fb9');
+    renderTrendCountChart('chartPurTren', 'purTren', fPur, 'tanggalMulai', 'Jumlah PO', '#5b8fb9', purTrendGranularity);
     renderStatusProportionChart('chartPurStatus', 'purStatus',
       status.order, status.order.map(function (k) { return status.count[k]; }), PALETTE);
   }
@@ -870,12 +894,14 @@
     var status = buildBreakdown(fHwa, function (r) { return r.status; }, function (r) { return r.nilai; }, statusBadgeClass);
 
     renderCardGrid('hwaSummaryCards', [
-      { label: 'Total Home With AI Keseluruhan', value: fHwa.length, breakdown: status.countPills },
+      { label: 'Total PO Home With AI', value: fHwa.length, breakdown: status.countPills },
       { label: 'Total Nilai Transaksi Home With AI', value: formatRupiah(totalNilai), breakdown: status.nilaiPills }
     ]);
 
-    renderChartHwaStatus(fHwa, 'chartHwaStatusPerProyek', 'hwaStatusPerProyek');
-    renderTrendCountChart('chartHwaTren', 'hwaTren', fHwa, 'tanggalMulai', 'Jumlah Order', '#5b8fb9');
+    renderStatusProportionChart('chartHwaStatusProgres', 'hwaStatusProgres',
+      status.order, status.order.map(function (k) { return status.count[k]; }),
+      status.order.map(function (k) { return STATUS_COLORS[k] || '#94a3b8'; }));
+    renderTrendCountChart('chartHwaTren', 'hwaTren', fHwa, 'tanggalMulai', 'Jumlah PO', '#5b8fb9', hwaTrendGranularity);
   }
 
   function baseBarOptions(axisLabel, isCurrency, horizontal) {
