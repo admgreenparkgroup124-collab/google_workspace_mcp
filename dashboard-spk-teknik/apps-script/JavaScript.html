@@ -123,7 +123,9 @@
       { key: 'unit', label: 'Unit' },
       { key: 'jenisPengadaan', label: 'Jenis Pengadaan' },
       { key: 'namaBarang', label: 'Nama Barang' },
+      { key: 'namaPekerjaan', label: 'Nama Pekerjaan' },
       { key: 'namaVendor', label: 'Vendor' },
+      { key: 'qty', label: 'Qty' },
       { key: 'satuan', label: 'Satuan' },
       { key: 'hargaSatuan', label: 'Harga Satuan (Rp)', format: 'currency' },
       { key: 'nilai', label: 'Harga Total (Rp)', format: 'currency' },
@@ -167,7 +169,9 @@
     { key: 'unit', label: 'Blok/Unit' },
     { key: 'jenisPengadaan', label: 'Jenis Pengadaan' },
     { key: 'namaBarang', label: 'Nama Barang/Item' },
+    { key: 'namaPekerjaan', label: 'Nama Pekerjaan' },
     { key: 'namaVendor', label: 'Nama Vendor' },
+    { key: 'qty', label: 'Qty' },
     { key: 'satuan', label: 'Satuan' },
     { key: 'hargaSatuan', label: 'Harga Satuan (Rp)', format: 'currency' },
     { key: 'nilai', label: 'Harga Total (Rp)', format: 'currency' },
@@ -1920,6 +1924,7 @@
     html += '<div class="unit-section"><h4>Purchasing (Promo &amp; Material Unit)</h4>';
     html += purList.length ? purList.map(function (r) {
       var lines = [];
+      if (r.namaPekerjaan) lines.push('Pekerjaan: ' + escapeHtml(r.namaPekerjaan));
       lines.push(joinMeta([
         'Status: ' + escapeHtml(r.statusPekerjaan),
         r.tanggal ? formatDate(r.tanggal) : '',
@@ -1927,7 +1932,7 @@
       ]));
       var vendorLine = joinMeta([
         r.namaVendor ? 'Vendor: ' + escapeHtml(r.namaVendor) : '',
-        'Satuan: ' + escapeHtml(r.satuan || '-') + ' · Harga Satuan: ' + formatRupiah(r.hargaSatuan)
+        'Qty: ' + (r.qty || '-') + ' ' + escapeHtml(r.satuan || '-') + ' · Harga Satuan: ' + formatRupiah(r.hargaSatuan)
       ]);
       if (vendorLine) lines.push(vendorLine);
       if (r.tanggalMulai) lines.push('Mulai: ' + formatDate(r.tanggalMulai));
@@ -2083,7 +2088,9 @@
       { key: 'blokUnit', label: 'Blok/No. Unit (kosongkan utk Material PSU)', type: 'text' },
       { key: 'jenisPengadaan', label: 'Jenis Pengadaan', type: 'select', options: JENIS_PENGADAAN_OPTIONS, required: true },
       { key: 'namaBarang', label: 'Nama Barang/Item', type: 'text', required: true },
+      { key: 'namaPekerjaan', label: 'Nama Pekerjaan', type: 'text', wide: true },
       { key: 'namaVendor', label: 'Nama Vendor', type: 'text' },
+      { key: 'qty', label: 'Qty', type: 'number' },
       { key: 'satuan', label: 'Satuan', type: 'text' },
       { key: 'hargaSatuan', label: 'Harga Satuan (Rp)', type: 'number' },
       { key: 'nilai', label: 'Harga Total (Rp)', type: 'number', required: true },

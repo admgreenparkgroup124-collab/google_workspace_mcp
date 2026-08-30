@@ -81,11 +81,13 @@ Grup Proyek | Nama Proyek | Blok/No. Unit | Status | Nama Vendor | Satuan | Harg
 Baris header:
 
 ```
-Grup Proyek | Nama Proyek | Blok/No. Unit | Jenis Pengadaan | Nama Barang/Item | Nama Vendor | Satuan | Harga Satuan (Rp) | Harga Total (Rp) | Status Pekerjaan | Tanggal Order/Mulai | Tanggal | Lampiran | Keterangan | Target Hari (SLA)
+Grup Proyek | Nama Proyek | Blok/No. Unit | Jenis Pengadaan | Nama Barang/Item | Nama Pekerjaan | Nama Vendor | Qty | Satuan | Harga Satuan (Rp) | Harga Total (Rp) | Status Pekerjaan | Tanggal Order/Mulai | Tanggal | Lampiran | Keterangan | Target Hari (SLA)
 ```
 
 - **Jenis Pengadaan**: `Promo Unit` / `Material PSU` / `Material Unit Bangunan` (Data Validation disarankan).
 - **Blok/No. Unit**: isi untuk Promo Unit & Material Unit Bangunan; **kosongkan** untuk Material PSU.
+- **Nama Pekerjaan**: kolom baru, teks bebas — deskripsi pekerjaan/aktivitas terkait pengadaan itu (beda dari **Nama Barang/Item** yang berarti nama barang/materialnya sendiri); boleh dikosongkan.
+- **Qty**: kolom baru, angka — jumlah/kuantitas barang, dipasangkan dengan **Satuan**; boleh dikosongkan.
 - **Harga Satuan (Rp)** / **Harga Total (Rp)**: sama seperti Home With AI di atas — kalau cuma ada satu angka lump-sum, isi **Harga Total (Rp)** saja.
 - **Status Pekerjaan**: untuk Material → `Belum Order`/`On Proses`/`Sudah Order`; untuk Promo Unit → `Belum Terpasang`/`On Proses`/`Terpasang`.
 - **Tanggal Order/Mulai**: tanggal mulai proses, titik awal hitung SLA
@@ -446,9 +448,9 @@ sendiri), cara update:
     di spreadsheet), + kartu ringkasan (**Total SPK** & Total Nilai) di
     atas tabel, + filter Proyek & Jenis SPK.
   - **Master Data Purchasing** — seluruh kolom tab Purchasing apa adanya
-    (termasuk Nama Vendor, Satuan, Harga Satuan, Harga Total, Lampiran) +
-    kartu ringkasan (**Total PO** & Total Nilai) + filter Proyek/Jenis
-    Pengadaan.
+    (termasuk Nama Pekerjaan, Nama Vendor, Qty, Satuan, Harga Satuan,
+    Harga Total, Lampiran) + kartu ringkasan (**Total PO** & Total Nilai)
+    + filter Proyek/Jenis Pengadaan.
   - **Master Data Home With AI** — seluruh kolom tab Home With AI apa
     adanya (termasuk Nama Vendor, Satuan, Harga Satuan, Harga Total, Tgl
     Mulai, Tgl Selesai, Lampiran) + kartu ringkasan (**Total PO** & Total
