@@ -214,18 +214,29 @@ dokumen Time Schedule & Kurva S yang sudah biasa Anda buat per unit).
 Baris header:
 
 ```
-Grup Proyek | Nama Proyek | Blok/No. Unit | Minggu Ke- | Rencana Progres Mingguan (%)
+Grup Proyek | Nama Proyek | Blok/No. Unit | Minggu Ke- | Uraian Pekerjaan | Bobot (%)
 ```
 
-- Satu baris per (unit, minggu) — kalau rencana unit itu 16 minggu, berarti
-  16 baris untuk unit itu.
-- **Rencana Progres Mingguan (%)** adalah persentase **mingguan** (bukan
-  kumulatif) — sama seperti baris "RENCANA PROGRES MINGGUAN" di dokumen
-  Kurva S Anda, BUKAN baris "RENCANA PROGRES KUMULATIF". Dashboard yang
-  menjumlahkannya jadi kurva kumulatif otomatis.
+- **Satu baris per (unit, minggu, item pekerjaan)** — persis satu sel
+  M1..M16 di dokumen Kurva S Anda: kalau "Pekerjaan Struktur Beton
+  Bertulang" ada nilai di kolom M4-M8, itu jadi 5 baris terpisah (Minggu
+  Ke- 4, 5, 6, 7, 8) dengan **Uraian Pekerjaan** yang sama tapi
+  **Bobot (%)** sesuai nilai di kolom minggu itu. Boleh ada lebih dari
+  satu baris untuk (unit, minggu) yang sama kalau memang ada beberapa
+  item pekerjaan aktif di minggu itu bersamaan — dashboard menjumlahkan
+  otomatis jadi total rencana minggu itu.
+- **Bobot (%)** adalah persentase **mingguan milik item itu saja**
+  (bukan kumulatif, dan bukan total bobot item itu sepanjang proyek) —
+  sama seperti nilai di sel M1..M16 dokumen Kurva S Anda. Dashboard
+  menjumlahkan semua item per minggu, lalu menjumlahkan itu jadi kurva
+  kumulatif otomatis.
+- **Uraian Pekerjaan** ditampilkan sbg rincian di riwayat mingguan
+  (modal Detail per Unit & halaman Input Progres), mis. "Minggu 4:
+  Rencana 4,4% (Pekerjaan Struktur Beton Bertulang: 4,4%)".
 - Kalau tab ini belum diisi untuk suatu unit, dashboard tidak error —
   bagian Progres Konstruksi unit itu cuma menampilkan Realisasi saja
-  (tanpa garis Rencana pembanding).
+  (tanpa garis Rencana pembanding, dan status jadwal unit itu tidak bisa
+  dinilai — lihat catatan alert di bawah).
 
 **Tab "Realisasi Progres"** (diisi **SPV Lapangan lewat dashboard**, dari
 halaman tersendiri **"Input Progres"** — BUKAN dari modal Detail per Unit
@@ -258,6 +269,31 @@ Grup Proyek | Nama Proyek | Blok/No. Unit | Minggu Ke- | Tanggal Update | Realis
 > tiap SPV Lapangan akan diminta **otorisasi ulang** (izin akses Drive)
 > saat pertama kali membuka Web App SETELAH deployment ini di-deploy
 > ulang — muncul layar consent Google standar, tinggal disetujui sekali.
+
+**Alert "Tertinggal Jadwal"** — dashboard membandingkan **Rencana
+kumulatif** (jumlah Bobot semua item terjadwal s/d minggu yang
+SEHARUSNYA sudah dicapai HARI INI, dihitung dari Tanggal Terbit SPK unit
+itu, 1 minggu = 7 hari kalender) terhadap **Realisasi kumulatif** (total
+semua entri Realisasi Progres yang sudah dilaporkan SPV, apapun minggu
+ke berapa dilaporkannya). Kalau Realisasi kumulatif masih di bawah
+Rencana kumulatif itu, unitnya ditandai **"Tertinggal Jadwal"**. Sengaja
+pakai perbandingan kumulatif (bukan cuma minggu yang sudah diisi SPV
+saja) supaya unit yang belum sempat dilaporkan minggu ini pun tetap
+ke-flag kalau memang sudah telat — bukan "belum lapor" jadi dianggap
+aman. Begitu sudah lewat minggu terakhir yang dijadwalkan di Rencana
+Progres, perbandingannya berhenti di 100% rencana (tidak terus menuntut
+lebih walau sudah lama sejak SPK terbit). Kalau tab Rencana Progres
+belum diisi sama sekali untuk suatu unit, status jadwalnya tidak bisa
+dinilai (bukan dianggap aman ATAU telat).
+
+Alert ini muncul di 4 tempat: **badge merah "Tertinggal Jadwal"** +
+baris tabel ditandai merah di halaman Input Progres (kolom Status),
+**banner peringatan** di atas tabel Input Progres (jumlah unit
+tertinggal sesuai filter GP/Proyek saat itu), **badge** di section
+Progres Konstruksi pada modal Detail per Unit (terlihat semua
+orang, baca-saja), dan **card "Unit Tertinggal Jadwal Konstruksi"** di
+Dashboard sub-tab SPK (dihitung dari unit-unit yang sedang tampil sesuai
+filter Dashboard).
 
 ### 2h. Share & Protect sheet
 
@@ -423,16 +459,23 @@ sendiri), cara update:
   punya nilai Unit (Blok/No. Unit terisi) untuk membuka **Detail per
   Unit** — riwayat urut: **Riwayat SPK** (dengan Jenis SPK & Item SPK-nya)
   → **Purchasing** → **Home With AI**, lalu **Progres Konstruksi**
-  (Kurva S Rencana vs Realisasi mingguan — lihat Bagian 2g; kalau unit
-  belum punya SPK, bagian ini menampilkan catatan "belum bisa dilacak"
-  alih-alih chart kosong), dan paling bawah **Total Seluruh Pengeluaran**
-  (jumlah SPK + Purchasing + Home With AI unit itu, digabung jadi satu
-  angka). Section Progres Konstruksi di modal ini **baca-saja** untuk
-  semua orang (CEO/Dirops/Admin Teknik) — input progres tidak lagi lewat
-  sini, lihat menu "Input Progres" di bawah.
-- **Menu "Input Progres"** — alur khusus **SPV Lapangan**: buka menu ini,
-  cari unitnya (filter GP/Proyek/kotak cari), klik baris unit → muncul
-  modal berisi Kurva S + riwayat progres unit itu (sama seperti di modal
+  (Kurva S Rencana vs Realisasi mingguan, dengan badge **"Tertinggal
+  Jadwal"**/**"Sesuai Jadwal"** dan rincian Uraian Pekerjaan per minggu
+  kalau ada — lihat Bagian 2g; kalau unit belum punya SPK, bagian ini
+  menampilkan catatan "belum bisa dilacak" alih-alih chart kosong), dan
+  paling bawah **Total Seluruh Pengeluaran** (jumlah SPK + Purchasing +
+  Home With AI unit itu, digabung jadi satu angka). Section Progres
+  Konstruksi di modal ini **baca-saja** untuk semua orang (CEO/Dirops/
+  Admin Teknik) — input progres tidak lagi lewat sini, lihat menu "Input
+  Progres" di bawah.
+- **Menu "Input Progres"** — alur khusus **SPV Lapangan**: daftar unit
+  yang sudah punya SPK, dengan kolom **Status** menandai **"Tertinggal
+  Jadwal"** (merah, baris ikut ditandai merah) / **"Sesuai Jadwal"**
+  (hijau) berdasar perbandingan Rencana vs Realisasi kumulatif (lihat
+  catatan alert di Bagian 2g) — plus **banner peringatan** di atas tabel
+  kalau ada unit yang tertinggal (sesuai filter GP/Proyek saat itu). Cari
+  unitnya (filter GP/Proyek/kotak cari), klik baris unit → muncul modal
+  berisi Kurva S + riwayat progres unit itu (sama seperti di modal
   Detail per Unit), dan **kalau viewer punya scope `SPV:<GP>` unit
   tersebut**, tampil juga form "Input Progres Minggu Ini": Minggu Ke-,
   Realisasi Progres (%), Keterangan, dan **upload foto** (pilih/foto

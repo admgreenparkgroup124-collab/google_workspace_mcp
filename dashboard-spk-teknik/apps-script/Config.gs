@@ -117,12 +117,19 @@ var ACCESS_FIELD_DEFS = [
 // Schedule & Kurva S existing) -- Grup Proyek/Nama Proyek/Blok/No. Unit
 // dipakai persis sama seperti tab lain utk hitung unitKey (Addendum 6:
 // referensi jadwal per UNIT langsung via Blok, bukan lewat "Tipe Unit").
+// Addendum 8: satu baris per (unit, minggu, item pekerjaan) -- persis satu
+// sel M1..M16 di dokumen Kurva S, BUKAN satu baris per minggu lagi (bisa
+// lebih dari satu item aktif di minggu yang sama). `rencanaProgres` =
+// bobot mingguan ITEM ini saja (header sheet "Bobot (%)"); total rencana
+// mingguan unit itu = jumlah `rencanaProgres` semua baris minggu yang
+// sama (lihat aggregateRencanaByWeek_ di JavaScript.html).
 var PROGRESS_RENCANA_FIELD_DEFS = [
   { key: 'grupProyek', candidates: ['grup proyek'] },
   { key: 'namaProyek', candidates: ['nama proyek'] },
   { key: 'blokUnit', candidates: ['blok no unit area kerja', 'blok no unit', 'blok unit', 'no unit'] },
   { key: 'mingguKe', candidates: ['minggu ke', 'minggu'] },
-  { key: 'rencanaProgres', candidates: ['rencana progres mingguan', 'rencana progres', 'rencana'] }
+  { key: 'uraianPekerjaan', candidates: ['uraian pekerjaan', 'uraian'] },
+  { key: 'rencanaProgres', candidates: ['bobot %', 'bobot', 'rencana progres mingguan', 'rencana progres', 'rencana'] }
 ];
 
 // Realisasi Progres: diisi SPV Lapangan lewat halaman "Input Progres"

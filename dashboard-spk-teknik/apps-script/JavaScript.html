@@ -260,6 +260,12 @@
     return 'badge-gray';
   }
 
+  function progressStatusBadgeClass(label) {
+    if (label === 'Tertinggal Jadwal') return 'badge-red';
+    if (label === 'Sesuai Jadwal') return 'badge-green';
+    return 'badge-gray';
+  }
+
   // Toast singkat di pojok bawah -- dipakai utk pesan error (merah, sudah
   // ada sebelumnya) maupun sukses (hijau, dipakai simpan Target Hari SLA).
   var toastTimer = null;
@@ -816,9 +822,22 @@
     var overdueCount = fSpk.filter(function (r) { return r.isOverdue; }).length;
     var jenis = buildBreakdown(fSpk, function (r) { return r.jenisSpk; }, function (r) { return r.nilaiTotal; });
 
+    // Unit tertinggal jadwal konstruksi (Addendum 8) -- dedup per unitKey
+    // (satu unit bisa punya >1 baris SPK), dihitung dari unit-unit yang
+    // sedang tampil di filter Dashboard saat ini.
+    var seenUnitKeys = {};
+    var behindCount = 0;
+    fSpk.forEach(function (r) {
+      if (!r.unitKey || seenUnitKeys[r.unitKey]) return;
+      seenUnitKeys[r.unitKey] = true;
+      var status = computeUnitProgressStatus_(r.unitKey);
+      if (status && status.isBehind) behindCount++;
+    });
+
     renderCardGrid('spkSummaryCards', [
       { label: 'Total SPK Keseluruhan', value: fSpk.length, sub: overdueCount + ' overdue (Unit Rumah)', breakdown: jenis.countPills },
-      { label: 'Total Nilai Transaksi SPK', value: formatRupiah(totalNilai), breakdown: jenis.nilaiPills }
+      { label: 'Total Nilai Transaksi SPK', value: formatRupiah(totalNilai), breakdown: jenis.nilaiPills },
+      { label: 'Unit Tertinggal Jadwal Konstruksi', value: behindCount, sub: 'Realisasi kumulatif di bawah rencana s/d minggu berjalan', alert: behindCount > 0 }
     ]);
 
     renderChartJenisPekerjaan(fSpk, 'chartSpkJenisPekerjaan', 'spkJenisPekerjaan');
@@ -939,7 +958,7 @@
     } else {
       rows.forEach(function (r) {
         var tr = document.createElement('tr');
-        if (r.isOverdue || r.slaOverdue) tr.className = 'row-overdue';
+        if (r.isOverdue || r.slaOverdue || r.isBehindSchedule) tr.className = 'row-overdue';
         columns.forEach(function (col) {
           var td = document.createElement('td');
           var val = r[col.key];
@@ -969,6 +988,7 @@
           else if (col.format === 'overdue') td.innerHTML = val ? '<span class="badge badge-red">Overdue</span>' : '<span class="badge badge-green">Sesuai Jadwal</span>';
           else if (col.format === 'hwaStatus') td.innerHTML = '<span class="badge ' + statusBadgeClass(val) + '">' + escapeHtml(val) + '</span>';
           else if (col.format === 'slaStatus') td.innerHTML = '<span class="badge ' + slaStatusBadgeClass(val) + '">' + escapeHtml(val) + '</span>';
+          else if (col.format === 'progressStatus') td.innerHTML = '<span class="badge ' + progressStatusBadgeClass(val) + '">' + escapeHtml(val) + '</span>';
           else if (col.format === 'date' || col.key.indexOf('tanggal') === 0) td.textContent = formatDate(val);
           else td.textContent = val === '' || val == null ? '–' : val;
           tr.appendChild(td);
@@ -1380,7 +1400,7 @@
     { key: 'mingguTerakhirLabel', label: 'Minggu Terakhir Diisi' },
     { key: 'tanggalTerakhir', label: 'Tanggal Terakhir Diisi' },
     { key: 'persenTerakhirLabel', label: '% Realisasi Terakhir' },
-    { key: 'statusLabel', label: 'Status' }
+    { key: 'statusLabel', label: 'Status', format: 'progressStatus' }
   ];
 
   function hasSpvScopeForGp_(gp) {
@@ -1411,7 +1431,17 @@
       row.mingguTerakhirLabel = last ? ('Minggu ' + last.mingguKe) : null;
       row.tanggalTerakhir = last ? last.tanggalUpdate : null;
       row.persenTerakhirLabel = last ? (last.realisasiProgres + '%') : null;
-      row.statusLabel = last ? 'Ada progres' : 'Belum ada progres';
+
+      // Status jadwal (Addendum 8): kalau ada data Rencana Progres utk
+      // unit ini, nilai berdasar perbandingan kumulatif (lihat
+      // computeUnitProgressStatus_) -- kalau tidak ada rencana sama
+      // sekali, fallback ke status lama (cuma ada/tidaknya realisasi,
+      // tidak bisa dinilai telat/tidaknya).
+      var status = computeUnitProgressStatus_(row.unitKey);
+      row.isBehindSchedule = !!(status && status.isBehind);
+      row.statusLabel = status
+        ? (status.isBehind ? 'Tertinggal Jadwal' : 'Sesuai Jadwal')
+        : (last ? 'Ada progres' : 'Belum ada progres');
       return row;
     });
   }
@@ -1420,6 +1450,18 @@
     var rows = buildProgressUnitRows_();
     if (progresGp) rows = rows.filter(function (r) { return normKey(r.gp) === normKey(progresGp); });
     if (progresProyek) rows = rows.filter(function (r) { return normKey(r.proyek) === normKey(progresProyek); });
+
+    var behindCount = rows.filter(function (r) { return r.isBehindSchedule; }).length;
+    var alertZone = document.getElementById('progresAlertZone');
+    alertZone.innerHTML = '';
+    if (behindCount > 0) {
+      var banner = document.createElement('div');
+      banner.className = 'alert-banner';
+      banner.innerHTML = '<span class="alert-icon">⚠️</span>' +
+        '<span>' + behindCount + ' unit tertinggal jadwal konstruksi (realisasi kumulatif di bawah rencana s/d minggu berjalan, sesuai filter saat ini).</span>';
+      alertZone.appendChild(banner);
+    }
+
     buildDataTable({
       theadEl: document.querySelector('#progresUnitTable thead'),
       tbodyEl: document.querySelector('#progresUnitTable tbody'),
@@ -1592,12 +1634,24 @@
     var realisasiList = rawData.progressRealisasi.filter(function (r) { return r.unitKey === unitKey; })
       .sort(function (a, b) { return a.mingguKe - b.mingguKe; });
 
+    var progressStatus = computeUnitProgressStatus_(unitKey);
+
     var html = '<div class="unit-header"><h2>' + escapeHtml(unit) + '</h2>' +
       '<p>' + escapeHtml(gp) + ' · ' + escapeHtml(proyek) + '</p></div>';
 
-    html += '<div class="unit-section"><h4>Kurva S &amp; Riwayat Progres</h4>';
+    html += '<div class="unit-section"><h4>Kurva S &amp; Riwayat Progres' +
+      (progressStatus && progressStatus.isBehind
+        ? ' <span class="badge badge-red">Tertinggal Jadwal</span>'
+        : (progressStatus ? ' <span class="badge badge-green">Sesuai Jadwal</span>' : '')) +
+      '</h4>';
+    if (progressStatus && progressStatus.isBehind) {
+      html += '<p class="unit-empty">Rencana kumulatif s/d minggu ke-' + progressStatus.evalWeek + ' seharusnya ' +
+        progressStatus.plannedCumulative.toFixed(1) + '%, realisasi baru ' + progressStatus.actualCumulative.toFixed(1) +
+        '% (tertinggal ' + progressStatus.gap.toFixed(1) + '%).</p>';
+    }
+    var rencanaAgg = aggregateRencanaByWeek_(rencanaList);
     var weekMap = {};
-    rencanaList.forEach(function (r) {
+    rencanaAgg.forEach(function (r) {
       weekMap[r.mingguKe] = weekMap[r.mingguKe] || {};
       weekMap[r.mingguKe].rencana = r.rencanaProgres;
     });
@@ -1616,7 +1670,7 @@
           var w = weekMap[wk];
           var fotoCount = w.lampiranFoto ? w.lampiranFoto.split(',').filter(function (s) { return s.trim(); }).length : 0;
           return '<div class="unit-item-meta">Minggu ' + wk + ': Rencana ' +
-            (w.rencana != null ? w.rencana + '%' : '–') + ' · Realisasi ' +
+            (w.rencana != null ? w.rencana + '%' : '–') + rencanaItemsLabel_(rencanaList, wk) + ' · Realisasi ' +
             (w.realisasi != null ? w.realisasi + '%' : '–') +
             (w.tanggalUpdate ? ' (' + formatDate(w.tanggalUpdate) + ')' : '') +
             (w.keterangan ? ' · ' + escapeHtml(w.keterangan) : '') +
@@ -1655,7 +1709,7 @@
     if (weekKeys.length) {
       renderUnitProgressChart_(
         weekKeys,
-        buildCumulativeAtWeeks_(rencanaList, weekKeys, 'rencanaProgres'),
+        buildCumulativeAtWeeks_(rencanaAgg, weekKeys, 'rencanaProgres'),
         buildCumulativeAtWeeks_(realisasiList, weekKeys, 'realisasiProgres'),
         'progresInputProgress', 'progresInputChart'
       );
@@ -1748,6 +1802,89 @@
       if (byWeek[wk] != null) sum += byWeek[wk];
       return sum;
     });
+  }
+
+  // Addendum 8: "Rencana Progres" sekarang satu baris per (unit, minggu,
+  // item pekerjaan) -- rencanaProgres di tiap baris adalah bobot mingguan
+  // ITEM itu saja, bukan total minggu. Jumlahkan per minggu dulu sebelum
+  // dipakai buildCumulativeAtWeeks_/ditampilkan sbg total mingguan.
+  function aggregateRencanaByWeek_(rencanaList) {
+    var byWeek = {};
+    var order = [];
+    rencanaList.forEach(function (r) {
+      if (byWeek[r.mingguKe] === undefined) { byWeek[r.mingguKe] = 0; order.push(r.mingguKe); }
+      byWeek[r.mingguKe] += (r.rencanaProgres || 0);
+    });
+    return order.map(function (wk) { return { mingguKe: wk, rencanaProgres: byWeek[wk] }; });
+  }
+
+  // Label "(Item A: 2,5%, Item B: 1,3%)" utk satu minggu -- dipakai
+  // menampilkan rincian item pekerjaan di baris riwayat Progres Konstruksi.
+  function rencanaItemsLabel_(rencanaList, mingguKe) {
+    var items = rencanaList.filter(function (r) { return r.mingguKe === mingguKe && r.uraianPekerjaan; });
+    if (!items.length) return '';
+    return ' (' + items.map(function (r) { return escapeHtml(r.uraianPekerjaan) + ': ' + r.rencanaProgres + '%'; }).join(', ') + ')';
+  }
+
+  // String "YYYY-MM-DD" -> Date lokal (bukan UTC midnight spt `new
+  // Date(iso)`), konsisten dgn parseDateCell di Utils.gs backend.
+  function parseIsoDate_(iso) {
+    if (!iso) return null;
+    var p = String(iso).split('-');
+    if (p.length !== 3) return null;
+    return new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+  }
+
+  // Status "tertinggal jadwal" per unit (Addendum 8) -- bandingkan Rencana
+  // KUMULATIF s/d minggu yang SEHARUSNYA sudah dicapai hari ini (dihitung
+  // dari SPK terbit paling awal unit itu, 1 minggu = 7 hari kalender)
+  // terhadap Realisasi KUMULATIF yang benar-benar sudah dilaporkan sejauh
+  // ini. Sengaja pakai kumulatif (bukan per-minggu-yang-sudah-diisi saja)
+  // supaya unit yang belum sempat dilaporkan SPV minggu ini tetap ke-flag
+  // kalau memang sudah telat, bukan cuma "belum lapor".
+  // Return null kalau tidak bisa dinilai (unit belum ada SPK, atau tab
+  // Rencana Progres belum diisi utk unit itu).
+  function computeUnitProgressStatus_(unitKey) {
+    if (!unitKey) return null;
+    var spkList = rawData.spk.filter(function (r) { return r.unitKey === unitKey; });
+    if (!spkList.length) return null;
+
+    var startIso = null;
+    spkList.forEach(function (r) {
+      if (r.tanggalTerbit && (!startIso || r.tanggalTerbit < startIso)) startIso = r.tanggalTerbit;
+    });
+    var start = parseIsoDate_(startIso);
+    if (!start) return null;
+
+    var rencanaList = rawData.progressRencana.filter(function (r) { return r.unitKey === unitKey; });
+    if (!rencanaList.length) return null;
+    var rencanaAgg = aggregateRencanaByWeek_(rencanaList);
+    var maxScheduledWeek = rencanaAgg.reduce(function (m, r) { return Math.max(m, r.mingguKe); }, 0);
+    if (!maxScheduledWeek) return null;
+
+    var today = new Date();
+    today = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    var daysElapsed = Math.floor((today.getTime() - start.getTime()) / 86400000);
+    var expectedWeek = Math.floor(daysElapsed / 7) + 1;
+    if (expectedWeek < 1) expectedWeek = 1;
+    var evalWeek = Math.min(expectedWeek, maxScheduledWeek);
+
+    var plannedCumulative = 0;
+    rencanaAgg.forEach(function (r) { if (r.mingguKe <= evalWeek) plannedCumulative += r.rencanaProgres; });
+
+    var realisasiList = rawData.progressRealisasi.filter(function (r) { return r.unitKey === unitKey; });
+    var actualCumulative = realisasiList.reduce(function (s, r) { return s + r.realisasiProgres; }, 0);
+
+    var EPS = 0.05; // toleransi pembulatan kecil
+    return {
+      expectedWeek: expectedWeek,
+      evalWeek: evalWeek,
+      maxScheduledWeek: maxScheduledWeek,
+      plannedCumulative: plannedCumulative,
+      actualCumulative: actualCumulative,
+      gap: plannedCumulative - actualCumulative,
+      isBehind: plannedCumulative > actualCumulative + EPS
+    };
   }
 
   function renderUnitProgressChart_(weekKeys, rencanaCum, realisasiCum, chartKey, canvasId) {
@@ -1856,12 +1993,19 @@
     var realisasiList = rawData.progressRealisasi.filter(function (r) { return r.unitKey === unitKey; })
       .sort(function (a, b) { return a.mingguKe - b.mingguKe; });
 
-    html += '<div class="unit-section"><h4>Progres Konstruksi</h4>';
+    var progressStatus = computeUnitProgressStatus_(unitKey);
+
+    html += '<div class="unit-section"><h4>Progres Konstruksi' +
+      (progressStatus && progressStatus.isBehind
+        ? ' <span class="badge badge-red">Tertinggal Jadwal</span>'
+        : (progressStatus ? ' <span class="badge badge-green">Sesuai Jadwal</span>' : '')) +
+      '</h4>';
     if (!spkList.length) {
       html += '<p class="unit-empty">Progres konstruksi baru bisa dilacak setelah SPK unit ini terbit.</p>';
     } else {
+      var rencanaAgg = aggregateRencanaByWeek_(rencanaList);
       var weekMap = {};
-      rencanaList.forEach(function (r) {
+      rencanaAgg.forEach(function (r) {
         weekMap[r.mingguKe] = weekMap[r.mingguKe] || {};
         weekMap[r.mingguKe].rencana = r.rencanaProgres;
       });
@@ -1873,12 +2017,18 @@
       });
       var weekKeys = Object.keys(weekMap).map(Number).sort(function (a, b) { return a - b; });
 
+      if (progressStatus && progressStatus.isBehind) {
+        html += '<p class="unit-empty">Rencana kumulatif s/d minggu ke-' + progressStatus.evalWeek + ' seharusnya ' +
+          progressStatus.plannedCumulative.toFixed(1) + '%, realisasi baru ' + progressStatus.actualCumulative.toFixed(1) +
+          '% (tertinggal ' + progressStatus.gap.toFixed(1) + '%).</p>';
+      }
+
       if (weekKeys.length) {
         html += '<div class="unit-item"><div class="progress-chart-wrap"><canvas id="unitProgressChart"></canvas></div>' +
           weekKeys.map(function (wk) {
             var w = weekMap[wk];
             return '<div class="unit-item-meta">Minggu ' + wk + ': Rencana ' +
-              (w.rencana != null ? w.rencana + '%' : '–') + ' · Realisasi ' +
+              (w.rencana != null ? w.rencana + '%' : '–') + rencanaItemsLabel_(rencanaList, wk) + ' · Realisasi ' +
               (w.realisasi != null ? w.realisasi + '%' : '–') +
               (w.tanggalUpdate ? ' (' + formatDate(w.tanggalUpdate) + ')' : '') +
               (w.keterangan ? ' · ' + escapeHtml(w.keterangan) : '') + '</div>';
@@ -1903,7 +2053,7 @@
     if (spkList.length && weekKeys && weekKeys.length) {
       renderUnitProgressChart_(
         weekKeys,
-        buildCumulativeAtWeeks_(rencanaList, weekKeys, 'rencanaProgres'),
+        buildCumulativeAtWeeks_(rencanaAgg, weekKeys, 'rencanaProgres'),
         buildCumulativeAtWeeks_(realisasiList, weekKeys, 'realisasiProgres')
       );
     }

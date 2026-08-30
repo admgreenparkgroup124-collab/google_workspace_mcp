@@ -423,6 +423,7 @@ function getProgressRencanaRows_() {
       unit: unit,
       unitKey: unit ? makeUnitKey(gp, proyek, unit) : '',
       mingguKe: mingguKe,
+      uraianPekerjaan: safeText(cellValue(row, headerMap, 'uraianPekerjaan')),
       rencanaProgres: safeNumber(cellValue(row, headerMap, 'rencanaProgres'))
     });
   }
