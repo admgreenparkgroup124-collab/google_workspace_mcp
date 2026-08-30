@@ -1011,10 +1011,10 @@
 
   // Card ringkasan generik ("Keterangan Total") dipakai di 3 halaman Master
   // Data -- Total Baris + Total Nilai (Rp) dari rows yang SEDANG ter-filter.
-  function renderMasterSummary(elId, rows, valueKey) {
+  function renderMasterSummary(elId, rows, valueKey, countLabel) {
     var totalNilai = rows.reduce(function (sum, r) { return sum + (Number(r[valueKey]) || 0); }, 0);
     renderCardGrid(elId, [
-      { label: 'Total Baris', value: rows.length },
+      { label: countLabel || 'Total Baris', value: rows.length },
       { label: 'Total Nilai (Rp)', value: formatRupiah(totalNilai) }
     ]);
   }
@@ -1025,7 +1025,7 @@
     if (masterSpkGp) rows = rows.filter(function (r) { return r.sourceTab === masterSpkGp; });
     if (masterSpkProyek) rows = rows.filter(function (r) { return normKey(r.proyek) === normKey(masterSpkProyek); });
     if (masterSpkJenis) rows = rows.filter(function (r) { return r.jenisSpk === masterSpkJenis; });
-    renderMasterSummary('masterSpkSummary', rows, 'nilaiTotal');
+    renderMasterSummary('masterSpkSummary', rows, 'nilaiTotal', 'Total SPK');
     buildDataTable({
       theadEl: document.querySelector('#masterSpkTable thead'),
       tbodyEl: document.querySelector('#masterSpkTable tbody'),
@@ -1082,7 +1082,7 @@
     if (masterPurGp) rows = rows.filter(function (r) { return normKey(r.gp) === normKey(masterPurGp); });
     if (masterPurProyek) rows = rows.filter(function (r) { return normKey(r.proyek) === normKey(masterPurProyek); });
     if (masterPurJenis) rows = rows.filter(function (r) { return r.jenisPengadaan === masterPurJenis; });
-    renderMasterSummary('masterPurSummary', rows, 'nilai');
+    renderMasterSummary('masterPurSummary', rows, 'nilai', 'Total PO');
     buildDataTable({
       theadEl: document.querySelector('#masterPurTable thead'),
       tbodyEl: document.querySelector('#masterPurTable tbody'),
@@ -1138,7 +1138,7 @@
     if (masterHwaGp) rows = rows.filter(function (r) { return normKey(r.gp) === normKey(masterHwaGp); });
     if (masterHwaProyek) rows = rows.filter(function (r) { return normKey(r.proyek) === normKey(masterHwaProyek); });
     if (masterHwaStatus) rows = rows.filter(function (r) { return r.status === masterHwaStatus; });
-    renderMasterSummary('masterHwaSummary', rows, 'nilai');
+    renderMasterSummary('masterHwaSummary', rows, 'nilai', 'Total PO');
     buildDataTable({
       theadEl: document.querySelector('#masterHwaTable thead'),
       tbodyEl: document.querySelector('#masterHwaTable tbody'),
@@ -1526,7 +1526,7 @@
       { key: 'tanggalTerbit', label: 'Tanggal Terbit', type: 'date', required: true },
       { key: 'tanggalSelesai', label: 'Tanggal Selesai (kosongkan agar dihitung otomatis utk Unit Rumah)', type: 'date' },
       { key: 'picAdminTeknik', label: 'PIC Admin Teknik', type: 'text' },
-      { key: 'lampiran', label: 'Lampiran', type: 'text' },
+      { key: 'lampiran', label: 'Lampiran', type: 'multitext', wide: true },
       { key: 'keterangan', label: 'Keterangan', type: 'text', wide: true }
     ],
     purchasing: [
@@ -1542,7 +1542,7 @@
       { key: 'statusPekerjaan', label: 'Status Pekerjaan', type: 'select', options: PURCHASING_STATUS_OPTIONS, required: true },
       { key: 'tanggalMulai', label: 'Tanggal Order/Mulai', type: 'date', required: true },
       { key: 'tanggal', label: 'Tanggal', type: 'date' },
-      { key: 'lampiran', label: 'Lampiran', type: 'text' },
+      { key: 'lampiran', label: 'Lampiran', type: 'multitext', wide: true },
       { key: 'keterangan', label: 'Keterangan', type: 'text', wide: true }
     ],
     homeWithAi: [
@@ -1557,7 +1557,7 @@
       { key: 'tanggalMulai', label: 'Tanggal Order/Mulai', type: 'date', required: true },
       { key: 'tanggalTerpasang', label: 'Tanggal Pasang', type: 'date' },
       { key: 'tanggalSelesai', label: 'Tanggal Selesai', type: 'date' },
-      { key: 'lampiran', label: 'Lampiran', type: 'text' },
+      { key: 'lampiran', label: 'Lampiran', type: 'multitext', wide: true },
       { key: 'keterangan', label: 'Keterangan', type: 'text', wide: true }
     ]
   };
@@ -1607,6 +1607,50 @@
       var label = document.createElement('label');
       label.innerHTML = escapeHtml(def.label) + (def.required ? ' <span class="required-mark">*</span>' : '');
       field.appendChild(label);
+
+      // Lampiran boleh diisi lebih dari satu -- daftar baris input yang
+      // bisa ditambah/dikurangi, digabung jadi satu string dipisah ", "
+      // saat submit (kolom Sheets-nya tetap satu sel teks).
+      if (def.type === 'multitext') {
+        var listEl = document.createElement('div');
+        listEl.className = 'multitext-list';
+        function addMultitextRow() {
+          var row = document.createElement('div');
+          row.className = 'multitext-row';
+          var rowInput = document.createElement('input');
+          rowInput.type = 'text';
+          rowInput.placeholder = 'Link/nama file bukti';
+          var removeBtn = document.createElement('button');
+          removeBtn.type = 'button';
+          removeBtn.className = 'multitext-remove';
+          removeBtn.textContent = '×';
+          removeBtn.setAttribute('aria-label', 'Hapus baris lampiran');
+          removeBtn.addEventListener('click', function () { row.remove(); });
+          row.appendChild(rowInput);
+          row.appendChild(removeBtn);
+          listEl.appendChild(row);
+        }
+        addMultitextRow();
+        var addRowBtn = document.createElement('button');
+        addRowBtn.type = 'button';
+        addRowBtn.className = 'multitext-add';
+        addRowBtn.textContent = '+ Tambah Lampiran';
+        addRowBtn.addEventListener('click', addMultitextRow);
+        field.appendChild(listEl);
+        field.appendChild(addRowBtn);
+        form.appendChild(field);
+        inputs[def.key] = {
+          get value() {
+            var vals = [];
+            listEl.querySelectorAll('input').forEach(function (inp) {
+              var v = inp.value.trim();
+              if (v) vals.push(v);
+            });
+            return vals.join(', ');
+          }
+        };
+        return;
+      }
 
       var input;
       if (def.type === 'select') {

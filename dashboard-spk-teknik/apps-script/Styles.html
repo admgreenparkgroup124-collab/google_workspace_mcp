@@ -358,6 +358,32 @@
     cursor: pointer;
   }
   .form-error { color: var(--red); font-size: 12.5px; margin-top: 10px; }
+  .multitext-list { display: flex; flex-direction: column; gap: 6px; }
+  .multitext-row { display: flex; gap: 6px; }
+  .multitext-row input { flex: 1; }
+  .multitext-remove {
+    border: 1px solid var(--line);
+    background: var(--white);
+    color: var(--ink-soft);
+    width: 30px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+  }
+  .multitext-remove:hover { border-color: var(--red); color: var(--red); }
+  .multitext-add {
+    align-self: flex-start;
+    margin-top: 6px;
+    border: 1px dashed var(--line);
+    background: var(--white);
+    color: var(--navy-500);
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .multitext-add:hover { border-color: var(--navy-500); background: #eef2f8; }
   .table-wrap {
     background: var(--white);
     border: 1px solid var(--line);

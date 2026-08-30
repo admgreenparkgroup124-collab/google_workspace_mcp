@@ -290,14 +290,16 @@ sendiri), cara update:
     progres). Filter Tahun/Bulan/GP/Proyek/Cari tetap berlaku di semua
     sub-tab; chip Kategori cuma tampil di sub-tab Semua.
   - **Master Data SPK** — seluruh kolom SPK apa adanya (persis tab GP1–GP4
-    di spreadsheet), + kartu ringkasan (Total Baris & Total Nilai) di
+    di spreadsheet), + kartu ringkasan (**Total SPK** & Total Nilai) di
     atas tabel, + filter Proyek & Jenis SPK.
   - **Master Data Purchasing** — seluruh kolom tab Purchasing apa adanya
     (termasuk Nama Vendor, Satuan, Harga Satuan, Harga Total, Lampiran) +
-    kartu ringkasan + filter Proyek/Jenis Pengadaan.
+    kartu ringkasan (**Total PO** & Total Nilai) + filter Proyek/Jenis
+    Pengadaan.
   - **Master Data Home With AI** — seluruh kolom tab Home With AI apa
     adanya (termasuk Nama Vendor, Satuan, Harga Satuan, Harga Total, Tgl
-    Mulai, Tgl Selesai, Lampiran) + kartu ringkasan + filter Proyek/Status.
+    Mulai, Tgl Selesai, Lampiran) + kartu ringkasan (**Total PO** & Total
+    Nilai) + filter Proyek/Status.
   - **Master Data SLA** — gabungan proses SPK/Purchasing/Home With AI yang
     sudah punya Tanggal Terbit/Tanggal Order-Mulai, dengan kolom Target
     Hari (**diisi manual langsung di kolom ini** oleh PIC terkait — lihat
@@ -317,7 +319,11 @@ sendiri), cara update:
   itu; kalau di "Semua", pilih dulu GP tujuan (hanya GP yang PIC punya
   scope-nya yang muncul di pilihan). Field Nama Proyek punya saran
   ketik-otomatis dari proyek yang sudah ada (untuk GP terpilih) supaya
-  tidak salah ketik, tapi tetap boleh mengetik nama proyek baru.
+  tidak salah ketik, tapi tetap boleh mengetik nama proyek baru. Field
+  **Lampiran** boleh diisi lebih dari satu — klik **+ Tambah Lampiran**
+  untuk menambah baris link/nama file lagi, klik **×** di sebelah baris
+  untuk menghapusnya; semua baris yang terisi digabung jadi satu teks
+  (dipisah koma) saat disimpan ke Sheets, karena kolomnya tetap satu sel.
 - Klik satu baris di tabel manapun (Dashboard maupun Master Data) yang
   punya nilai Unit (Blok/No. Unit terisi) untuk membuka **Detail per
   Unit** — riwayat SPK (dengan Jenis SPK & Item SPK-nya), Home With AI,
