@@ -1,4 +1,4 @@
-# Dashboard Monitoring SPK & PO — Green Park Group
+# Dashboard Monitoring SPK, Purchasing, & Home With AI — Green Park Group
 
 Dashboard untuk memantau SPK, Home With AI, dan Purchasing Departemen
 Teknik GPG, dibangun sesuai `PRD_Dashboard_SPK_Teknik_GPG.md` (v1.3,

@@ -16,7 +16,7 @@ function doGet(e) {
   template.userEmail = access.email;
 
   return template.evaluate()
-    .setTitle('Dashboard Monitoring SPK & PO - Green Park Group')
+    .setTitle('Dashboard Monitoring SPK, Purchasing, & Home With AI - Green Park Group')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1');
 }
 

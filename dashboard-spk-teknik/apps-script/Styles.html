@@ -35,7 +35,7 @@
 
   /* ---------- Sidebar (ERP-style, collapsible, off-canvas on mobile) ---------- */
   .sidebar {
-    width: 240px;
+    width: 272px;
     flex-shrink: 0;
     background: var(--navy-900);
     color: var(--white);
@@ -51,10 +51,10 @@
   }
   .sidebar-brand {
     display: flex; align-items: center; gap: 12px;
-    padding: 18px 16px;
+    padding: 20px 16px;
     border-bottom: 1px solid rgba(255,255,255,.12);
   }
-  .sidebar-brand .brand-text { overflow: hidden; white-space: nowrap; }
+  .sidebar-brand .brand-text { min-width: 0; }
   .brand-mark {
     width: 40px; height: 40px;
     flex-shrink: 0;
@@ -63,9 +63,11 @@
     border-radius: 8px;
     display: flex; align-items: center; justify-content: center;
     font-weight: 700; font-size: 13px; letter-spacing: .5px;
+    overflow: hidden;
   }
-  .brand-text h1 { font-size: 16px; margin: 0; font-weight: 600; }
-  .brand-text p { font-size: 11.5px; margin: 2px 0 0; color: #a9c0d6; }
+  .brand-mark img { width: 100%; height: 100%; object-fit: contain; }
+  .brand-text h1 { font-size: 14.5px; line-height: 1.3; margin: 0; font-weight: 600; }
+  .brand-text p { font-size: 11px; line-height: 1.35; margin: 4px 0 0; color: #a9c0d6; }
 
   .sidebar .app-nav {
     flex: 1;
@@ -539,6 +541,9 @@
     overflow: auto;
     max-height: 520px;
   }
+  /* Master Data SPK/Purchasing/Home With AI -- tabel tampil penuh ke
+     bawah (tanpa scroll internal terpisah), ikut scroll halaman biasa. */
+  .table-wrap.table-wrap-full { max-height: none; overflow: visible; }
   table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
   thead th {
     position: sticky; top: 0;
@@ -710,15 +715,15 @@
     .sidebar {
       position: fixed;
       top: 0;
-      left: -260px;
-      width: 240px;
+      left: -290px;
+      width: 272px;
       height: 100vh;
       transition: left .25s ease;
     }
     .sidebar.mobile-open { left: 0; }
     /* Abaikan mode "collapsed" (icon-only) desktop di layar sempit -- off-canvas
        selalu tampil penuh dgn label supaya tetap gampang dibaca/disentuh di HP. */
-    .sidebar.collapsed { width: 240px; }
+    .sidebar.collapsed { width: 272px; }
     .sidebar.collapsed .sidebar-brand { justify-content: flex-start; padding: 18px 16px; }
     .sidebar.collapsed .sidebar-brand .brand-text,
     .sidebar.collapsed .app-nav button .nav-label { display: block; }
