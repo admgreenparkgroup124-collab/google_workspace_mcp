@@ -417,9 +417,10 @@ sendiri), cara update:
     tiga sub-tab kategori di bawah — ketiga section SPK/Purchasing/Home
     With AI ditumpuk berurutan apa adanya (kartu & grafiknya sama persis
     dengan sub-tab masing-masing, cuma disatukan dalam satu halaman),
-    ditambah alert overdue di atas dan tabel detail per kategori SPK/Home
-    With AI/Purchasing di bawah — jadi tidak perlu buka tiap sub-tab satu
-    per satu untuk melihat semuanya sekaligus. Filter Tahun/Bulan/GP/
+    ditambah alert keterlambatan progres di atas (lihat di bawah) dan
+    tabel detail per kategori SPK/Home With AI/Purchasing di bawah — jadi
+    tidak perlu buka tiap sub-tab satu per satu untuk melihat semuanya
+    sekaligus. Filter Tahun/Bulan/GP/
     Proyek/Kategori + kotak pencarian tetap berlaku untuk seluruh sub-tab
     Semua. Isi tiap kategorinya:
     - **SPK**: card Total Proyek, Total SPK (rincian PSU/Unit Rumah),
@@ -444,6 +445,18 @@ sendiri), cara update:
     menutup. Chart donut **Status Progres** juga interaktif: klik salah
     satu potongan atau legend-nya menampilkan daftar proyek/unit/PO
     untuk status itu di bawah chart.
+    **Alert keterlambatan progres** — muncul otomatis di atas (di sub-tab
+    Semua maupun tiap sub-tab kategori sendiri) kalau ada baris yang
+    ditandai terlambat: SPK Unit Rumah yang lewat target Tanggal Selesai,
+    atau baris SPK/Purchasing/Home With AI mana pun yang **Target Hari
+    (SLA)**-nya (Bagian 2c/Master Data SLA) sudah terlewati sebelum
+    prosesnya selesai — persis sumber yang sama dengan highlight baris
+    merah di ketiga Master Data. Di sub-tab Semua banner-nya gabungan
+    ketiga kategori (segmen "SPK · Purchasing · Home With AI" dengan
+    jumlah masing-masing), sedangkan di sub-tab SPK/Purchasing/Home With
+    AI banner-nya cuma segmen kategori itu sendiri. Klik salah satu
+    segmen untuk expand daftar proyek/unit yang terlambat; kalau tidak
+    ada yang terlambat, banner-nya otomatis tersembunyi.
   - **Master Data SPK** — seluruh kolom SPK apa adanya (persis tab GP1–GP4
     di spreadsheet), + kartu ringkasan (**Total SPK** & Total Nilai) di
     atas tabel, + filter Proyek & Jenis SPK.

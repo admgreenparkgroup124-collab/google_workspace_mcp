@@ -550,15 +550,19 @@
     var fSpk = getFilteredSpk();
     var fHwa = getFilteredHomeWithAi();
     var fPur = getFilteredPurchasing();
+    var delayGroups = computeDelayGroups_(fSpk, fPur, fHwa);
 
     if (dashboardSubTab === 'spk') {
+      renderDelayAlert('spkAlertRow', delayGroups, ['spk']);
       renderSpkOverview(fSpk);
     } else if (dashboardSubTab === 'purchasing') {
+      renderDelayAlert('purAlertRow', delayGroups, ['purchasing']);
       renderPurchasingOverview(fPur);
     } else if (dashboardSubTab === 'hwa') {
+      renderDelayAlert('hwaAlertRow', delayGroups, ['homeWithAi']);
       renderHwaOverview(fHwa);
     } else {
-      renderOverdueAlertBanner(fSpk);
+      renderDelayAlert('alertRow', delayGroups, ['spk', 'purchasing', 'homeWithAi']);
       renderSpkOverview(fSpk, SEMUA_SPK_IDS);
       renderPurchasingOverview(fPur, SEMUA_PUR_IDS);
       renderHwaOverview(fHwa, SEMUA_HWA_IDS);
@@ -683,25 +687,90 @@
   }
 
   // ---------------------------------------------------------------------
-  // Alert overdue (sub-tab Dashboard "Semua") -- satu-satunya sisa dari
-  // ringkasan lama yang masih dipertahankan (Addendum: sub-tab "Semua"
-  // sekarang jadi gabungan renderSpkOverview/renderPurchasingOverview/
-  // renderHwaOverview, lihat pemanggilannya di renderAll()); banner ini
-  // TETAP terpisah krn menandai overdue tanggal (SPK Unit Rumah lewat
-  // Tanggal Selesai), beda dari card "Unit Tertinggal Jadwal Konstruksi"
-  // (Addendum 8, berbasis progres realisasi) yang sudah ada di blok SPK.
+  // Alert keterlambatan progres (Dashboard "Semua" + tiap sub-tab kategori)
+  // -- sumbernya PERSIS flag yang sama dgn highlight baris merah di Master
+  // Data SPK/Purchasing/Home With AI (row.isOverdue utk SPK Unit Rumah,
+  // row.slaOverdue utk ketiga kategori kalau Target Hari SLA-nya sudah
+  // terisi & terlewati). Beda dari card "Unit Tertinggal Jadwal
+  // Konstruksi" (Addendum 8, berbasis progres realisasi mingguan/Kurva S)
+  // yang sudah ada di blok SPK -- dua sinyal terpisah, sengaja tidak
+  // digabung.
   // ---------------------------------------------------------------------
-  function renderOverdueAlertBanner(fSpk) {
-    var overdueCount = fSpk.filter(function (r) { return r.isOverdue; }).length;
-    var alertRow = document.getElementById('alertRow');
-    alertRow.innerHTML = '';
-    if (overdueCount > 0) {
-      var banner = document.createElement('div');
-      banner.className = 'alert-banner';
-      banner.innerHTML = '<span class="alert-icon">⚠️</span>' +
-        '<span>' + overdueCount + ' unit SPK Unit Rumah sudah melewati target Tanggal Selesai. Lihat tabel SPK untuk detail.</span>';
-      alertRow.appendChild(banner);
+  function computeDelayGroups_(fSpk, fPur, fHwa) {
+    function items(rows, filterFn, labelFn) {
+      return rows.filter(filterFn).map(labelFn);
     }
+    function unitLabel(r) { return (r.proyek || '-') + (r.unit ? ' – ' + r.unit : ''); }
+    return {
+      spk: {
+        label: 'SPK',
+        items: items(fSpk, function (r) { return r.isOverdue || r.slaOverdue; }, unitLabel)
+      },
+      purchasing: {
+        label: 'Purchasing',
+        items: items(fPur, function (r) { return r.slaOverdue; },
+          function (r) { return unitLabel(r) + ' (' + (r.namaBarang || '-') + ')'; })
+      },
+      homeWithAi: {
+        label: 'Home With AI',
+        items: items(fHwa, function (r) { return r.slaOverdue; }, unitLabel)
+      }
+    };
+  }
+
+  // `keys` menentukan kategori mana yang ditampilkan di container ini --
+  // ['spk','purchasing','homeWithAi'] utk banner gabungan di "Semua",
+  // atau satu key saja utk banner khusus tiap sub-tab kategori. Tiap
+  // kategori jadi segmen yang bisa diklik utk expand daftar proyek/unit
+  // yang terlambat (pola yang sama dgn breakdown card & rincian chart).
+  function renderDelayAlert(containerId, groups, keys) {
+    var el = document.getElementById(containerId);
+    if (!el) return;
+    el.innerHTML = '';
+    var totalCount = keys.reduce(function (sum, k) { return sum + groups[k].items.length; }, 0);
+    if (totalCount === 0) { el.hidden = true; return; }
+    el.hidden = false;
+
+    var banner = document.createElement('div');
+    banner.className = 'alert-banner alert-banner-delay';
+
+    var summary = document.createElement('div');
+    summary.className = 'alert-banner-summary';
+    summary.innerHTML = '<span class="alert-icon">⚠️</span><span>' + totalCount +
+      ' proses terlambat (target Tanggal Selesai / Target Hari SLA terlewati).</span>';
+    banner.appendChild(summary);
+
+    var segWrap = document.createElement('div');
+    segWrap.className = 'alert-delay-segments';
+    keys.forEach(function (k) {
+      var g = groups[k];
+      if (!g.items.length) return;
+
+      var block = document.createElement('div');
+      block.className = 'alert-delay-block';
+
+      var seg = document.createElement('button');
+      seg.type = 'button';
+      seg.className = 'alert-delay-seg';
+      seg.innerHTML = '<span>' + escapeHtml(g.label) + '</span><span class="alert-delay-seg-count">' + g.items.length + '</span>';
+
+      var details = document.createElement('div');
+      details.className = 'alert-delay-details';
+      details.hidden = true;
+      details.innerHTML = g.items.map(function (t) { return '<span class="badge badge-red">' + escapeHtml(t) + '</span>'; }).join('');
+
+      seg.addEventListener('click', function () {
+        var willShow = details.hidden;
+        details.hidden = !willShow;
+        seg.classList.toggle('expanded', willShow);
+      });
+
+      block.appendChild(seg);
+      block.appendChild(details);
+      segWrap.appendChild(block);
+    });
+    banner.appendChild(segWrap);
+    el.appendChild(banner);
   }
 
   // ---------------------------------------------------------------------
