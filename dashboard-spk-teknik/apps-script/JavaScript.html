@@ -521,12 +521,20 @@
     wrap.innerHTML = '';
     cards.forEach(function (c) {
       var el = document.createElement('div');
-      el.className = 'card' + (c.alert ? ' card-alert' : '');
+      el.className = 'card' + (c.alert ? ' card-alert' : '') + (c.breakdown ? ' has-breakdown' : '');
       el.innerHTML =
-        '<div class="card-label">' + escapeHtml(c.label) + '</div>' +
+        '<div class="card-label">' + escapeHtml(c.label) + (c.breakdown ? '<span class="card-toggle-icon">▸</span>' : '') + '</div>' +
         '<div class="card-value">' + escapeHtml(String(c.value)) + '</div>' +
         (c.sub ? '<div class="card-sub">' + escapeHtml(c.sub) + '</div>' : '') +
-        (c.breakdown ? '<div class="card-breakdown">' + c.breakdown + '</div>' : '');
+        (c.breakdown ? '<div class="card-breakdown" hidden>' + c.breakdown + '</div>' : '');
+      if (c.breakdown) {
+        el.addEventListener('click', function () {
+          var bd = el.querySelector('.card-breakdown');
+          var willShow = bd.hidden;
+          bd.hidden = !willShow;
+          el.classList.toggle('expanded', willShow);
+        });
+      }
       wrap.appendChild(el);
     });
   }
@@ -803,10 +811,8 @@
     var jenis = buildBreakdown(fSpk, function (r) { return r.jenisSpk; }, function (r) { return r.nilaiTotal; });
 
     renderCardGrid('spkSummaryCards', [
-      { label: 'Total SPK Keseluruhan', value: fSpk.length, sub: overdueCount + ' overdue (Unit Rumah)' },
-      { label: 'Total per Jenis SPK', value: jenis.order.length + ' jenis', breakdown: jenis.countPills },
-      { label: 'Total Nilai Transaksi SPK', value: formatRupiah(totalNilai) },
-      { label: 'Total Nilai per Jenis SPK', value: '–', breakdown: jenis.nilaiPills }
+      { label: 'Total SPK Keseluruhan', value: fSpk.length, sub: overdueCount + ' overdue (Unit Rumah)', breakdown: jenis.countPills },
+      { label: 'Total Nilai Transaksi SPK', value: formatRupiah(totalNilai), breakdown: jenis.nilaiPills }
     ]);
 
     renderChartJenisPekerjaan(fSpk, 'chartSpkJenisPekerjaan', 'spkJenisPekerjaan');
@@ -823,10 +829,8 @@
     var status = buildBreakdown(fPur, function (r) { return r.statusPekerjaan; }, function () { return 0; });
 
     renderCardGrid('purSummaryCards', [
-      { label: 'Total Purchasing Keseluruhan', value: fPur.length },
-      { label: 'Total per Jenis Pengadaan', value: jenis.order.length + ' jenis', breakdown: jenis.countPills },
-      { label: 'Total Nilai Transaksi Purchasing', value: formatRupiah(totalNilai) },
-      { label: 'Total Nilai per Jenis Pengadaan', value: '–', breakdown: jenis.nilaiPills }
+      { label: 'Total Purchasing Keseluruhan', value: fPur.length, breakdown: jenis.countPills },
+      { label: 'Total Nilai Transaksi Purchasing', value: formatRupiah(totalNilai), breakdown: jenis.nilaiPills }
     ]);
 
     renderChartPurchasing(fPur, 'chartPurJenis', 'purJenis');
@@ -841,10 +845,8 @@
     var status = buildBreakdown(fHwa, function (r) { return r.status; }, function (r) { return r.nilai; }, statusBadgeClass);
 
     renderCardGrid('hwaSummaryCards', [
-      { label: 'Total Home With AI Keseluruhan', value: fHwa.length },
-      { label: 'Total per Status', value: status.order.length + ' status', breakdown: status.countPills },
-      { label: 'Total Nilai Transaksi Home With AI', value: formatRupiah(totalNilai) },
-      { label: 'Total Nilai per Status', value: '–', breakdown: status.nilaiPills }
+      { label: 'Total Home With AI Keseluruhan', value: fHwa.length, breakdown: status.countPills },
+      { label: 'Total Nilai Transaksi Home With AI', value: formatRupiah(totalNilai), breakdown: status.nilaiPills }
     ]);
 
     renderChartHwaStatus(fHwa, 'chartHwaStatusPerProyek', 'hwaStatusPerProyek');

@@ -229,6 +229,14 @@
   .card.card-alert .card-value { color: var(--red); }
   .card-sub { font-size: 12px; color: var(--ink-soft); }
   .card-breakdown { display: flex; gap: 10px; margin-top: 6px; flex-wrap: wrap; }
+  .card-breakdown[hidden] { display: none; }
+  .card.has-breakdown { cursor: pointer; }
+  .card.has-breakdown:hover { border-color: var(--navy-500); }
+  .card-toggle-icon {
+    float: right; color: var(--ink-soft); font-size: 11px;
+    transition: transform .15s ease;
+  }
+  .card.expanded .card-toggle-icon { transform: rotate(90deg); }
   .badge {
     font-size: 11px;
     font-weight: 600;
