@@ -410,11 +410,16 @@ sendiri), cara update:
   banyak akses dari lapangan), sidebar otomatis jadi menu **off-canvas**:
   disembunyikan, muncul lewat tombol **☰** di pojok kiri atas, klik di
   luar sidebar atau pilih satu menu untuk menutupnya lagi.
-  - **Dashboard** — punya 4 sub-tab: **Semua** (ringkasan gabungan: filter
-    Tahun/Bulan/GP/Proyek/Kategori + kotak pencarian, kartu ringkasan,
-    alert overdue, 5 grafik, dan tabel per kategori SPK/Home With
-    AI/Purchasing), **SPK**, **Purchasing**, **Home With AI** — tiga
-    sub-tab terakhir menampilkan kartu & grafik khusus kategori itu saja:
+  - **Dashboard** — punya 4 sub-tab: **Semua**, **SPK**, **Purchasing**,
+    **Home With AI**. Sub-tab **Semua** adalah gabungan literal dari
+    tiga sub-tab kategori di bawah — ketiga section SPK/Purchasing/Home
+    With AI ditumpuk berurutan apa adanya (kartu & grafiknya sama persis
+    dengan sub-tab masing-masing, cuma disatukan dalam satu halaman),
+    ditambah alert overdue di atas dan tabel detail per kategori SPK/Home
+    With AI/Purchasing di bawah — jadi tidak perlu buka tiap sub-tab satu
+    per satu untuk melihat semuanya sekaligus. Filter Tahun/Bulan/GP/
+    Proyek/Kategori + kotak pencarian tetap berlaku untuk seluruh sub-tab
+    Semua. Isi tiap kategorinya:
     - **SPK**: card Total Proyek, Total SPK (rincian PSU/Unit Rumah),
       Total Nilai Transaksi (rincian PSU/Unit Rumah), Unit Tertinggal
       Jadwal Konstruksi (Bagian 2g/2h); grafik **garis** Trend Penerbitan

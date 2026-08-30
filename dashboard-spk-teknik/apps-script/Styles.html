@@ -272,6 +272,17 @@
 
   /* ---------- Alert row ---------- */
   .alert-row { padding: 16px 24px 0; display: flex; flex-direction: column; gap: 10px; }
+
+  /* ---------- Blok kategori di sub-tab Dashboard "Semua" (SPK/Purchasing/
+     Home With AI ditumpuk berurutan, masing-masing pakai .summary-cards/
+     .charts-grid yang sama seperti sub-tab kategorinya sendiri) ---------- */
+  .dashboard-category-block { margin-top: 22px; }
+  .dashboard-category-block:first-of-type { margin-top: 0; }
+  .dashboard-category-heading {
+    margin: 0; padding: 0 24px;
+    font-size: 13px; font-weight: 700; color: var(--navy-800);
+    text-transform: uppercase; letter-spacing: .04em;
+  }
   .alert-banner {
     background: var(--red-bg);
     border: 1px solid #f3c1c1;

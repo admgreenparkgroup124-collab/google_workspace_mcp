@@ -498,6 +498,14 @@
   // Dispatch berdasar sub-tab Dashboard yang aktif (Semua/SPK/Purchasing/
   // Home With AI) -- tab "Semua" perilakunya identik dengan sebelum
   // sub-tab ini ada (renderSummary+renderCharts+renderTable gabungan).
+  // Sub-tab "Semua" = gabungan renderSpkOverview/renderPurchasingOverview/
+  // renderHwaOverview apa adanya, render ke elemen id lain (prefix
+  // "semua...") supaya tidak bentrok dgn elemen id sub-tab kategori
+  // sendiri -- lihat markup #dashboardSubview-semua di Index.html.
+  var SEMUA_SPK_IDS = { cards: 'semuaSpkSummaryCards', tren: 'chartSemuaSpkTren', trenKey: 'semuaSpkTren', status: 'chartSemuaSpkStatus', statusKey: 'semuaSpkStatus' };
+  var SEMUA_PUR_IDS = { cards: 'semuaPurSummaryCards', tren: 'chartSemuaPurTren', trenKey: 'semuaPurTren', status: 'chartSemuaPurStatus', statusKey: 'semuaPurStatus' };
+  var SEMUA_HWA_IDS = { cards: 'semuaHwaSummaryCards', tren: 'chartSemuaHwaTren', trenKey: 'semuaHwaTren', status: 'chartSemuaHwaStatus', statusKey: 'semuaHwaStatus' };
+
   function renderAll() {
     var fSpk = getFilteredSpk();
     var fHwa = getFilteredHomeWithAi();
@@ -510,8 +518,10 @@
     } else if (dashboardSubTab === 'hwa') {
       renderHwaOverview(fHwa);
     } else {
-      renderSummary(fSpk, fHwa, fPur);
-      renderCharts(fSpk, fHwa, fPur);
+      renderOverdueAlertBanner(fSpk);
+      renderSpkOverview(fSpk, SEMUA_SPK_IDS);
+      renderPurchasingOverview(fPur, SEMUA_PUR_IDS);
+      renderHwaOverview(fHwa, SEMUA_HWA_IDS);
       renderTable(fSpk, fHwa, fPur);
     }
   }
@@ -529,13 +539,20 @@
   // Toggle Bulan/Tahun generik pada chart-card trend (SPK/Purchasing/Home
   // With AI di sub-tab masing-masing punya toggle sendiri, ditandai
   // `data-toggle-group` yang cocok dgn salah satu var granularity di atas).
+  // Sub-tab "Semua" & sub-tab kategorinya sendiri pakai `data-toggle-group`
+  // yang SAMA (mis. "spkTrend" dipakai baik oleh blok SPK di "Semua" maupun
+  // sub-tab "SPK" sendiri) krn keduanya nunjukin data yg sama -- klik di
+  // manapun harus menyamakan kedua toggle itu, jadi cari SEMUA grup dgn key
+  // yg sama (bukan cuma grup yg diklik) supaya keduanya tetap sinkron.
   document.querySelectorAll('.chart-toggle').forEach(function (group) {
     group.addEventListener('click', function (e) {
       var btn = e.target.closest('button[data-granularity]');
       if (!btn) return;
-      group.querySelectorAll('button').forEach(function (b) { b.classList.toggle('active', b === btn); });
       var granularity = btn.getAttribute('data-granularity');
       var key = group.getAttribute('data-toggle-group');
+      document.querySelectorAll('.chart-toggle[data-toggle-group="' + key + '"] button').forEach(function (b) {
+        b.classList.toggle('active', b.getAttribute('data-granularity') === granularity);
+      });
       if (key === 'spkTrend') spkTrendGranularity = granularity;
       else if (key === 'purTrend') purTrendGranularity = granularity;
       else if (key === 'hwaTrend') hwaTrendGranularity = granularity;
@@ -599,65 +616,16 @@
   }
 
   // ---------------------------------------------------------------------
-  // Summary cards + overdue alert (tab Dashboard "Semua")
+  // Alert overdue (sub-tab Dashboard "Semua") -- satu-satunya sisa dari
+  // ringkasan lama yang masih dipertahankan (Addendum: sub-tab "Semua"
+  // sekarang jadi gabungan renderSpkOverview/renderPurchasingOverview/
+  // renderHwaOverview, lihat pemanggilannya di renderAll()); banner ini
+  // TETAP terpisah krn menandai overdue tanggal (SPK Unit Rumah lewat
+  // Tanggal Selesai), beda dari card "Unit Tertinggal Jadwal Konstruksi"
+  // (Addendum 8, berbasis progres realisasi) yang sudah ada di blok SPK.
   // ---------------------------------------------------------------------
-  function renderSummary(fSpk, fHwa, fPur) {
-    var totalSpk = fSpk.length;
-    var totalNilaiKontrak = fSpk.reduce(function (sum, r) { return sum + r.nilaiTotal; }, 0);
+  function renderOverdueAlertBanner(fSpk) {
     var overdueCount = fSpk.filter(function (r) { return r.isOverdue; }).length;
-
-    var hwaByStatus = { 'Belum Order': { count: 0, nilai: 0 }, 'On Proses': { count: 0, nilai: 0 }, 'Terpasang': { count: 0, nilai: 0 } };
-    fHwa.forEach(function (r) {
-      if (!hwaByStatus[r.status]) hwaByStatus[r.status] = { count: 0, nilai: 0 };
-      hwaByStatus[r.status].count++;
-      hwaByStatus[r.status].nilai += r.nilai;
-    });
-
-    var purByJenis = { 'Promo Unit': 0, 'Material PSU': 0, 'Material Unit Bangunan': 0 };
-    var totalPur = 0;
-    fPur.forEach(function (r) {
-      if (purByJenis[r.jenisPengadaan] === undefined) purByJenis[r.jenisPengadaan] = 0;
-      purByJenis[r.jenisPengadaan] += r.nilai;
-      totalPur += r.nilai;
-    });
-
-    var cards = [];
-
-    cards.push({
-      label: 'Total SPK Terbit',
-      value: totalSpk,
-      sub: formatRupiah(totalNilaiKontrak) + ' total nilai kontrak'
-    });
-
-    var hwaBreakdown = Object.keys(hwaByStatus).map(function (status) {
-      return '<span class="badge ' + statusBadgeClass(status) + '">' + status + ': ' + hwaByStatus[status].count + '</span>';
-    }).join('');
-    var hwaTotalNilai = Object.keys(hwaByStatus).reduce(function (s, k) { return s + hwaByStatus[k].nilai; }, 0);
-    cards.push({
-      label: 'Home With AI',
-      value: fHwa.length + ' unit',
-      sub: formatRupiah(hwaTotalNilai) + ' total nilai',
-      breakdown: hwaBreakdown
-    });
-
-    var purBreakdown = Object.keys(purByJenis).map(function (jenis) {
-      return '<span class="badge badge-gray">' + jenis + ': ' + formatRupiah(purByJenis[jenis]) + '</span>';
-    }).join('');
-    cards.push({
-      label: 'Total Nilai Purchasing',
-      value: formatRupiah(totalPur),
-      sub: fPur.length + ' item pengadaan',
-      breakdown: purBreakdown
-    });
-
-    cards.push({
-      label: 'Unit Overdue (SPK Unit Rumah)',
-      value: overdueCount,
-      sub: 'Melewati target Tanggal Selesai',
-      alert: overdueCount > 0
-    });
-    renderCardGrid('summaryCards', cards);
-
     var alertRow = document.getElementById('alertRow');
     alertRow.innerHTML = '';
     if (overdueCount > 0) {
@@ -677,122 +645,6 @@
 
   function destroyChart(key) {
     if (charts[key]) { charts[key].destroy(); delete charts[key]; }
-  }
-
-  function renderCharts(fSpk, fHwa, fPur) {
-    renderChartJenisPekerjaan(fSpk);
-    renderChartTrenNilai(fSpk);
-    renderChartProporsiGp(fSpk);
-    renderChartHwaStatus(fHwa);
-    renderChartPurchasing(fPur);
-  }
-
-  function groupSum(arr, keyFn, valueFn) {
-    var order = [];
-    var map = {};
-    arr.forEach(function (item) {
-      var k = keyFn(item) || '(Tidak diisi)';
-      if (!map[k]) { map[k] = 0; order.push(k); }
-      map[k] += valueFn ? valueFn(item) : 1;
-    });
-    return { labels: order, values: order.map(function (k) { return map[k]; }) };
-  }
-
-  function renderChartJenisPekerjaan(fSpk, canvasId, chartKey) {
-    canvasId = canvasId || 'chartJenisPekerjaan';
-    chartKey = chartKey || 'jenisPekerjaan';
-    destroyChart(chartKey);
-    var g = groupSum(fSpk, function (r) { return r.itemSpk; });
-    var ctx = document.getElementById(canvasId).getContext('2d');
-    charts[chartKey] = new Chart(ctx, {
-      type: 'bar',
-      data: { labels: g.labels, datasets: [{ label: 'Jumlah SPK', data: g.values, backgroundColor: '#2f5d8a', borderRadius: 4 }] },
-      options: baseBarOptions('Jumlah SPK')
-    });
-  }
-
-  function renderChartTrenNilai(fSpk) {
-    destroyChart('trenNilai');
-    var map = {};
-    fSpk.forEach(function (r) {
-      if (!r.tahun || !r.bulan) return;
-      var key = r.tahun + '-' + ('0' + r.bulan).slice(-2);
-      if (!map[key]) map[key] = 0;
-      map[key] += r.nilaiTotal;
-    });
-    var keys = Object.keys(map).sort();
-    var labels = keys.map(function (k) {
-      var parts = k.split('-');
-      return MONTHS[parseInt(parts[1], 10) - 1].slice(0, 3) + ' ' + parts[0];
-    });
-    var values = keys.map(function (k) { return map[k]; });
-    var ctx = document.getElementById('chartTrenNilai').getContext('2d');
-    charts.trenNilai = new Chart(ctx, {
-      type: 'bar',
-      data: { labels: labels, datasets: [{ label: 'Nilai Kontrak', data: values, backgroundColor: '#1c3a5e', borderRadius: 4 }] },
-      options: baseBarOptions('Rp', true)
-    });
-  }
-
-  function renderChartProporsiGp(fSpk, canvasId, chartKey) {
-    canvasId = canvasId || 'chartProporsiGp';
-    chartKey = chartKey || 'proporsiGp';
-    destroyChart(chartKey);
-    var g = groupSum(fSpk, function (r) { return r.gp; }, function (r) { return r.nilaiTotal; });
-    var ctx = document.getElementById(canvasId).getContext('2d');
-    charts[chartKey] = new Chart(ctx, {
-      type: 'doughnut',
-      data: { labels: g.labels, datasets: [{ data: g.values, backgroundColor: PALETTE }] },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } } }
-      }
-    });
-  }
-
-  function renderChartHwaStatus(fHwa, canvasId, chartKey) {
-    canvasId = canvasId || 'chartHwaStatus';
-    chartKey = chartKey || 'hwaStatus';
-    destroyChart(chartKey);
-    var proyekOrder = [];
-    var byProyekStatus = {};
-    fHwa.forEach(function (r) {
-      var p = r.proyek || '(Tidak diisi)';
-      if (!byProyekStatus[p]) { byProyekStatus[p] = { 'Belum Order': 0, 'On Proses': 0, 'Terpasang': 0 }; proyekOrder.push(p); }
-      if (byProyekStatus[p][r.status] === undefined) byProyekStatus[p][r.status] = 0;
-      byProyekStatus[p][r.status]++;
-    });
-    var statuses = ['Belum Order', 'On Proses', 'Terpasang'];
-    var datasets = statuses.map(function (status) {
-      return {
-        label: status,
-        data: proyekOrder.map(function (p) { return byProyekStatus[p][status] || 0; }),
-        backgroundColor: STATUS_COLORS[status]
-      };
-    });
-    var ctx = document.getElementById(canvasId).getContext('2d');
-    charts[chartKey] = new Chart(ctx, {
-      type: 'bar',
-      data: { labels: proyekOrder, datasets: datasets },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true, ticks: { precision: 0 } } },
-        plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } } }
-      }
-    });
-  }
-
-  function renderChartPurchasing(fPur, canvasId, chartKey) {
-    canvasId = canvasId || 'chartPurchasing';
-    chartKey = chartKey || 'purchasing';
-    destroyChart(chartKey);
-    var g = groupSum(fPur, function (r) { return r.jenisPengadaan; }, function (r) { return r.nilai; });
-    var ctx = document.getElementById(canvasId).getContext('2d');
-    charts[chartKey] = new Chart(ctx, {
-      type: 'bar',
-      data: { labels: g.labels, datasets: [{ label: 'Nilai (Rp)', data: g.values, backgroundColor: PALETTE.slice(0, g.labels.length), borderRadius: 4 }] },
-      options: baseBarOptions('Rp', true, true)
-    });
   }
 
   // ---------------------------------------------------------------------
@@ -841,8 +693,11 @@
     });
   }
 
-  // ---- Overview SPK (dashboard sub-tab) ----
-  function renderSpkOverview(fSpk) {
+  // ---- Overview SPK (dashboard sub-tab SPK, dan dipakai ulang di sub-tab
+  // "Semua" -- ids opsional supaya kartu/chart-nya render ke elemen yang
+  // berbeda tanpa duplikasi logic; default ke id sub-tab SPK sendiri) ----
+  function renderSpkOverview(fSpk, ids) {
+    ids = ids || { cards: 'spkSummaryCards', tren: 'chartSpkTrenPenerbitan', trenKey: 'spkTrenPenerbitan', status: 'chartSpkStatusProgres', statusKey: 'spkStatusProgres' };
     var totalNilai = fSpk.reduce(function (s, r) { return s + r.nilaiTotal; }, 0);
     var overdueCount = fSpk.filter(function (r) { return r.isOverdue; }).length;
     var jenis = buildBreakdown(fSpk, function (r) { return r.jenisSpk; }, function (r) { return r.nilaiTotal; });
@@ -860,48 +715,50 @@
       if (status && status.isBehind) behindCount++;
     });
 
-    renderCardGrid('spkSummaryCards', [
+    renderCardGrid(ids.cards, [
       { label: 'Total Proyek', value: Object.keys(totalProyek).length },
       { label: 'Total SPK', value: fSpk.length, sub: overdueCount + ' overdue (Unit Rumah)', breakdown: jenis.countPills },
       { label: 'Total Nilai Transaksi', value: formatRupiah(totalNilai), breakdown: jenis.nilaiPills },
       { label: 'Unit Tertinggal Jadwal Konstruksi', value: behindCount, sub: 'Realisasi kumulatif di bawah rencana s/d minggu berjalan', alert: behindCount > 0 }
     ]);
 
-    renderTrendCountChart('chartSpkTrenPenerbitan', 'spkTrenPenerbitan', fSpk, 'tanggalTerbit', 'Jumlah SPK Terbit', '#5b8fb9', spkTrendGranularity);
-    renderStatusProportionChart('chartSpkStatusProgres', 'spkStatusProgres',
+    renderTrendCountChart(ids.tren, ids.trenKey, fSpk, 'tanggalTerbit', 'Jumlah SPK Terbit', '#5b8fb9', spkTrendGranularity);
+    renderStatusProportionChart(ids.status, ids.statusKey,
       ['Sesuai Jadwal', 'Overdue'], [fSpk.length - overdueCount, overdueCount], ['#1f9d55', '#c53030']);
   }
 
-  // ---- Overview Purchasing (dashboard sub-tab) ----
-  function renderPurchasingOverview(fPur) {
+  // ---- Overview Purchasing (dashboard sub-tab Purchasing + "Semua") ----
+  function renderPurchasingOverview(fPur, ids) {
+    ids = ids || { cards: 'purSummaryCards', tren: 'chartPurTren', trenKey: 'purTren', status: 'chartPurStatus', statusKey: 'purStatus' };
     var totalNilai = fPur.reduce(function (s, r) { return s + r.nilai; }, 0);
     var jenis = buildBreakdown(fPur, function (r) { return r.jenisPengadaan; }, function (r) { return r.nilai; });
     var status = buildBreakdown(fPur, function (r) { return r.statusPekerjaan; }, function () { return 0; });
 
-    renderCardGrid('purSummaryCards', [
+    renderCardGrid(ids.cards, [
       { label: 'Total PO Purchasing', value: fPur.length, breakdown: jenis.countPills },
       { label: 'Total Nilai PO Purchasing', value: formatRupiah(totalNilai), breakdown: jenis.nilaiPills }
     ]);
 
-    renderTrendCountChart('chartPurTren', 'purTren', fPur, 'tanggalMulai', 'Jumlah PO', '#5b8fb9', purTrendGranularity);
-    renderStatusProportionChart('chartPurStatus', 'purStatus',
+    renderTrendCountChart(ids.tren, ids.trenKey, fPur, 'tanggalMulai', 'Jumlah PO', '#5b8fb9', purTrendGranularity);
+    renderStatusProportionChart(ids.status, ids.statusKey,
       status.order, status.order.map(function (k) { return status.count[k]; }), PALETTE);
   }
 
-  // ---- Overview Home With AI (dashboard sub-tab) ----
-  function renderHwaOverview(fHwa) {
+  // ---- Overview Home With AI (dashboard sub-tab Home With AI + "Semua") ----
+  function renderHwaOverview(fHwa, ids) {
+    ids = ids || { cards: 'hwaSummaryCards', tren: 'chartHwaTren', trenKey: 'hwaTren', status: 'chartHwaStatusProgres', statusKey: 'hwaStatusProgres' };
     var totalNilai = fHwa.reduce(function (s, r) { return s + r.nilai; }, 0);
     var status = buildBreakdown(fHwa, function (r) { return r.status; }, function (r) { return r.nilai; }, statusBadgeClass);
 
-    renderCardGrid('hwaSummaryCards', [
+    renderCardGrid(ids.cards, [
       { label: 'Total PO Home With AI', value: fHwa.length, breakdown: status.countPills },
       { label: 'Total Nilai Transaksi Home With AI', value: formatRupiah(totalNilai), breakdown: status.nilaiPills }
     ]);
 
-    renderStatusProportionChart('chartHwaStatusProgres', 'hwaStatusProgres',
+    renderStatusProportionChart(ids.status, ids.statusKey,
       status.order, status.order.map(function (k) { return status.count[k]; }),
       status.order.map(function (k) { return STATUS_COLORS[k] || '#94a3b8'; }));
-    renderTrendCountChart('chartHwaTren', 'hwaTren', fHwa, 'tanggalMulai', 'Jumlah PO', '#5b8fb9', hwaTrendGranularity);
+    renderTrendCountChart(ids.tren, ids.trenKey, fHwa, 'tanggalMulai', 'Jumlah PO', '#5b8fb9', hwaTrendGranularity);
   }
 
   function baseBarOptions(axisLabel, isCurrency, horizontal) {

@@ -104,29 +104,69 @@
       <div id="dashboardSubview-semua" class="dashboard-subview">
         <section class="alert-row" id="alertRow"></section>
 
-        <section class="summary-cards" id="summaryCards"></section>
+        <!-- "Semua" = gabungan tampilan Dashboard SPK + Purchasing + Home
+             With AI apa adanya (kartu & grafiknya sama persis, cuma id
+             elemen beda -- lihat SEMUA_SPK_IDS/SEMUA_PUR_IDS/SEMUA_HWA_IDS
+             di JavaScript.html), supaya tidak perlu buka tiap sub-tab
+             satu-satu untuk lihat semuanya sekaligus. -->
+        <section class="dashboard-category-block">
+          <h2 class="dashboard-category-heading">SPK</h2>
+          <section class="summary-cards" id="semuaSpkSummaryCards"></section>
+          <section class="charts-grid">
+            <div class="chart-card chart-card-wide">
+              <h3>Trend Penerbitan SPK
+                <span class="chart-toggle" data-toggle-group="spkTrend">
+                  <button data-granularity="month" class="active" type="button">Bulan</button>
+                  <button data-granularity="year" type="button">Tahun</button>
+                </span>
+              </h3>
+              <div class="chart-canvas-wrap"><canvas id="chartSemuaSpkTren"></canvas></div>
+            </div>
+            <div class="chart-card">
+              <h3>Status Progres</h3>
+              <div class="chart-canvas-wrap"><canvas id="chartSemuaSpkStatus"></canvas></div>
+            </div>
+          </section>
+        </section>
 
-        <section class="charts-grid">
-          <div class="chart-card">
-            <h3>SPK per Jenis Pekerjaan</h3>
-            <div class="chart-canvas-wrap"><canvas id="chartJenisPekerjaan"></canvas></div>
-          </div>
-          <div class="chart-card">
-            <h3>Tren Nilai Kontrak per Bulan</h3>
-            <div class="chart-canvas-wrap"><canvas id="chartTrenNilai"></canvas></div>
-          </div>
-          <div class="chart-card">
-            <h3>Proporsi Nilai per Grup Proyek</h3>
-            <div class="chart-canvas-wrap"><canvas id="chartProporsiGp"></canvas></div>
-          </div>
-          <div class="chart-card">
-            <h3>Status Home With AI per Proyek</h3>
-            <div class="chart-canvas-wrap"><canvas id="chartHwaStatus"></canvas></div>
-          </div>
-          <div class="chart-card chart-card-wide">
-            <h3>Nilai Purchasing per Jenis Pengadaan</h3>
-            <div class="chart-canvas-wrap"><canvas id="chartPurchasing"></canvas></div>
-          </div>
+        <section class="dashboard-category-block">
+          <h2 class="dashboard-category-heading">Purchasing</h2>
+          <section class="summary-cards" id="semuaPurSummaryCards"></section>
+          <section class="charts-grid">
+            <div class="chart-card chart-card-wide">
+              <h3>Trend PO Purchasing
+                <span class="chart-toggle" data-toggle-group="purTrend">
+                  <button data-granularity="month" class="active" type="button">Bulan</button>
+                  <button data-granularity="year" type="button">Tahun</button>
+                </span>
+              </h3>
+              <div class="chart-canvas-wrap"><canvas id="chartSemuaPurTren"></canvas></div>
+            </div>
+            <div class="chart-card">
+              <h3>Status Progres</h3>
+              <div class="chart-canvas-wrap"><canvas id="chartSemuaPurStatus"></canvas></div>
+            </div>
+          </section>
+        </section>
+
+        <section class="dashboard-category-block">
+          <h2 class="dashboard-category-heading">Home With AI</h2>
+          <section class="summary-cards" id="semuaHwaSummaryCards"></section>
+          <section class="charts-grid">
+            <div class="chart-card chart-card-wide">
+              <h3>Trend PO Home With AI
+                <span class="chart-toggle" data-toggle-group="hwaTrend">
+                  <button data-granularity="month" class="active" type="button">Bulan</button>
+                  <button data-granularity="year" type="button">Tahun</button>
+                </span>
+              </h3>
+              <div class="chart-canvas-wrap"><canvas id="chartSemuaHwaTren"></canvas></div>
+            </div>
+            <div class="chart-card">
+              <h3>Status Progres</h3>
+              <div class="chart-canvas-wrap"><canvas id="chartSemuaHwaStatus"></canvas></div>
+            </div>
+          </section>
         </section>
 
         <section class="table-section">
