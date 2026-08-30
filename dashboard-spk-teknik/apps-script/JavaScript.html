@@ -2080,7 +2080,7 @@
       { key: 'tanggalSelesai', label: 'Tanggal Selesai (kosongkan agar dihitung otomatis utk Unit Rumah)', type: 'date' },
       { key: 'picAdminTeknik', label: 'PIC Admin Teknik', type: 'text' },
       { key: 'lampiran', label: 'Lampiran', type: 'multitext', wide: true },
-      { key: 'keterangan', label: 'Keterangan', type: 'text', wide: true }
+      { key: 'keterangan', label: 'Keterangan', type: 'textarea', wide: true }
     ],
     purchasing: [
       { key: 'grupProyek', label: 'Grup Proyek', type: 'select', options: GP_OPTIONS, required: true },
@@ -2098,7 +2098,7 @@
       { key: 'tanggalMulai', label: 'Tanggal Order/Mulai', type: 'date', required: true },
       { key: 'tanggal', label: 'Tanggal', type: 'date' },
       { key: 'lampiran', label: 'Lampiran', type: 'multitext', wide: true },
-      { key: 'keterangan', label: 'Keterangan', type: 'text', wide: true }
+      { key: 'keterangan', label: 'Keterangan', type: 'textarea', wide: true }
     ],
     homeWithAi: [
       { key: 'grupProyek', label: 'Grup Proyek', type: 'select', options: GP_OPTIONS, required: true },
@@ -2113,7 +2113,7 @@
       { key: 'tanggalTerpasang', label: 'Tanggal Pasang', type: 'date' },
       { key: 'tanggalSelesai', label: 'Tanggal Selesai', type: 'date' },
       { key: 'lampiran', label: 'Lampiran', type: 'multitext', wide: true },
-      { key: 'keterangan', label: 'Keterangan', type: 'text', wide: true }
+      { key: 'keterangan', label: 'Keterangan', type: 'textarea', wide: true }
     ]
   };
 
@@ -2130,6 +2130,7 @@
 
     var titles = { spk: 'Tambah SPK Baru', purchasing: 'Tambah Data Purchasing', homeWithAi: 'Tambah Data Home With AI' };
     var heading = document.createElement('h3');
+    heading.className = 'form-modal-title';
     heading.textContent = titles[recordType];
     container.appendChild(heading);
 
@@ -2217,6 +2218,9 @@
         def.options.forEach(function (v) {
           var o = document.createElement('option'); o.value = v; o.textContent = v; input.appendChild(o);
         });
+      } else if (def.type === 'textarea') {
+        input = document.createElement('textarea');
+        input.rows = 3;
       } else {
         input = document.createElement('input');
         input.type = def.type === 'number' ? 'number' : (def.type === 'date' ? 'date' : 'text');
