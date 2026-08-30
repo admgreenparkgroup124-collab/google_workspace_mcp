@@ -71,10 +71,10 @@ function getUserScopes_(email) {
 // Sama seperti canEditSla_ tapi terima `scopes` yang sudah diambil
 // sebelumnya (lihat getUserScopes_) -- dipakai DataService.gs saat
 // membangun banyak baris sekaligus, supaya tidak baca ulang tab Akses
-// per baris. recordType: 'spk' | 'purchasing' | 'homeWithAi'. gp hanya
-// dipakai untuk recordType 'spk' (scope-nya per GP, mis. "SPK:GP1");
-// diabaikan untuk dua recordType lainnya (scope-nya "Purchasing"/
-// "HomeWithAi" saja, tidak per GP).
+// per baris. recordType: 'spk' | 'purchasing' | 'homeWithAi' |
+// 'progresRealisasi'. gp dipakai utk recordType yang scope-nya per GP
+// ('spk' -> "SPK:GP1", 'progresRealisasi' -> "SPV:GP1"); diabaikan utk
+// 'purchasing'/'homeWithAi' (scope-nya "Purchasing"/"HomeWithAi" saja).
 function hasScope_(scopes, recordType, gp) {
   if (!scopes || !scopes.length) return false;
 
@@ -88,11 +88,20 @@ function hasScope_(scopes, recordType, gp) {
   if (recordType === 'homeWithAi') {
     return scopes.some(function (s) { return normalizeKey(s) === 'HOMEWITHAI'; });
   }
+  // Progres konstruksi mingguan (Addendum 7) = tanggung jawab SPV
+  // Lapangan per GP, role terpisah dari PIC SPK ("SPV:GP1" dst di
+  // kolom Role tab Akses) -- BUKAN lagi scope 'spk' seperti versi
+  // Addendum 6 sebelumnya.
+  if (recordType === 'progresRealisasi') {
+    var wantedSpvScope = 'SPV:' + normalizeKey(gp);
+    return scopes.some(function (s) { return normalizeKey(s) === wantedSpvScope; });
+  }
   return false;
 }
 
-// recordType: 'spk' | 'purchasing' | 'homeWithAi'. Dipakai saat mengecek
-// satu permintaan tulis-balik tunggal (updateSlaTargetHari di Code.gs).
+// recordType: 'spk' | 'purchasing' | 'homeWithAi' | 'progresRealisasi'.
+// Dipakai saat mengecek satu permintaan tulis-balik tunggal
+// (updateSlaTargetHari/addRecord/addProgressRealisasi di Code.gs).
 function canEditSla_(email, recordType, gp) {
   return hasScope_(getUserScopes_(email), recordType, gp);
 }

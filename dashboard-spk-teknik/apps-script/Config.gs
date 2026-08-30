@@ -17,6 +17,12 @@ var CONFIG = {
   PROGRESS_RENCANA_TAB: 'Rencana Progres',
   PROGRESS_REALISASI_TAB: 'Realisasi Progres',
 
+  // Folder Drive (dibuat otomatis sbg subfolder di sebelah file
+  // spreadsheet ini) tempat foto progres konstruksi mingguan disimpan --
+  // lihat getOrCreateProgressPhotosFolder_/uploadProgressPhotos_ di
+  // DataService.gs (Addendum 7).
+  PROGRESS_PHOTOS_FOLDER_NAME: 'Foto Progres Konstruksi',
+
   // Jenis SPK yang Tanggal Selesai-nya otomatis dihitung (Tanggal Terbit + 5 bulan)
   UNIT_RUMAH_JENIS_SPK: 'UNIT RUMAH',
   UNIT_RUMAH_OVERDUE_MONTHS: 5,
@@ -119,9 +125,12 @@ var PROGRESS_RENCANA_FIELD_DEFS = [
   { key: 'rencanaProgres', candidates: ['rencana progres mingguan', 'rencana progres', 'rencana'] }
 ];
 
-// Realisasi Progres: diisi PIC lewat dashboard (modal Detail per Unit),
-// satu baris baru tiap minggu -- agregat % keseluruhan (bukan per item
-// pekerjaan), sesuai keputusan user.
+// Realisasi Progres: diisi SPV Lapangan lewat halaman "Input Progres"
+// tersendiri di dashboard (bukan modal Detail per Unit lagi, lihat
+// Addendum 7), satu baris baru tiap minggu -- agregat % keseluruhan
+// (bukan per item pekerjaan), wajib dilampiri minimal 4 foto (kolom
+// "Lampiran Foto", URL Drive dipisah ", " -- lihat uploadProgressPhotos_
+// di DataService.gs).
 var PROGRESS_REALISASI_FIELD_DEFS = [
   { key: 'grupProyek', candidates: ['grup proyek'] },
   { key: 'namaProyek', candidates: ['nama proyek'] },
@@ -129,7 +138,8 @@ var PROGRESS_REALISASI_FIELD_DEFS = [
   { key: 'mingguKe', candidates: ['minggu ke', 'minggu'] },
   { key: 'tanggalUpdate', candidates: ['tanggal update', 'tanggal'] },
   { key: 'realisasiProgres', candidates: ['realisasi progres mingguan', 'realisasi progres', 'realisasi'] },
-  { key: 'keterangan', candidates: ['keterangan'] }
+  { key: 'keterangan', candidates: ['keterangan'] },
+  { key: 'lampiranFoto', candidates: ['lampiran foto', 'foto'] }
 ];
 
 // Status yang valid, dipakai untuk validasi ringan & urutan tampilan di UI

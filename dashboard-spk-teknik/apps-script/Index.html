@@ -41,6 +41,7 @@
         <button data-view="master-purchasing" type="button">Master Data Purchasing</button>
         <button data-view="master-hwa" type="button">Master Data Home With AI</button>
         <button data-view="master-sla" type="button">Master Data SLA</button>
+        <button data-view="progres-input" type="button">Input Progres</button>
       </nav>
     </header>
 
@@ -303,10 +304,36 @@
       </section>
     </div>
 
+    <!-- ============================== VIEW: Input Progres (SPV Lapangan) ============================== -->
+    <div id="view-progres-input" class="view" hidden>
+      <section class="table-section">
+        <div class="table-tabs" id="progresGpTabs">
+          <button data-gp="" class="active" type="button">Semua</button>
+          <button data-gp="GP1" type="button">GP1</button>
+          <button data-gp="GP2" type="button">GP2</button>
+          <button data-gp="GP3" type="button">GP3</button>
+          <button data-gp="GP4" type="button">GP4</button>
+        </div>
+        <div class="table-toolbar">
+          <select id="progresProyekFilter"><option value="">Semua Proyek</option></select>
+          <input type="text" id="progresSearch" placeholder="Cari proyek, blok/unit…">
+          <span id="progresUnitCount" class="toolbar-count"></span>
+        </div>
+        <div class="table-wrap">
+          <table id="progresUnitTable">
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <p class="master-hint">Daftar unit yang sudah punya SPK. Klik satu unit untuk melihat Kurva S &amp; riwayat progres, dan (khusus SPV Lapangan GP terkait) menginput progres minggu ini lengkap dengan minimal 4 foto lapangan.</p>
+      </section>
+    </div>
+
     <footer class="footer-note">
       Data disinkronkan otomatis dari Google Sheets Master Database SPK Teknik GPG.
-      Dashboard ini read-only, kecuali kolom "Target (Hari)" di Master Data SLA yang bisa diisi
-      langsung oleh PIC terkait — perubahan data lain dilakukan langsung di spreadsheet oleh PIC masing-masing.
+      Dashboard ini read-only, kecuali: kolom "Target (Hari)" di Master Data SLA, tombol "+ Tambah Data"
+      di Master Data SPK/Purchasing/Home With AI, dan halaman "Input Progres" — semua dibatasi per Role
+      PIC/SPV terkait. Perubahan data lain dilakukan langsung di spreadsheet oleh PIC masing-masing.
     </footer>
 
     <div class="unit-modal-backdrop" id="unitModalBackdrop">
@@ -320,6 +347,13 @@
       <div class="unit-modal" role="dialog" aria-modal="true">
         <button class="unit-modal-close" id="addRecordModalClose" type="button" aria-label="Tutup">×</button>
         <div id="addRecordModalContent"></div>
+      </div>
+    </div>
+
+    <div class="unit-modal-backdrop" id="progresInputModalBackdrop">
+      <div class="unit-modal" role="dialog" aria-modal="true">
+        <button class="unit-modal-close" id="progresInputModalClose" type="button" aria-label="Tutup">×</button>
+        <div id="progresInputModalContent"></div>
       </div>
     </div>
 

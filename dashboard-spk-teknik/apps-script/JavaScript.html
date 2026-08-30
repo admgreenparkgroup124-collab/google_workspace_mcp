@@ -23,7 +23,7 @@
   var refreshTimer = null;
   var isLoading = false;
 
-  var currentView = 'dashboard'; // 'dashboard' | 'master-spk' | 'master-purchasing' | 'master-hwa' | 'master-sla'
+  var currentView = 'dashboard'; // 'dashboard' | 'master-spk' | 'master-purchasing' | 'master-hwa' | 'master-sla' | 'progres-input'
   var dashboardSubTab = 'semua'; // 'semua' | 'spk' | 'purchasing' | 'hwa' -- sub-tab di dalam menu Dashboard
   var masterSpkGp = '';          // '' = semua GP, else 'GP1'..'GP4' (cocok dengan sourceTab)
   var masterSpkProyek = '';
@@ -46,6 +46,12 @@
   var masterPurSort = { key: null, dir: 1 };
   var masterHwaSort = { key: null, dir: 1 };
   var masterSlaSort = { key: null, dir: 1 };
+  var progresGp = '';            // halaman "Input Progres" (Addendum 7)
+  var progresProyek = '';
+  var progresSearch = '';
+  var progresSort = { key: null, dir: 1 };
+  var MIN_PROGRESS_PHOTOS = 4;
+  var MAX_PROGRESS_PHOTO_DIMENSION = 1600; // px, sisi terpanjang setelah resize
 
   var SYNC_STORAGE_KEY = 'gpg_spk_dashboard_sync_minutes';
   var SYNC_OPTIONS = [1, 5, 10, 20, 30];
@@ -1354,6 +1360,313 @@
     populateMasterHwaProyekSelect();
     populateMasterSlaGpSelect();
     populateMasterSlaProyekSelect();
+    populateProgresProyekSelect();
+  }
+
+  // ---------------------------------------------------------------------
+  // Halaman "Input Progres" (SPV Lapangan, Addendum 7) -- daftar unit yang
+  // sudah punya SPK, klik satu unit untuk lihat Kurva S + riwayat (baca-
+  // saja) dan (kalau viewer punya scope SPV:<gp> unit itu) input progres
+  // minggu ini lengkap dengan minimal MIN_PROGRESS_PHOTOS foto, di-resize
+  // di browser lalu di-upload ke Drive oleh server (addProgressRealisasi
+  // di Code.gs). TIDAK lagi lewat modal Detail per Unit (lihat
+  // openUnitDetail -- section Progres Konstruksi di sana sekarang baca-saja).
+  // ---------------------------------------------------------------------
+  var PROGRES_UNIT_COLUMNS = [
+    { key: 'gp', label: 'Grup Proyek' },
+    { key: 'proyek', label: 'Proyek' },
+    { key: 'unit', label: 'Blok/Unit' },
+    { key: 'jenisSpk', label: 'Jenis SPK' },
+    { key: 'mingguTerakhirLabel', label: 'Minggu Terakhir Diisi' },
+    { key: 'persenTerakhirLabel', label: '% Realisasi Terakhir' },
+    { key: 'statusLabel', label: 'Status' }
+  ];
+
+  function hasSpvScopeForGp_(gp) {
+    var scopes = rawData.meta.viewerScopes || [];
+    var wanted = normKey('SPV:' + gp);
+    return scopes.some(function (s) { return normKey(s) === wanted; });
+  }
+
+  // Satu baris per unit yang punya minimal 1 SPK (bukan tabel SPK mentah)
+  // -- digabung dengan progres realisasi terakhir (minggu tertinggi) kalau
+  // sudah pernah diisi.
+  function buildProgressUnitRows_() {
+    var byUnit = {};
+    rawData.spk.forEach(function (r) {
+      if (!r.unitKey) return;
+      if (!byUnit[r.unitKey]) {
+        byUnit[r.unitKey] = { unitKey: r.unitKey, gp: r.gp, proyek: r.proyek, unit: r.unit, jenisSpk: r.jenisSpk };
+      }
+    });
+    var lastByUnit = {};
+    rawData.progressRealisasi.forEach(function (r) {
+      var cur = lastByUnit[r.unitKey];
+      if (!cur || r.mingguKe > cur.mingguKe) lastByUnit[r.unitKey] = r;
+    });
+    return Object.keys(byUnit).map(function (key) {
+      var row = byUnit[key];
+      var last = lastByUnit[key];
+      row.mingguTerakhirLabel = last ? ('Minggu ' + last.mingguKe) : null;
+      row.persenTerakhirLabel = last ? (last.realisasiProgres + '%') : null;
+      row.statusLabel = last ? 'Ada progres' : 'Belum ada progres';
+      return row;
+    });
+  }
+
+  function renderProgresInput() {
+    var rows = buildProgressUnitRows_();
+    if (progresGp) rows = rows.filter(function (r) { return normKey(r.gp) === normKey(progresGp); });
+    if (progresProyek) rows = rows.filter(function (r) { return normKey(r.proyek) === normKey(progresProyek); });
+    buildDataTable({
+      theadEl: document.querySelector('#progresUnitTable thead'),
+      tbodyEl: document.querySelector('#progresUnitTable tbody'),
+      countEl: document.getElementById('progresUnitCount'),
+      rows: rows,
+      columns: PROGRES_UNIT_COLUMNS,
+      sortState: progresSort,
+      search: progresSearch,
+      onHeaderClick: renderProgresInput,
+      onRowClick: openProgresInputModal
+    });
+  }
+  function pruneOrphanProgresProyek() {
+    if (!progresProyek) return;
+    var available = {};
+    proyekOptionsForGp(progresGp).forEach(function (p) { available[p] = true; });
+    if (!available[progresProyek]) progresProyek = '';
+  }
+  function populateProgresProyekSelect() {
+    var sel = document.getElementById('progresProyekFilter');
+    var current = progresProyek;
+    sel.innerHTML = '<option value="">Semua Proyek</option>';
+    proyekOptionsForGp(progresGp).forEach(function (p) {
+      var opt = document.createElement('option');
+      opt.value = p;
+      opt.textContent = p;
+      sel.appendChild(opt);
+    });
+    sel.value = current;
+    sel.onchange = function () { progresProyek = sel.value; renderProgresInput(); };
+  }
+  document.getElementById('progresGpTabs').addEventListener('click', function (e) {
+    var btn = e.target.closest('button[data-gp]');
+    if (!btn) return;
+    progresGp = btn.getAttribute('data-gp');
+    document.querySelectorAll('#progresGpTabs button').forEach(function (b) { b.classList.toggle('active', b === btn); });
+    progresSort = { key: null, dir: 1 };
+    pruneOrphanProgresProyek();
+    populateProgresProyekSelect();
+    renderProgresInput();
+  });
+  document.getElementById('progresSearch').addEventListener('input', function (e) {
+    progresSearch = e.target.value;
+    renderProgresInput();
+  });
+
+  // Resize foto di browser (maks sisi MAX_PROGRESS_PHOTO_DIMENSION px,
+  // JPEG quality .8) sebelum di-encode base64 -- supaya payload
+  // google.script.run tidak terlalu besar/lambat di koneksi lapangan.
+  function resizePhotoToBase64_(file, maxDim, quality, callback) {
+    var reader = new FileReader();
+    reader.onload = function (e) {
+      var img = new Image();
+      img.onload = function () {
+        var scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+        var canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round(img.width * scale));
+        canvas.height = Math.max(1, Math.round(img.height * scale));
+        var ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        var dataUrl = canvas.toDataURL('image/jpeg', quality);
+        callback(dataUrl.split(',')[1]);
+      };
+      img.onerror = function () { callback(null); };
+      img.src = e.target.result;
+    };
+    reader.onerror = function () { callback(null); };
+    reader.readAsDataURL(file);
+  }
+
+  function wireProgresInputForm_(gp, proyek, unit, unitKey) {
+    var form = document.getElementById('progresInputForm');
+    if (!form) return;
+    var fileInput = document.getElementById('progresInputPhotos');
+    var previewEl = document.getElementById('progresInputPhotoPreview');
+    var countEl = document.getElementById('progresInputPhotoCount');
+    var selectedFiles = [];
+
+    fileInput.addEventListener('change', function () {
+      selectedFiles = Array.prototype.slice.call(fileInput.files);
+      previewEl.innerHTML = '';
+      selectedFiles.forEach(function (file) {
+        var img = document.createElement('img');
+        img.className = 'photo-thumb';
+        img.src = URL.createObjectURL(file);
+        previewEl.appendChild(img);
+      });
+      countEl.textContent = selectedFiles.length + '/' + MIN_PROGRESS_PHOTOS + ' foto';
+      countEl.classList.toggle('photo-count-ok', selectedFiles.length >= MIN_PROGRESS_PHOTOS);
+    });
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var errorEl = document.getElementById('progresInputError');
+      errorEl.hidden = true;
+
+      var mingguKe = Number(document.getElementById('progresInputMinggu').value);
+      var realisasi = Number(document.getElementById('progresInputRealisasi').value);
+      var keterangan = document.getElementById('progresInputKeterangan').value;
+
+      if (!isFinite(mingguKe) || mingguKe < 1) {
+        errorEl.textContent = 'Minggu Ke- harus berupa angka >= 1.'; errorEl.hidden = false; return;
+      }
+      if (!isFinite(realisasi) || realisasi < 0 || realisasi > 100) {
+        errorEl.textContent = 'Realisasi Progres harus berupa angka 0-100.'; errorEl.hidden = false; return;
+      }
+      if (selectedFiles.length < MIN_PROGRESS_PHOTOS) {
+        errorEl.textContent = 'Lampirkan minimal ' + MIN_PROGRESS_PHOTOS + ' foto progres minggu ini.'; errorEl.hidden = false; return;
+      }
+
+      var submitBtn = form.querySelector('button[type="submit"]');
+      submitBtn.disabled = true;
+      fileInput.disabled = true;
+
+      var pending = selectedFiles.length;
+      var photos = new Array(selectedFiles.length);
+      var failed = false;
+      selectedFiles.forEach(function (file, idx) {
+        resizePhotoToBase64_(file, MAX_PROGRESS_PHOTO_DIMENSION, 0.8, function (base64) {
+          if (!base64) failed = true;
+          else photos[idx] = { name: file.name || ('foto-' + (idx + 1) + '.jpg'), mimeType: 'image/jpeg', base64: base64 };
+          pending--;
+          if (pending > 0) return;
+
+          if (failed) {
+            submitBtn.disabled = false;
+            fileInput.disabled = false;
+            errorEl.textContent = 'Gagal memproses salah satu foto. Coba pilih ulang.';
+            errorEl.hidden = false;
+            return;
+          }
+
+          google.script.run
+            .withSuccessHandler(function (payload) {
+              rawData = payload;
+              updateSyncStatus();
+              populateFilterOptions();
+              populateMasterFilterOptions();
+              updateAddButtonsVisibility();
+              renderCurrentView();
+              showToast('success', 'Progres tersimpan.');
+              openProgresInputModal({ unitKey: unitKey, unit: unit, gp: gp, proyek: proyek });
+            })
+            .withFailureHandler(function (err) {
+              submitBtn.disabled = false;
+              fileInput.disabled = false;
+              errorEl.textContent = err && err.message ? err.message : String(err);
+              errorEl.hidden = false;
+            })
+            .addProgressRealisasi({
+              gp: gp, proyek: proyek, unit: unit,
+              mingguKe: mingguKe, realisasiProgres: realisasi, keterangan: keterangan,
+              photos: photos
+            });
+        });
+      });
+    });
+  }
+
+  function openProgresInputModal(row) {
+    var unitKey = row.unitKey;
+    var spkList = rawData.spk.filter(function (r) { return r.unitKey === unitKey; });
+    var gp = spkList.length ? spkList[0].gp : row.gp;
+    var proyek = row.proyek;
+    var unit = row.unit;
+    var canEdit = hasSpvScopeForGp_(gp);
+
+    var rencanaList = rawData.progressRencana.filter(function (r) { return r.unitKey === unitKey; })
+      .sort(function (a, b) { return a.mingguKe - b.mingguKe; });
+    var realisasiList = rawData.progressRealisasi.filter(function (r) { return r.unitKey === unitKey; })
+      .sort(function (a, b) { return a.mingguKe - b.mingguKe; });
+
+    var html = '<div class="unit-header"><h2>' + escapeHtml(unit) + '</h2>' +
+      '<p>' + escapeHtml(gp) + ' · ' + escapeHtml(proyek) + '</p></div>';
+
+    html += '<div class="unit-section"><h4>Kurva S &amp; Riwayat Progres</h4>';
+    var weekMap = {};
+    rencanaList.forEach(function (r) {
+      weekMap[r.mingguKe] = weekMap[r.mingguKe] || {};
+      weekMap[r.mingguKe].rencana = r.rencanaProgres;
+    });
+    realisasiList.forEach(function (r) {
+      weekMap[r.mingguKe] = weekMap[r.mingguKe] || {};
+      weekMap[r.mingguKe].realisasi = r.realisasiProgres;
+      weekMap[r.mingguKe].tanggalUpdate = r.tanggalUpdate;
+      weekMap[r.mingguKe].keterangan = r.keterangan;
+      weekMap[r.mingguKe].lampiranFoto = r.lampiranFoto;
+    });
+    var weekKeys = Object.keys(weekMap).map(Number).sort(function (a, b) { return a - b; });
+
+    if (weekKeys.length) {
+      html += '<div class="unit-item"><div class="progress-chart-wrap"><canvas id="progresInputChart"></canvas></div>' +
+        weekKeys.map(function (wk) {
+          var w = weekMap[wk];
+          var fotoCount = w.lampiranFoto ? w.lampiranFoto.split(',').filter(function (s) { return s.trim(); }).length : 0;
+          return '<div class="unit-item-meta">Minggu ' + wk + ': Rencana ' +
+            (w.rencana != null ? w.rencana + '%' : '–') + ' · Realisasi ' +
+            (w.realisasi != null ? w.realisasi + '%' : '–') +
+            (w.tanggalUpdate ? ' (' + formatDate(w.tanggalUpdate) + ')' : '') +
+            (w.keterangan ? ' · ' + escapeHtml(w.keterangan) : '') +
+            (fotoCount ? ' · 📷 ' + fotoCount + ' foto' : '') + '</div>';
+        }).join('') + '</div>';
+    } else {
+      html += '<p class="unit-empty">Belum ada rencana/realisasi progres untuk unit ini.</p>';
+    }
+    html += '</div>';
+
+    html += '<div class="unit-section"><h4>Input Progres Minggu Ini</h4>';
+    if (!spkList.length) {
+      html += '<p class="unit-empty">Unit ini belum punya SPK — progres belum bisa diinput.</p>';
+    } else if (!canEdit) {
+      html += '<p class="unit-empty">Anda tidak berwenang menginput progres konstruksi untuk ' + escapeHtml(gp) + '.</p>';
+    } else {
+      html += '<form id="progresInputForm" class="form-grid progress-form">' +
+        '<div class="form-field"><label>Minggu Ke- <span class="required-mark">*</span></label>' +
+        '<input type="number" id="progresInputMinggu" min="1" step="1"></div>' +
+        '<div class="form-field"><label>Realisasi Progres (%) <span class="required-mark">*</span></label>' +
+        '<input type="number" id="progresInputRealisasi" min="0" max="100" step="any"></div>' +
+        '<div class="form-field form-field-wide"><label>Keterangan</label>' +
+        '<input type="text" id="progresInputKeterangan"></div>' +
+        '<div class="form-field form-field-wide"><label>Foto Lapangan (minimal ' + MIN_PROGRESS_PHOTOS + ' foto) <span class="required-mark">*</span></label>' +
+        '<input type="file" id="progresInputPhotos" accept="image/*" multiple capture="environment">' +
+        '<div class="photo-preview-grid" id="progresInputPhotoPreview"></div>' +
+        '<div class="photo-count" id="progresInputPhotoCount">0/' + MIN_PROGRESS_PHOTOS + ' foto</div></div>' +
+        '<div class="form-actions"><button type="submit" class="btn-primary">Simpan Progres</button></div>' +
+        '</form><div class="form-error" id="progresInputError" hidden></div>';
+    }
+    html += '</div>';
+
+    document.getElementById('progresInputModalContent').innerHTML = html;
+    document.getElementById('progresInputModalBackdrop').classList.add('open');
+
+    if (weekKeys.length) {
+      renderUnitProgressChart_(
+        weekKeys,
+        buildCumulativeAtWeeks_(rencanaList, weekKeys, 'rencanaProgres'),
+        buildCumulativeAtWeeks_(realisasiList, weekKeys, 'realisasiProgres'),
+        'progresInputProgress', 'progresInputChart'
+      );
+    }
+    if (spkList.length && canEdit) wireProgresInputForm_(gp, proyek, unit, unitKey);
+  }
+
+  document.getElementById('progresInputModalClose').addEventListener('click', closeProgresInputModal);
+  document.getElementById('progresInputModalBackdrop').addEventListener('click', function (e) {
+    if (e.target === document.getElementById('progresInputModalBackdrop')) closeProgresInputModal();
+  });
+  function closeProgresInputModal() {
+    document.getElementById('progresInputModalBackdrop').classList.remove('open');
   }
 
   // ---------------------------------------------------------------------
@@ -1365,6 +1678,7 @@
     else if (currentView === 'master-purchasing') renderMasterPurchasing();
     else if (currentView === 'master-hwa') renderMasterHwa();
     else if (currentView === 'master-sla') renderMasterSla();
+    else if (currentView === 'progres-input') renderProgresInput();
   }
 
   document.getElementById('appNav').addEventListener('click', function (e) {
@@ -1418,10 +1732,6 @@
   // ---------------------------------------------------------------------
   // Unit detail modal
   // ---------------------------------------------------------------------
-  function todayIsoLocal_() {
-    var d = new Date();
-    return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
-  }
 
   // Kurva S sederhana: rencanaProgres/realisasiProgres yang tersimpan di
   // Sheets adalah persentase MINGGUAN (bukan kumulatif) -- dijumlahkan di
@@ -1438,11 +1748,13 @@
     });
   }
 
-  function renderUnitProgressChart_(weekKeys, rencanaCum, realisasiCum) {
-    destroyChart('unitProgress');
-    var canvas = document.getElementById('unitProgressChart');
+  function renderUnitProgressChart_(weekKeys, rencanaCum, realisasiCum, chartKey, canvasId) {
+    chartKey = chartKey || 'unitProgress';
+    canvasId = canvasId || 'unitProgressChart';
+    destroyChart(chartKey);
+    var canvas = document.getElementById(canvasId);
     if (!canvas) return;
-    charts.unitProgress = new Chart(canvas.getContext('2d'), {
+    charts[chartKey] = new Chart(canvas.getContext('2d'), {
       type: 'line',
       data: {
         labels: weekKeys.map(function (wk) { return 'M' + wk; }),
@@ -1456,55 +1768,6 @@
         scales: { y: { beginAtZero: true, max: 100, ticks: { callback: function (v) { return v + '%'; } } } },
         plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } } }
       }
-    });
-  }
-
-  function wireUnitProgressForm_(gp, proyek, unit, unitKey) {
-    var form = document.getElementById('unitProgressForm');
-    if (!form) return;
-    form.addEventListener('submit', function (e) {
-      e.preventDefault();
-      var errorEl = document.getElementById('unitProgressError');
-      errorEl.hidden = true;
-
-      var mingguKe = Number(document.getElementById('unitProgressMinggu').value);
-      var realisasi = Number(document.getElementById('unitProgressRealisasi').value);
-      var keterangan = document.getElementById('unitProgressKeterangan').value;
-
-      if (!isFinite(mingguKe) || mingguKe < 1) {
-        errorEl.textContent = 'Minggu Ke- harus berupa angka >= 1.'; errorEl.hidden = false; return;
-      }
-      if (!isFinite(realisasi) || realisasi < 0 || realisasi > 100) {
-        errorEl.textContent = 'Realisasi Progres harus berupa angka 0-100.'; errorEl.hidden = false; return;
-      }
-
-      var submitBtn = form.querySelector('button[type="submit"]');
-      submitBtn.disabled = true;
-      google.script.run
-        .withSuccessHandler(function (payload) {
-          rawData = payload;
-          updateSyncStatus();
-          populateFilterOptions();
-          populateMasterFilterOptions();
-          updateAddButtonsVisibility();
-          renderCurrentView();
-          showToast('success', 'Progres tersimpan.');
-          openUnitDetail({ unitKey: unitKey, unit: unit, gp: gp, proyek: proyek });
-        })
-        .withFailureHandler(function (err) {
-          submitBtn.disabled = false;
-          errorEl.textContent = err && err.message ? err.message : String(err);
-          errorEl.hidden = false;
-        })
-        .addRecord({
-          recordType: 'progresRealisasi',
-          gp: gp,
-          fields: {
-            grupProyek: gp, namaProyek: proyek, blokUnit: unit,
-            mingguKe: mingguKe, realisasiProgres: realisasi,
-            tanggalUpdate: todayIsoLocal_(), keterangan: keterangan
-          }
-        });
     });
   }
 
@@ -1583,8 +1846,9 @@
     // ---- Progres Konstruksi (Kurva S sederhana, Addendum 6) ----
     // Progres cuma relevan kalau unit sudah punya SPK (titik mulai) --
     // "acuannya dari Blok", jadi gp/proyek/unit-nya ikut SPK yang sudah ada.
-    var progressGp = spkList.length ? spkList[0].gp : '';
-    var canEditProgress = spkList.length ? !!spkList[0].canEditSla : false;
+    // Baca-saja di sini (Addendum 7) -- input progres mingguan (dgn wajib
+    // lampiran foto) dipindah ke halaman tersendiri "Input Progres" utk
+    // SPV Lapangan, lihat openProgresInputModal().
     var rencanaList = rawData.progressRencana.filter(function (r) { return r.unitKey === unitKey; })
       .sort(function (a, b) { return a.mingguKe - b.mingguKe; });
     var realisasiList = rawData.progressRealisasi.filter(function (r) { return r.unitKey === unitKey; })
@@ -1620,18 +1884,6 @@
       } else {
         html += '<p class="unit-empty">Belum ada rencana/realisasi progres untuk unit ini.</p>';
       }
-
-      if (canEditProgress) {
-        html += '<form id="unitProgressForm" class="form-grid progress-form">' +
-          '<div class="form-field"><label>Minggu Ke- <span class="required-mark">*</span></label>' +
-          '<input type="number" id="unitProgressMinggu" min="1" step="1"></div>' +
-          '<div class="form-field"><label>Realisasi Progres (%) <span class="required-mark">*</span></label>' +
-          '<input type="number" id="unitProgressRealisasi" min="0" max="100" step="any"></div>' +
-          '<div class="form-field form-field-wide"><label>Keterangan</label>' +
-          '<input type="text" id="unitProgressKeterangan"></div>' +
-          '<div class="form-actions"><button type="submit" class="btn-primary">Simpan Progres</button></div>' +
-          '</form><div class="form-error" id="unitProgressError" hidden></div>';
-      }
     }
     html += '</div>';
 
@@ -1653,7 +1905,6 @@
         buildCumulativeAtWeeks_(realisasiList, weekKeys, 'realisasiProgres')
       );
     }
-    if (spkList.length && canEditProgress) wireUnitProgressForm_(progressGp, record.proyek, record.unit, unitKey);
   }
 
   document.getElementById('unitModalClose').addEventListener('click', closeUnitModal);

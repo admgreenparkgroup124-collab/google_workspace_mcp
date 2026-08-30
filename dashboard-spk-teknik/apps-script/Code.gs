@@ -72,13 +72,16 @@ function updateSlaTargetHari(payload) {
 }
 
 // Dipanggil client dari tombol "+ Tambah Data" di halaman Master Data
-// SPK/Purchasing/Home With AI, dan dari form "Update Progres" di modal
-// Detail per Unit (recordType 'progresRealisasi'). payload: { recordType,
-// gp, fields }. Pola sama dengan updateSlaTargetHari: cek akses+scope,
-// tulis, kembalikan payload dashboard yang sudah di-refresh penuh.
-// Validasi di sini sengaja minimal -- cukup untuk mencegah baris
-// kosong/rusak, bukan validasi bisnis penuh (itu tanggung jawab PIC saat
-// mengisi).
+// SPK/Purchasing/Home With AI. payload: { recordType, gp, fields }. Pola
+// sama dengan updateSlaTargetHari: cek akses+scope, tulis, kembalikan
+// payload dashboard yang sudah di-refresh penuh. Validasi di sini
+// sengaja minimal -- cukup untuk mencegah baris kosong/rusak, bukan
+// validasi bisnis penuh (itu tanggung jawab PIC saat mengisi).
+//
+// Progres konstruksi mingguan (recordType 'progresRealisasi') TIDAK
+// lewat endpoint ini lagi -- lihat addProgressRealisasi() di bawah,
+// endpoint terpisah karena payload-nya bawa foto (upload ke Drive) dan
+// scope-nya beda (SPV Lapangan, bukan PIC SPK/Purchasing/HWA).
 function addRecord(payload) {
   var access = checkAccess();
   if (!access.allowed) {
@@ -90,48 +93,85 @@ function addRecord(payload) {
   var gp = payload.gp;
   var fields = payload.fields || {};
 
-  if (['spk', 'purchasing', 'homeWithAi', 'progresRealisasi'].indexOf(recordType) === -1) {
+  if (['spk', 'purchasing', 'homeWithAi'].indexOf(recordType) === -1) {
     throw new Error('recordType tidak valid.');
   }
 
-  // Progres konstruksi = tanggung jawab PIC SPK unit itu (scope 'spk'
-  // sesuai GP-nya), bukan scope terpisah -- lihat komentar di
-  // getProgressRealisasiRows_ (DataService.gs).
-  var scopeCheckType = recordType === 'progresRealisasi' ? 'spk' : recordType;
-  if (!canEditSla_(access.email, scopeCheckType, gp)) {
+  if (!canEditSla_(access.email, recordType, gp)) {
     throw new Error('Anda tidak berwenang menambah data ini.');
   }
 
-  if (recordType === 'progresRealisasi') {
-    if (!safeText(fields.namaProyek) || !safeText(fields.blokUnit)) {
-      throw new Error('Data unit (Proyek/Blok) tidak boleh kosong.');
-    }
-    var mingguKe = Number(fields.mingguKe);
-    if (!isFinite(mingguKe) || mingguKe < 1) {
-      throw new Error('Minggu Ke- harus berupa angka >= 1.');
-    }
-    var realisasiProgres = Number(fields.realisasiProgres);
-    if (!isFinite(realisasiProgres) || realisasiProgres < 0 || realisasiProgres > 100) {
-      throw new Error('Realisasi Progres harus berupa angka 0-100.');
-    }
-  } else {
-    if (!safeText(fields.namaProyek)) {
-      throw new Error('Nama Proyek tidak boleh kosong.');
-    }
+  if (!safeText(fields.namaProyek)) {
+    throw new Error('Nama Proyek tidak boleh kosong.');
+  }
 
-    var mainDateKey = recordType === 'spk' ? 'tanggalTerbit' : 'tanggalMulai';
-    if (!safeText(fields[mainDateKey])) {
-      throw new Error((recordType === 'spk' ? 'Tanggal Terbit' : 'Tanggal Order/Mulai') + ' tidak boleh kosong.');
-    }
+  var mainDateKey = recordType === 'spk' ? 'tanggalTerbit' : 'tanggalMulai';
+  if (!safeText(fields[mainDateKey])) {
+    throw new Error((recordType === 'spk' ? 'Tanggal Terbit' : 'Tanggal Order/Mulai') + ' tidak boleh kosong.');
+  }
 
-    var mainValueKey = recordType === 'spk' ? 'nilaiKontrak' : 'nilai';
-    var mainValue = Number(fields[mainValueKey]);
-    if (!isFinite(mainValue) || mainValue < 0) {
-      throw new Error((recordType === 'spk' ? 'Nilai Kontrak' : 'Harga Total') + ' harus berupa angka >= 0.');
-    }
+  var mainValueKey = recordType === 'spk' ? 'nilaiKontrak' : 'nilai';
+  var mainValue = Number(fields[mainValueKey]);
+  if (!isFinite(mainValue) || mainValue < 0) {
+    throw new Error((recordType === 'spk' ? 'Nilai Kontrak' : 'Harga Total') + ' harus berupa angka >= 0.');
   }
 
   writeNewRecord_(recordType, gp, fields);
+  return buildDashboardPayload_(access.email);
+}
+
+// Dipanggil client dari halaman "Input Progres" (SPV Lapangan) -- klik
+// satu unit yang sudah ada SPK, isi progres minggu ini + upload minimal
+// 4 foto. payload: { gp, proyek, unit, mingguKe, realisasiProgres,
+// keterangan, photos: [{name, mimeType, base64}, ...] }. Alur: cek
+// akses -> validasi field & jumlah foto -> cek scope SPV:<gp> -> upload
+// foto ke Drive -> tulis baris baru -> kembalikan payload yang sudah
+// di-refresh penuh (pola sama dengan addRecord/updateSlaTargetHari).
+function addProgressRealisasi(payload) {
+  var access = checkAccess();
+  if (!access.allowed) {
+    throw new Error('Akses ditolak. Email ' + (access.email || '(tidak terdeteksi)') + ' belum terdaftar di tab Akses.');
+  }
+
+  payload = payload || {};
+  var gp = payload.gp;
+  var proyek = safeText(payload.proyek);
+  var unit = safeText(payload.unit);
+  var photos = payload.photos || [];
+
+  if (!proyek || !unit) {
+    throw new Error('Data unit (Proyek/Blok) tidak boleh kosong.');
+  }
+
+  var mingguKe = Number(payload.mingguKe);
+  if (!isFinite(mingguKe) || mingguKe < 1) {
+    throw new Error('Minggu Ke- harus berupa angka >= 1.');
+  }
+  var realisasiProgres = Number(payload.realisasiProgres);
+  if (!isFinite(realisasiProgres) || realisasiProgres < 0 || realisasiProgres > 100) {
+    throw new Error('Realisasi Progres harus berupa angka 0-100.');
+  }
+  if (!photos.length || photos.length < 4) {
+    throw new Error('Lampirkan minimal 4 foto progres minggu ini.');
+  }
+
+  if (!canEditSla_(access.email, 'progresRealisasi', gp)) {
+    throw new Error('Anda tidak berwenang menginput progres konstruksi untuk GP ini.');
+  }
+
+  var photoUrls = uploadProgressPhotos_(photos);
+
+  writeNewRecord_('progresRealisasi', gp, {
+    grupProyek: gp,
+    namaProyek: proyek,
+    blokUnit: unit,
+    mingguKe: mingguKe,
+    realisasiProgres: realisasiProgres,
+    tanggalUpdate: toIsoDateString(new Date()),
+    keterangan: safeText(payload.keterangan),
+    lampiranFoto: photoUrls.join(', ')
+  });
+
   return buildDashboardPayload_(access.email);
 }
 

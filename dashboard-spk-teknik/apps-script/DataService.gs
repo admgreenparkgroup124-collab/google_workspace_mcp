@@ -459,14 +459,55 @@ function getProgressRealisasiRows_(scopes) {
       tanggalUpdate: toIsoDateString(parseDateCell(cellValue(row, headerMap, 'tanggalUpdate'))),
       realisasiProgres: safeNumber(cellValue(row, headerMap, 'realisasiProgres')),
       keterangan: safeText(cellValue(row, headerMap, 'keterangan')),
-      // Progres konstruksi = tanggung jawab PIC SPK unit itu (Haris/Ajis
-      // sesuai GP) -- pakai scope 'spk' yg sudah ada, tidak perlu scope
-      // Role baru terpisah.
-      canEditProgress: hasScope_(scopes, 'spk', gp)
+      lampiranFoto: safeText(cellValue(row, headerMap, 'lampiranFoto')),
+      // Progres konstruksi = tanggung jawab SPV Lapangan per GP (role
+      // terpisah dari PIC SPK, scope "SPV:GP1" dst -- lihat Addendum 7).
+      canEditProgress: hasScope_(scopes, 'progresRealisasi', gp)
     });
   }
 
   return rows;
+}
+
+// ---------------------------------------------------------------------
+// Upload foto progres konstruksi ke Google Drive (Addendum 7) -- dipakai
+// oleh addProgressRealisasi (Code.gs) sebelum menulis baris baru ke tab
+// Realisasi Progres. Butuh oauthScopes eksplisit "drive.file" di
+// appsscript.json (scope sempit: skrip cuma bisa akses file yang DIBUAT
+// olehnya sendiri, bukan seluruh Drive user).
+// ---------------------------------------------------------------------
+
+// Folder dibuat sekali sbg subfolder di folder yang sama dengan file
+// spreadsheet ini (bukan di root Drive user), dicari ulang by nama tiap
+// panggilan -- jumlah folder kecil jadi lookup ini cukup murah.
+function getOrCreateProgressPhotosFolder_() {
+  var ssFile = DriveApp.getFileById(getSpreadsheet().getId());
+  var parents = ssFile.getParents();
+  var parentFolder = parents.hasNext() ? parents.next() : DriveApp.getRootFolder();
+
+  var existing = parentFolder.getFoldersByName(CONFIG.PROGRESS_PHOTOS_FOLDER_NAME);
+  if (existing.hasNext()) return existing.next();
+
+  return parentFolder.createFolder(CONFIG.PROGRESS_PHOTOS_FOLDER_NAME);
+}
+
+// photos: [{ name, mimeType, base64 }, ...] dari client (sudah di-resize
+// & di-encode base64 di sisi browser sebelum dikirim). Mengembalikan
+// array URL file yang baru dibuat di Drive, siap digabung jadi satu
+// string dipisah ", " untuk ditulis ke kolom "Lampiran Foto".
+function uploadProgressPhotos_(photos) {
+  var folder = getOrCreateProgressPhotosFolder_();
+  var urls = [];
+
+  photos.forEach(function (photo) {
+    var bytes = Utilities.base64Decode(photo.base64);
+    var blob = Utilities.newBlob(bytes, photo.mimeType || 'image/jpeg', photo.name || 'foto-progres.jpg');
+    var file = folder.createFile(blob);
+    file.setSharingAccess(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Access.VIEW);
+    urls.push(file.getUrl());
+  });
+
+  return urls;
 }
 
 // Kumpulkan daftar tahun, GP, dan proyek-per-GP yang benar-benar muncul di

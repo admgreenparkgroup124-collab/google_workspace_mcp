@@ -2,15 +2,17 @@
 
 Dashboard untuk memantau SPK, Home With AI, dan Purchasing Departemen
 Teknik GPG, dibangun sesuai `PRD_Dashboard_SPK_Teknik_GPG.md` (v1.3,
-final). Pada dasarnya read-only, kecuali tiga fitur tulis-balik yang
+final). Pada dasarnya read-only, kecuali empat fitur tulis-balik yang
 disengaja: PIC terkait bisa mengisi **Target Hari SLA** per baris
 langsung dari halaman Master Data SLA, bisa **menambah data baru**
 (SPK/Purchasing/Home With AI) langsung dari dashboard lewat tombol
-"+ Tambah Data", dan bisa mengisi **Progres Konstruksi Mingguan** (Kurva
-S Rencana vs Realisasi) langsung dari modal Detail per Unit — ketiganya
-tertulis langsung ke Google Sheets, tidak perlu diketik dua kali. Backend
-berupa Google Apps Script **container-bound** (dibuat langsung dari
-dalam Google Sheets sumber data), disajikan sebagai Web App.
+"+ Tambah Data", dan **SPV Lapangan** bisa mengisi **Progres Konstruksi
+Mingguan** (Kurva S Rencana vs Realisasi, lengkap dengan minimal 4 foto
+lapangan) lewat halaman tersendiri **"Input Progres"** — keempatnya
+tertulis langsung ke Google Sheets (foto ke Google Drive), tidak perlu
+diketik/upload dua kali. Backend berupa Google Apps Script
+**container-bound** (dibuat langsung dari dalam Google Sheets sumber
+data), disajikan sebagai Web App.
 
 Spreadsheet sumber:
 https://docs.google.com/spreadsheets/d/1KyKiyRguYrFdCS2jQqKfrNhR4nvtbPVrV6abr0pR-48/edit
@@ -151,11 +153,11 @@ Email | Nama | Role
 > sendiri akan melihat halaman "Akses Ditolak" saat mencoba Web App-nya
 > setelah deploy.
 
-Kolom **Role** menentukan scope tulis-balik (Target Hari SLA **dan**
-Tambah Data) milik tiap orang (pisahkan dengan koma kalau lebih dari
-satu) — **kosongkan** untuk orang yang hanya boleh melihat dashboard
-(viewer), termasuk CEO/Dirops/Kadep Teknik. Isi satu baris per orang,
-misalnya:
+Kolom **Role** menentukan scope tulis-balik (Target Hari SLA, Tambah
+Data, **dan** Input Progres Konstruksi — lihat Bagian 2g) milik tiap
+orang (pisahkan dengan koma kalau lebih dari satu) — **kosongkan** untuk
+orang yang hanya boleh melihat dashboard (viewer), termasuk CEO/Dirops/
+Kadep Teknik. Isi satu baris per orang, misalnya:
 
 ```
 Email          | Nama                          | Role
@@ -163,6 +165,8 @@ haris@...      | Haris                         | SPK:GP1,SPK:GP2,SPK:GP4
 ajis@...       | Ajis                          | SPK:GP3
 kahfi@...      | Kahfi                         | Purchasing
 naufal@...     | Naufal                        | HomeWithAi
+spv1@...       | SPV Lapangan GP1/GP2          | SPV:GP1,SPV:GP2
+spv2@...       | SPV Lapangan GP3/GP4          | SPV:GP3,SPV:GP4
 ceo@...        | CEO                           |
 dirops@...     | Dirops (Faiz Muhammad Alfatih)|
 yudi@...       | Yudi (Kadep Teknik)           |
@@ -172,6 +176,12 @@ yudi@...       | Yudi (Kadep Teknik)           |
   SLA & tambah SPK baru untuk GP yang bersangkutan saja.
 - `Purchasing` — boleh isi Target Hari SLA & tambah data Purchasing baru.
 - `HomeWithAi` — boleh isi Target Hari SLA & tambah data Home With AI baru.
+- `SPV:GP1` / `SPV:GP2` / `SPV:GP3` / `SPV:GP4` — role **SPV Lapangan**,
+  terpisah dari Haris/Ajis/Kahfi/Naufal di atas: boleh menginput Progres
+  Konstruksi Mingguan (Kurva S + minimal 4 foto) untuk unit-unit di GP
+  yang bersangkutan saja, lewat halaman "Input Progres" (Bagian 2g & 4).
+  Tidak otomatis dapat scope SPK/Purchasing/HomeWithAi lainnya — kalau
+  satu orang SPV juga PIC SPK, tambahkan kedua scope-nya dipisah koma.
 - Penulisan harus persis (huruf besar/kecil bebas, tapi kata & tanda `:`
   harus sama) — kalau salah ketik, orang tsb dianggap tidak punya scope
   itu (aman, gagal-tertutup: bukan malah jadi bisa edit segalanya).
@@ -217,55 +227,77 @@ Grup Proyek | Nama Proyek | Blok/No. Unit | Minggu Ke- | Rencana Progres Minggua
   bagian Progres Konstruksi unit itu cuma menampilkan Realisasi saja
   (tanpa garis Rencana pembanding).
 
-**Tab "Realisasi Progres"** (diisi **PIC lewat dashboard**, dari form
-"Update Progres" di modal Detail per Unit — bukan diketik manual di
-Sheets, walau tetap tersimpan sebagai sel biasa di sini). Baris header:
+**Tab "Realisasi Progres"** (diisi **SPV Lapangan lewat dashboard**, dari
+halaman tersendiri **"Input Progres"** — BUKAN dari modal Detail per Unit
+(itu baca-saja, lihat Bagian 4), dan bukan diketik manual di Sheets, walau
+tetap tersimpan sebagai sel biasa di sini). Baris header:
 
 ```
-Grup Proyek | Nama Proyek | Blok/No. Unit | Minggu Ke- | Tanggal Update | Realisasi Progres Mingguan (%) | Keterangan
+Grup Proyek | Nama Proyek | Blok/No. Unit | Minggu Ke- | Tanggal Update | Realisasi Progres Mingguan (%) | Keterangan | Lampiran Foto
 ```
 
 - Sama seperti Rencana, **Realisasi Progres Mingguan (%)** adalah
   persentase **mingguan** (bukan kumulatif) — diisi satu angka agregat per
   minggu (bukan rincian per item pekerjaan seperti "Pekerjaan Struktur
-  Beton", dst. — supaya PIC tidak perlu mengisi banyak angka tiap minggu).
-- **Siapa boleh isi**: PIC yang sama dengan scope SPK unit itu (Haris/Ajis
-  sesuai GP-nya di kolom Role tab Akses, Bagian 2d) — tidak perlu scope
-  Role terpisah untuk Progres.
+  Beton", dst. — supaya SPV tidak perlu mengisi banyak angka tiap minggu).
+- **Lampiran Foto** — diisi otomatis oleh dashboard: SPV meng-upload foto
+  asli dari HP-nya (minimal **4 foto** per entri minggu, wajib — kalau
+  kurang dari 4, penyimpanan ditolak), lalu Apps Script meng-upload
+  masing-masing ke Google Drive (folder **"Foto Progres Konstruksi"**,
+  dibuat otomatis di sebelah file spreadsheet ini) dan menulis URL-nya ke
+  kolom ini, dipisah `, ` kalau lebih dari satu.
+- **Siapa boleh isi**: role **SPV Lapangan** — scope `SPV:<GP>` di kolom
+  Role tab Akses (Bagian 2d), **bukan** Haris/Ajis/scope SPK (beda dari
+  desain awal fitur ini) — SPV boleh input progres unit manapun di GP
+  yang scope-nya dia punya, tidak perlu jadi PIC SPK unit itu.
+
+> **Otorisasi Google Drive**: karena fitur ini meng-upload file ke Drive,
+> `appsscript.json` mendeklarasikan `oauthScopes` eksplisit
+> (`spreadsheets` + `drive.file` — scope sempit, skrip cuma bisa akses
+> file yang DIBUAT olehnya sendiri, bukan seluruh Drive SPV). Konsekuensi:
+> tiap SPV Lapangan akan diminta **otorisasi ulang** (izin akses Drive)
+> saat pertama kali membuka Web App SETELAH deployment ini di-deploy
+> ulang — muncul layar consent Google standar, tinggal disetujui sekali.
 
 ### 2h. Share & Protect sheet
 
-1. **Share** file ke 7 akun Google di atas (minimal akses **Viewer**;
-   Haris/Ajis/Kahfi/Naufal butuh **Editor** supaya bisa isi tab masing-masing).
+1. **Share** file ke seluruh akun Google terkait (minimal akses
+   **Viewer**; Haris/Ajis/Kahfi/Naufal/SPV Lapangan butuh **Editor**
+   supaya bisa isi tab masing-masing).
 2. **Protect sheet** per tab (klik kanan tab → Protect sheet):
    - Tab GP1, GP2, GP4 → hanya Haris yang boleh edit.
    - Tab GP3 → hanya Ajis yang boleh edit.
    - Tab Purchasing → hanya Kahfi.
    - Tab Home With AI → hanya Naufal.
-   - Tab **Realisasi Progres** → Haris & Ajis (sama seperti hak edit
-     GP1/GP2/GP4/GP3 mereka masing-masing — progres konstruksi mengikuti
-     scope SPK, lihat Bagian 2g).
-   - Tab **Rencana Progres** → Haris & Ajis juga (mereka yang bulk-paste
-     jadwal rencana per unit).
+   - Tab **Realisasi Progres** → **SPV Lapangan** (akun-akun dengan scope
+     `SPV:GP...` di kolom Role, Bagian 2d) — BUKAN Haris/Ajis, role ini
+     sekarang terpisah dari PIC SPK (lihat Bagian 2g).
+   - Tab **Rencana Progres** → tetap Haris & Ajis (mereka yang bulk-paste
+     jadwal rencana per unit dari dokumen Time Schedule & Kurva S).
    - Tab Akses → hanya Anda (admin/pemilik) — tab ini mengatur siapa boleh
-     akses dashboard sekaligus scope tulis-balik Target Hari SLA (kolom
-     Role, Bagian 2d), sebaiknya tidak semua orang bisa ubah langsung di
-     spreadsheet.
+     akses dashboard sekaligus scope tulis-balik Target Hari SLA/Tambah
+     Data/Input Progres (kolom Role, Bagian 2d), sebaiknya tidak semua
+     orang bisa ubah langsung di spreadsheet.
 
 > Catatan penting: karena Web App di-deploy dengan **Execute as: User
 > accessing the web app** (Bagian 3), SEMUA tulisan dari dashboard ke
 > Sheets — kolom **Target Hari (SLA)**, baris baru dari **"+ Tambah
-> Data"**, maupun baris baru di **Realisasi Progres** — benar-benar
-> berjalan atas nama akun PIC yang sedang login, tunduk pada Protect sheet
-> yang sama seperti kalau dia mengetik langsung di spreadsheet. Ini pas
-> dengan setup Protect sheet di atas (Haris editor GP1/GP2/GP4 + Realisasi
-> Progres, Ajis editor GP3 + Realisasi Progres, Kahfi editor Purchasing,
-> Naufal editor Home With AI), jadi tidak perlu pengaturan tambahan. Kalau
-> nanti ada PIC yang di kolom Role tab Akses (Bagian 2d) diberi scope
-> untuk suatu tab tapi belum diberi akses **Editor** ke tab itu di sini,
-> tulisannya akan gagal tersimpan (muncul pesan error di dashboard) —
-> pastikan scope Role dan hak edit Protect sheet selalu sinkron untuk
-> orang yang sama.
+> Data"**, maupun baris baru di **Realisasi Progres** (dari halaman
+> "Input Progres") — benar-benar berjalan atas nama akun yang sedang
+> login, tunduk pada Protect sheet yang sama seperti kalau dia mengetik
+> langsung di spreadsheet. Ini pas dengan setup Protect sheet di atas
+> (Haris editor GP1/GP2/GP4, Ajis editor GP3, Kahfi editor Purchasing,
+> Naufal editor Home With AI, SPV Lapangan editor Realisasi Progres), jadi
+> tidak perlu pengaturan tambahan. Kalau nanti ada orang yang di kolom
+> Role tab Akses (Bagian 2d) diberi scope untuk suatu tab tapi belum
+> diberi akses **Editor** ke tab itu di sini, tulisannya akan gagal
+> tersimpan (muncul pesan error di dashboard) — pastikan scope Role dan
+> hak edit Protect sheet selalu sinkron untuk orang yang sama. Foto yang
+> di-upload SPV lewat "Input Progres" tersimpan ke folder Drive di
+> sebelah file spreadsheet ini (bukan sel Sheets), jadi tidak terikat
+> Protect sheet — cukup pastikan SPV sudah diberi akses Editor/Commenter
+> ke folder Google Drive tempat spreadsheet ini berada (folder dibuat
+> otomatis saat entri progres pertama disimpan).
 
 ---
 
@@ -302,7 +334,14 @@ Grup Proyek | Nama Proyek | Blok/No. Unit | Minggu Ke- | Tanggal Update | Realis
    prompt (pilih akun `admgreenparkgroup124@gmail.com`, klik "Advanced" →
    "Go to (nama project) (unsafe)" kalau muncul peringatan "app belum
    diverifikasi" — ini normal untuk script yang Anda buat sendiri, bukan
-   pihak ketiga).
+   pihak ketiga). Karena `appsscript.json` sekarang minta akses **Google
+   Drive** juga (fitur upload foto progres, Bagian 2g), layar consent ini
+   akan menyebut izin "Melihat, mengedit, membuat, dan menghapus file
+   Google Drive tertentu Anda" (scope `drive.file`, dibatasi cuma file
+   yang dibuat script ini sendiri) — setujui juga. Setiap pengguna lain
+   (termasuk SPV Lapangan) akan melihat prompt otorisasi serupa saat
+   pertama kali membuka Web App-nya, karena deploy pakai **Execute as:
+   User accessing the web app**.
 7. Setelah deploy sukses, akan muncul **Web app URL** — inilah link
    dashboard yang dibagikan ke 7 akun di atas.
 
@@ -325,10 +364,10 @@ sendiri), cara update:
 - Kalau muncul halaman "Akses Ditolak", cek: (a) email yang dipakai login
   benar-benar ada di tab Akses (tanpa spasi/typo), (b) file spreadsheet
   sudah di-share ke email tsb.
-- Ada 5 menu di bagian atas (di bawah header), masing-masing punya filter
-  GP (bentuk tab tombol Semua/GP1/GP2/GP3/GP4, konsisten di ketiga menu
-  Master Data) + Proyek sendiri (menyesuaikan GP yang dipilih) selain
-  filter yang disebut di bawah:
+- Ada 6 menu di bagian atas (di bawah header), masing-masing punya filter
+  GP (bentuk tab tombol Semua/GP1/GP2/GP3/GP4, konsisten di menu-menu
+  Master Data & Input Progres) + Proyek sendiri (menyesuaikan GP yang
+  dipilih) selain filter yang disebut di bawah:
   - **Dashboard** — punya 4 sub-tab: **Semua** (ringkasan gabungan: filter
     Tahun/Bulan/GP/Proyek/Kategori + kotak pencarian, kartu ringkasan,
     alert overdue, 5 grafik, dan tabel per kategori SPK/Home With
@@ -354,9 +393,16 @@ sendiri), cara update:
     Hari (**diisi manual langsung di kolom ini** oleh PIC terkait — lihat
     Bagian 2c), Elapsed Hari, dan Status SLA, plus alert otomatis kalau ada
     yang **Overdue** (lewat target). Filter GP/Proyek/Kategori/Status SLA.
-  Keempat menu Master Data ini punya kotak pencari sendiri dan **tidak**
-  ikut filter Tahun/Bulan/Kategori di menu Dashboard — sengaja dibuat
-  sebagai tampilan "apa adanya" dari data mentah per tab/proses.
+  - **Input Progres** — khusus **SPV Lapangan** (scope `SPV:GP...`, Bagian
+    2d): daftar unit yang sudah punya SPK (kolom GP, Proyek, Blok/Unit,
+    Jenis SPK, Minggu Terakhir Diisi, % Realisasi Terakhir, Status), filter
+    GP/Proyek + kotak pencari. Klik satu unit untuk buka Kurva S & riwayat
+    progresnya, plus form input progres minggu ini (lihat detail alurnya
+    di bawah).
+  Kelima menu Master Data/Input Progres ini punya kotak pencari sendiri
+  dan **tidak** ikut filter Tahun/Bulan/Kategori di menu Dashboard —
+  sengaja dibuat sebagai tampilan "apa adanya" dari data mentah per
+  tab/proses.
 - **Tombol "+ Tambah Data"** — muncul di toolbar Master Data SPK/
   Purchasing/Home With AI, **hanya untuk PIC yang punya scope Role**
   terkait (Bagian 2d; Haris/Ajis untuk SPK sesuai GP yang aktif, Kahfi
@@ -381,9 +427,23 @@ sendiri), cara update:
   belum punya SPK, bagian ini menampilkan catatan "belum bisa dilacak"
   alih-alih chart kosong), dan paling bawah **Total Seluruh Pengeluaran**
   (jumlah SPK + Purchasing + Home With AI unit itu, digabung jadi satu
-  angka). PIC yang berwenang (scope SPK sesuai GP unit itu) melihat form
-  kecil "Update Progres" di bagian Progres Konstruksi untuk mengisi
-  realisasi minggu ini langsung dari modal ini.
+  angka). Section Progres Konstruksi di modal ini **baca-saja** untuk
+  semua orang (CEO/Dirops/Admin Teknik) — input progres tidak lagi lewat
+  sini, lihat menu "Input Progres" di bawah.
+- **Menu "Input Progres"** — alur khusus **SPV Lapangan**: buka menu ini,
+  cari unitnya (filter GP/Proyek/kotak cari), klik baris unit → muncul
+  modal berisi Kurva S + riwayat progres unit itu (sama seperti di modal
+  Detail per Unit), dan **kalau viewer punya scope `SPV:<GP>` unit
+  tersebut**, tampil juga form "Input Progres Minggu Ini": Minggu Ke-,
+  Realisasi Progres (%), Keterangan, dan **upload foto** (pilih/foto
+  langsung dari HP, minimal **4 foto** — tombol Simpan tetap nonaktif
+  secara efektif sampai syarat ini terpenuhi, ditandai counter foto
+  "n/4"). Foto di-kecilkan otomatis di browser sebelum dikirim (supaya
+  cepat di koneksi lapangan), lalu di-upload ke Google Drive oleh script
+  dan linknya tersimpan di kolom Lampiran Foto (Bagian 2g). Kalau viewer
+  tidak punya scope SPV untuk GP unit itu, bagian form diganti pesan
+  "Anda tidak berwenang menginput progres konstruksi untuk GP ini" —
+  Kurva S & riwayatnya tetap terlihat.
 - Tombol **⟳ Refresh** di kanan atas menarik data terbaru dari spreadsheet
   kapan saja. Auto-refresh berjalan sendiri di latar belakang — intervalnya
   bisa diatur lewat dropdown **Auto-refresh** di sebelah tombol Refresh
@@ -395,17 +455,31 @@ sendiri), cara update:
 
 ## 5. Batasan v1 / hal yang perlu diketahui
 
-- **Dashboard ini read-only, kecuali tiga pengecualian yang disengaja**:
+- **Dashboard ini read-only, kecuali empat pengecualian yang disengaja**:
   kolom **Target Hari (SLA)** di halaman Master Data SLA, tombol
   **"+ Tambah Data"** di Master Data SPK/Purchasing/Home With AI, dan
-  form **Update Progres** di modal Detail per Unit (Bagian 2c/2d/2g/4) —
-  ketiganya boleh ditulis langsung dari dashboard oleh PIC terkait, tapi
-  **cuma bisa menambah baris baru**, belum bisa mengedit atau menghapus
-  baris yang sudah ada — kalau ada baris lama yang salah, tetap perlu
-  diperbaiki langsung di Google Sheets (Target Hari SLA sedikit beda:
-  itu memang isi ulang sel yang sama, bukan tambah baris). Selebihnya
-  (edit data existing) tetap dilakukan langsung di Sheets oleh Haris/Ajis
-  (SPK), Kahfi (Purchasing), Naufal (Home With AI) — sesuai PRD Bagian 5.
+  form **Input Progres Minggu Ini** di halaman **"Input Progres"**
+  (Bagian 2c/2d/2g/4; BUKAN lagi di modal Detail per Unit — itu sekarang
+  baca-saja) — keempatnya boleh ditulis langsung dari dashboard oleh
+  PIC/SPV terkait, tapi **cuma bisa menambah baris baru**, belum bisa
+  mengedit atau menghapus baris yang sudah ada — kalau ada baris lama
+  yang salah, tetap perlu diperbaiki langsung di Google Sheets (Target
+  Hari SLA sedikit beda: itu memang isi ulang sel yang sama, bukan tambah
+  baris). Selebihnya (edit data existing) tetap dilakukan langsung di
+  Sheets oleh Haris/Ajis (SPK), Kahfi (Purchasing), Naufal (Home With AI)
+  — sesuai PRD Bagian 5.
+- **Input Progres Konstruksi mewajibkan minimal 4 foto per entri
+  minggu** (divalidasi di browser dan di server) — kalau SPV belum
+  sempat memotret 4 foto, entri minggu itu tidak bisa disimpan dulu.
+  Foto tersimpan di folder Google Drive di sebelah file spreadsheet ini
+  (bukan di dalam sel Sheets), dengan akses "siapapun yang punya link
+  boleh lihat" (`ANYONE_WITH_LINK`, view-only) — supaya link-nya bisa
+  dibuka langsung dari kolom Lampiran Foto tanpa perlu izin Drive
+  tambahan per orang, tapi juga berarti siapapun yang memegang link
+  foto itu bisa melihatnya walau tidak terdaftar di tab Akses. Kalau ini
+  jadi perhatian (mis. foto lapangan dianggap sensitif), ubah manual
+  jadi `ANYONE_IN_DOMAIN`/private + share manual di
+  `uploadProgressPhotos_` (DataService.gs).
 - **Overdue** (kartu & alert di menu Dashboard) hanya dihitung untuk SPK
   Jenis **UNIT RUMAH** (target otomatis Tanggal Terbit + 5 bulan) — ini
   tidak berubah walau ada fitur SLA baru. **Master Data SLA** adalah
