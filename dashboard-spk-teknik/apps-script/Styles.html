@@ -452,29 +452,29 @@
   .btn-add[hidden] { display: none; }
 
   /* ---------- Form "Tambah Data" (dalam unit-modal) ---------- */
-  .unit-modal-form { max-width: 640px; }
+  .unit-modal-form { max-width: 660px; padding: 32px 36px 36px; }
   .form-modal-title {
-    margin: 0 0 16px; padding-bottom: 12px;
+    margin: 0 0 20px; padding-bottom: 14px;
     font-size: 17px; font-weight: 700; color: var(--navy-900);
     border-bottom: 1px solid var(--line);
   }
   .form-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 16px 20px;
+    gap: 20px 24px;
     margin-top: 4px;
   }
   @media (max-width: 560px) {
     .form-grid { grid-template-columns: 1fr; }
   }
-  .form-field { display: flex; flex-direction: column; gap: 6px; }
+  .form-field { display: flex; flex-direction: column; gap: 8px; }
   .form-field.form-field-wide { grid-column: 1 / -1; }
   .form-field label { font-size: 11px; font-weight: 600; color: var(--ink-soft); text-transform: uppercase; letter-spacing: .04em; }
   .form-field label .required-mark { color: var(--red); }
   .form-field input, .form-field select, .form-field textarea {
     border: 1px solid var(--line);
     border-radius: 6px;
-    padding: 9px 12px;
+    padding: 10px 13px;
     font-size: 13.5px;
     font-family: inherit;
     color: var(--ink);
@@ -482,7 +482,7 @@
   }
   .form-field textarea { resize: vertical; min-height: 64px; }
   .form-field input:focus, .form-field select:focus, .form-field textarea:focus { border-color: var(--navy-500); outline: none; box-shadow: 0 0 0 3px rgba(43, 92, 148, .12); }
-  .form-actions { grid-column: 1 / -1; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--line); display: flex; justify-content: flex-end; gap: 10px; }
+  .form-actions { grid-column: 1 / -1; margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--line); display: flex; justify-content: flex-end; gap: 10px; }
   .btn-primary {
     border: 1px solid var(--navy-700);
     background: var(--navy-700);
