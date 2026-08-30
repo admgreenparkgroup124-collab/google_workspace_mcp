@@ -2,14 +2,15 @@
 
 Dashboard untuk memantau SPK, Home With AI, dan Purchasing Departemen
 Teknik GPG, dibangun sesuai `PRD_Dashboard_SPK_Teknik_GPG.md` (v1.3,
-final). Pada dasarnya read-only, kecuali dua fitur tulis-balik yang
+final). Pada dasarnya read-only, kecuali tiga fitur tulis-balik yang
 disengaja: PIC terkait bisa mengisi **Target Hari SLA** per baris
-langsung dari halaman Master Data SLA, dan bisa **menambah data baru**
+langsung dari halaman Master Data SLA, bisa **menambah data baru**
 (SPK/Purchasing/Home With AI) langsung dari dashboard lewat tombol
-"+ Tambah Data" — keduanya tertulis langsung ke Google Sheets, tidak perlu
-diketik dua kali. Backend berupa Google Apps Script **container-bound**
-(dibuat langsung dari dalam Google Sheets sumber data), disajikan sebagai
-Web App.
+"+ Tambah Data", dan bisa mengisi **Progres Konstruksi Mingguan** (Kurva
+S Rencana vs Realisasi) langsung dari modal Detail per Unit — ketiganya
+tertulis langsung ke Google Sheets, tidak perlu diketik dua kali. Backend
+berupa Google Apps Script **container-bound** (dibuat langsung dari
+dalam Google Sheets sumber data), disajikan sebagai Web App.
 
 Spreadsheet sumber:
 https://docs.google.com/spreadsheets/d/1KyKiyRguYrFdCS2jQqKfrNhR4nvtbPVrV6abr0pR-48/edit
@@ -191,7 +192,48 @@ rapi di dashboard maupun konsistensi jangka panjang, sebaiknya seragamkan
 penulisan ke depannya (mis. selalu `GP1`, `GP2`, `GP3`, `GP4` tanpa spasi)
 di semua tab termasuk Home With AI & Purchasing.
 
-### 2f. Share & Protect sheet
+### 2g. Tambah tab **"Rencana Progres"** dan **"Realisasi Progres"** (Progres Konstruksi Mingguan)
+
+Fitur Kurva S sederhana — bandingkan rencana jadwal kerja mingguan
+terhadap realisasinya, per unit (referensinya **Blok/No. Unit unit itu
+sendiri**, bukan "Tipe Unit" — jadi tidak perlu tabel master tipe rumah
+terpisah).
+
+**Tab "Rencana Progres"** (diisi **manual di Sheets**, bulk paste dari
+dokumen Time Schedule & Kurva S yang sudah biasa Anda buat per unit).
+Baris header:
+
+```
+Grup Proyek | Nama Proyek | Blok/No. Unit | Minggu Ke- | Rencana Progres Mingguan (%)
+```
+
+- Satu baris per (unit, minggu) — kalau rencana unit itu 16 minggu, berarti
+  16 baris untuk unit itu.
+- **Rencana Progres Mingguan (%)** adalah persentase **mingguan** (bukan
+  kumulatif) — sama seperti baris "RENCANA PROGRES MINGGUAN" di dokumen
+  Kurva S Anda, BUKAN baris "RENCANA PROGRES KUMULATIF". Dashboard yang
+  menjumlahkannya jadi kurva kumulatif otomatis.
+- Kalau tab ini belum diisi untuk suatu unit, dashboard tidak error —
+  bagian Progres Konstruksi unit itu cuma menampilkan Realisasi saja
+  (tanpa garis Rencana pembanding).
+
+**Tab "Realisasi Progres"** (diisi **PIC lewat dashboard**, dari form
+"Update Progres" di modal Detail per Unit — bukan diketik manual di
+Sheets, walau tetap tersimpan sebagai sel biasa di sini). Baris header:
+
+```
+Grup Proyek | Nama Proyek | Blok/No. Unit | Minggu Ke- | Tanggal Update | Realisasi Progres Mingguan (%) | Keterangan
+```
+
+- Sama seperti Rencana, **Realisasi Progres Mingguan (%)** adalah
+  persentase **mingguan** (bukan kumulatif) — diisi satu angka agregat per
+  minggu (bukan rincian per item pekerjaan seperti "Pekerjaan Struktur
+  Beton", dst. — supaya PIC tidak perlu mengisi banyak angka tiap minggu).
+- **Siapa boleh isi**: PIC yang sama dengan scope SPK unit itu (Haris/Ajis
+  sesuai GP-nya di kolom Role tab Akses, Bagian 2d) — tidak perlu scope
+  Role terpisah untuk Progres.
+
+### 2h. Share & Protect sheet
 
 1. **Share** file ke 7 akun Google di atas (minimal akses **Viewer**;
    Haris/Ajis/Kahfi/Naufal butuh **Editor** supaya bisa isi tab masing-masing).
@@ -200,6 +242,11 @@ di semua tab termasuk Home With AI & Purchasing.
    - Tab GP3 → hanya Ajis yang boleh edit.
    - Tab Purchasing → hanya Kahfi.
    - Tab Home With AI → hanya Naufal.
+   - Tab **Realisasi Progres** → Haris & Ajis (sama seperti hak edit
+     GP1/GP2/GP4/GP3 mereka masing-masing — progres konstruksi mengikuti
+     scope SPK, lihat Bagian 2g).
+   - Tab **Rencana Progres** → Haris & Ajis juga (mereka yang bulk-paste
+     jadwal rencana per unit).
    - Tab Akses → hanya Anda (admin/pemilik) — tab ini mengatur siapa boleh
      akses dashboard sekaligus scope tulis-balik Target Hari SLA (kolom
      Role, Bagian 2d), sebaiknya tidak semua orang bisa ubah langsung di
@@ -207,16 +254,18 @@ di semua tab termasuk Home With AI & Purchasing.
 
 > Catatan penting: karena Web App di-deploy dengan **Execute as: User
 > accessing the web app** (Bagian 3), SEMUA tulisan dari dashboard ke
-> Sheets — kolom **Target Hari (SLA)** maupun baris baru dari **"+ Tambah
-> Data"** — benar-benar berjalan atas nama akun PIC yang sedang login,
-> tunduk pada Protect sheet yang sama seperti kalau dia mengetik langsung
-> di spreadsheet. Ini pas dengan setup Protect sheet di atas (Haris editor
-> GP1/GP2/GP4, Ajis editor GP3, Kahfi editor Purchasing, Naufal editor
-> Home With AI), jadi tidak perlu pengaturan tambahan. Kalau nanti ada PIC
-> yang di kolom Role tab Akses (Bagian 2d) diberi scope untuk suatu tab
-> tapi belum diberi akses **Editor** ke tab itu di Bagian 2f, tulisannya
-> akan gagal tersimpan (muncul pesan error di dashboard) — pastikan scope
-> Role dan hak edit Protect sheet selalu sinkron untuk orang yang sama.
+> Sheets — kolom **Target Hari (SLA)**, baris baru dari **"+ Tambah
+> Data"**, maupun baris baru di **Realisasi Progres** — benar-benar
+> berjalan atas nama akun PIC yang sedang login, tunduk pada Protect sheet
+> yang sama seperti kalau dia mengetik langsung di spreadsheet. Ini pas
+> dengan setup Protect sheet di atas (Haris editor GP1/GP2/GP4 + Realisasi
+> Progres, Ajis editor GP3 + Realisasi Progres, Kahfi editor Purchasing,
+> Naufal editor Home With AI), jadi tidak perlu pengaturan tambahan. Kalau
+> nanti ada PIC yang di kolom Role tab Akses (Bagian 2d) diberi scope
+> untuk suatu tab tapi belum diberi akses **Editor** ke tab itu di sini,
+> tulisannya akan gagal tersimpan (muncul pesan error di dashboard) —
+> pastikan scope Role dan hak edit Protect sheet selalu sinkron untuk
+> orang yang sama.
 
 ---
 
@@ -326,9 +375,15 @@ sendiri), cara update:
   (dipisah koma) saat disimpan ke Sheets, karena kolomnya tetap satu sel.
 - Klik satu baris di tabel manapun (Dashboard maupun Master Data) yang
   punya nilai Unit (Blok/No. Unit terisi) untuk membuka **Detail per
-  Unit** — riwayat SPK (dengan Jenis SPK & Item SPK-nya), Home With AI,
-  dan Purchasing unit tsb digabung dalam satu panel, terlepas dari
-  filter/menu yang sedang aktif.
+  Unit** — riwayat urut: **Riwayat SPK** (dengan Jenis SPK & Item SPK-nya)
+  → **Purchasing** → **Home With AI**, lalu **Progres Konstruksi**
+  (Kurva S Rencana vs Realisasi mingguan — lihat Bagian 2g; kalau unit
+  belum punya SPK, bagian ini menampilkan catatan "belum bisa dilacak"
+  alih-alih chart kosong), dan paling bawah **Total Seluruh Pengeluaran**
+  (jumlah SPK + Purchasing + Home With AI unit itu, digabung jadi satu
+  angka). PIC yang berwenang (scope SPK sesuai GP unit itu) melihat form
+  kecil "Update Progres" di bagian Progres Konstruksi untuk mengisi
+  realisasi minggu ini langsung dari modal ini.
 - Tombol **⟳ Refresh** di kanan atas menarik data terbaru dari spreadsheet
   kapan saja. Auto-refresh berjalan sendiri di latar belakang — intervalnya
   bisa diatur lewat dropdown **Auto-refresh** di sebelah tombol Refresh
@@ -340,13 +395,15 @@ sendiri), cara update:
 
 ## 5. Batasan v1 / hal yang perlu diketahui
 
-- **Dashboard ini read-only, kecuali dua pengecualian yang disengaja**:
-  kolom **Target Hari (SLA)** di halaman Master Data SLA, dan tombol
-  **"+ Tambah Data"** di Master Data SPK/Purchasing/Home With AI (Bagian
-  2c/2d/4) — keduanya boleh ditulis langsung dari dashboard oleh PIC
-  terkait. "+ Tambah Data" **cuma bisa menambah baris baru**, belum bisa
-  mengedit atau menghapus baris yang sudah ada — kalau ada baris lama yang
-  salah, tetap perlu diperbaiki langsung di Google Sheets. Selebihnya
+- **Dashboard ini read-only, kecuali tiga pengecualian yang disengaja**:
+  kolom **Target Hari (SLA)** di halaman Master Data SLA, tombol
+  **"+ Tambah Data"** di Master Data SPK/Purchasing/Home With AI, dan
+  form **Update Progres** di modal Detail per Unit (Bagian 2c/2d/2g/4) —
+  ketiganya boleh ditulis langsung dari dashboard oleh PIC terkait, tapi
+  **cuma bisa menambah baris baru**, belum bisa mengedit atau menghapus
+  baris yang sudah ada — kalau ada baris lama yang salah, tetap perlu
+  diperbaiki langsung di Google Sheets (Target Hari SLA sedikit beda:
+  itu memang isi ulang sel yang sama, bukan tambah baris). Selebihnya
   (edit data existing) tetap dilakukan langsung di Sheets oleh Haris/Ajis
   (SPK), Kahfi (Purchasing), Naufal (Home With AI) — sesuai PRD Bagian 5.
 - **Overdue** (kartu & alert di menu Dashboard) hanya dihitung untuk SPK

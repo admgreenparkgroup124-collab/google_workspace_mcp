@@ -21,6 +21,8 @@ function buildDashboardPayload_(requestingEmail) {
   var spk = getSpkRows_(today, scopes);
   var homeWithAi = getHomeWithAiRows_(today, scopes);
   var purchasing = getPurchasingRows_(today, scopes);
+  var progressRencana = getProgressRencanaRows_();
+  var progressRealisasi = getProgressRealisasiRows_(scopes);
 
   var meta = buildMeta_(spk, homeWithAi, purchasing);
   // Scope mentah viewer sendiri (mis. ['SPK:GP1','SPK:GP2','SPK:GP4']) --
@@ -33,6 +35,8 @@ function buildDashboardPayload_(requestingEmail) {
     spk: spk,
     homeWithAi: homeWithAi,
     purchasing: purchasing,
+    progressRencana: progressRencana,
+    progressRealisasi: progressRealisasi,
     meta: meta
   };
 }
@@ -130,6 +134,9 @@ function writeNewRecord_(recordType, gp, fields) {
   } else if (recordType === 'homeWithAi') {
     tabName = CONFIG.HOME_WITH_AI_TAB;
     fieldDefs = HOME_WITH_AI_FIELD_DEFS;
+  } else if (recordType === 'progresRealisasi') {
+    tabName = CONFIG.PROGRESS_REALISASI_TAB;
+    fieldDefs = PROGRESS_REALISASI_FIELD_DEFS;
   } else {
     throw new Error('recordType tidak dikenal: ' + recordType);
   }
@@ -376,6 +383,86 @@ function getPurchasingRows_(today, scopes) {
       canEditSla: hasScope_(scopes, 'purchasing'),
       tahun: tanggal ? tanggal.getFullYear() : null,
       bulan: tanggal ? tanggal.getMonth() + 1 : null
+    });
+  }
+
+  return rows;
+}
+
+// ---------------------------------------------------------------------
+// Progres Konstruksi Mingguan (Addendum 6) -- Rencana dibaca apa adanya
+// dari tab "Rencana Progres" (diisi manual di Sheets, bulk paste dari
+// dokumen Time Schedule & Kurva S yang sudah ada); Realisasi dibaca dari
+// tab "Realisasi Progres" (diisi PIC lewat modal Detail per Unit,
+// agregat % keseluruhan per minggu, bukan per item pekerjaan). Referensi
+// ke unit murni lewat unitKey (Grup Proyek+Nama Proyek+Blok) -- TIDAK
+// ada konsep "Tipe Unit" terpisah, sesuai keputusan user.
+// ---------------------------------------------------------------------
+function getProgressRencanaRows_() {
+  var sheet = getSpreadsheet().getSheetByName(CONFIG.PROGRESS_RENCANA_TAB);
+  if (!sheet) return [];
+
+  var values = sheet.getDataRange().getValues();
+  if (values.length < 2) return [];
+
+  var headerMap = buildHeaderMap(values[0], PROGRESS_RENCANA_FIELD_DEFS);
+  var rows = [];
+
+  for (var r = 1; r < values.length; r++) {
+    var row = values[r];
+    var gp = safeText(cellValue(row, headerMap, 'grupProyek'));
+    var proyek = safeText(cellValue(row, headerMap, 'namaProyek'));
+    var unit = safeText(cellValue(row, headerMap, 'blokUnit'));
+    var mingguKe = safeNumber(cellValue(row, headerMap, 'mingguKe'));
+    if (!gp && !proyek && !unit) continue;
+    if (!mingguKe) continue; // baris tanpa nomor minggu tidak berguna, lewati
+
+    rows.push({
+      gp: gp,
+      proyek: proyek,
+      unit: unit,
+      unitKey: unit ? makeUnitKey(gp, proyek, unit) : '',
+      mingguKe: mingguKe,
+      rencanaProgres: safeNumber(cellValue(row, headerMap, 'rencanaProgres'))
+    });
+  }
+
+  return rows;
+}
+
+function getProgressRealisasiRows_(scopes) {
+  var sheet = getSpreadsheet().getSheetByName(CONFIG.PROGRESS_REALISASI_TAB);
+  if (!sheet) return [];
+
+  var values = sheet.getDataRange().getValues();
+  if (values.length < 2) return [];
+
+  var headerMap = buildHeaderMap(values[0], PROGRESS_REALISASI_FIELD_DEFS);
+  var rows = [];
+
+  for (var r = 1; r < values.length; r++) {
+    var row = values[r];
+    var gp = safeText(cellValue(row, headerMap, 'grupProyek'));
+    var proyek = safeText(cellValue(row, headerMap, 'namaProyek'));
+    var unit = safeText(cellValue(row, headerMap, 'blokUnit'));
+    var mingguKe = safeNumber(cellValue(row, headerMap, 'mingguKe'));
+    if (!gp && !proyek && !unit) continue;
+    if (!mingguKe) continue;
+
+    rows.push({
+      id: 'PROG-' + (r + 1),
+      gp: gp,
+      proyek: proyek,
+      unit: unit,
+      unitKey: unit ? makeUnitKey(gp, proyek, unit) : '',
+      mingguKe: mingguKe,
+      tanggalUpdate: toIsoDateString(parseDateCell(cellValue(row, headerMap, 'tanggalUpdate'))),
+      realisasiProgres: safeNumber(cellValue(row, headerMap, 'realisasiProgres')),
+      keterangan: safeText(cellValue(row, headerMap, 'keterangan')),
+      // Progres konstruksi = tanggung jawab PIC SPK unit itu (Haris/Ajis
+      // sesuai GP) -- pakai scope 'spk' yg sudah ada, tidak perlu scope
+      // Role baru terpisah.
+      canEditProgress: hasScope_(scopes, 'spk', gp)
     });
   }
 

@@ -72,12 +72,13 @@ function updateSlaTargetHari(payload) {
 }
 
 // Dipanggil client dari tombol "+ Tambah Data" di halaman Master Data
-// SPK/Purchasing/Home With AI. payload: { recordType, gp, fields }. Pola
-// sama dengan updateSlaTargetHari: cek akses+scope, tulis, kembalikan
-// payload dashboard yang sudah di-refresh penuh. Validasi di sini
-// sengaja minimal (Nama Proyek terisi, field tanggal utama terisi, field
-// nilai numerik valid) -- cukup untuk mencegah baris kosong/rusak, bukan
-// validasi bisnis penuh (itu tanggung jawab PIC saat mengisi).
+// SPK/Purchasing/Home With AI, dan dari form "Update Progres" di modal
+// Detail per Unit (recordType 'progresRealisasi'). payload: { recordType,
+// gp, fields }. Pola sama dengan updateSlaTargetHari: cek akses+scope,
+// tulis, kembalikan payload dashboard yang sudah di-refresh penuh.
+// Validasi di sini sengaja minimal -- cukup untuk mencegah baris
+// kosong/rusak, bukan validasi bisnis penuh (itu tanggung jawab PIC saat
+// mengisi).
 function addRecord(payload) {
   var access = checkAccess();
   if (!access.allowed) {
@@ -89,25 +90,45 @@ function addRecord(payload) {
   var gp = payload.gp;
   var fields = payload.fields || {};
 
-  if (['spk', 'purchasing', 'homeWithAi'].indexOf(recordType) === -1) {
+  if (['spk', 'purchasing', 'homeWithAi', 'progresRealisasi'].indexOf(recordType) === -1) {
     throw new Error('recordType tidak valid.');
   }
-  if (!canEditSla_(access.email, recordType, gp)) {
+
+  // Progres konstruksi = tanggung jawab PIC SPK unit itu (scope 'spk'
+  // sesuai GP-nya), bukan scope terpisah -- lihat komentar di
+  // getProgressRealisasiRows_ (DataService.gs).
+  var scopeCheckType = recordType === 'progresRealisasi' ? 'spk' : recordType;
+  if (!canEditSla_(access.email, scopeCheckType, gp)) {
     throw new Error('Anda tidak berwenang menambah data ini.');
   }
-  if (!safeText(fields.namaProyek)) {
-    throw new Error('Nama Proyek tidak boleh kosong.');
-  }
 
-  var mainDateKey = recordType === 'spk' ? 'tanggalTerbit' : 'tanggalMulai';
-  if (!safeText(fields[mainDateKey])) {
-    throw new Error((recordType === 'spk' ? 'Tanggal Terbit' : 'Tanggal Order/Mulai') + ' tidak boleh kosong.');
-  }
+  if (recordType === 'progresRealisasi') {
+    if (!safeText(fields.namaProyek) || !safeText(fields.blokUnit)) {
+      throw new Error('Data unit (Proyek/Blok) tidak boleh kosong.');
+    }
+    var mingguKe = Number(fields.mingguKe);
+    if (!isFinite(mingguKe) || mingguKe < 1) {
+      throw new Error('Minggu Ke- harus berupa angka >= 1.');
+    }
+    var realisasiProgres = Number(fields.realisasiProgres);
+    if (!isFinite(realisasiProgres) || realisasiProgres < 0 || realisasiProgres > 100) {
+      throw new Error('Realisasi Progres harus berupa angka 0-100.');
+    }
+  } else {
+    if (!safeText(fields.namaProyek)) {
+      throw new Error('Nama Proyek tidak boleh kosong.');
+    }
 
-  var mainValueKey = recordType === 'spk' ? 'nilaiKontrak' : 'nilai';
-  var mainValue = Number(fields[mainValueKey]);
-  if (!isFinite(mainValue) || mainValue < 0) {
-    throw new Error((recordType === 'spk' ? 'Nilai Kontrak' : 'Harga Total') + ' harus berupa angka >= 0.');
+    var mainDateKey = recordType === 'spk' ? 'tanggalTerbit' : 'tanggalMulai';
+    if (!safeText(fields[mainDateKey])) {
+      throw new Error((recordType === 'spk' ? 'Tanggal Terbit' : 'Tanggal Order/Mulai') + ' tidak boleh kosong.');
+    }
+
+    var mainValueKey = recordType === 'spk' ? 'nilaiKontrak' : 'nilai';
+    var mainValue = Number(fields[mainValueKey]);
+    if (!isFinite(mainValue) || mainValue < 0) {
+      throw new Error((recordType === 'spk' ? 'Nilai Kontrak' : 'Harga Total') + ' harus berupa angka >= 0.');
+    }
   }
 
   writeNewRecord_(recordType, gp, fields);

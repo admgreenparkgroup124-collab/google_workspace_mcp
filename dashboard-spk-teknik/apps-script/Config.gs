@@ -14,6 +14,8 @@ var CONFIG = {
   HOME_WITH_AI_TAB: 'Home With AI',
   PURCHASING_TAB: 'Purchasing',
   ACCESS_TAB: 'Akses',
+  PROGRESS_RENCANA_TAB: 'Rencana Progres',
+  PROGRESS_REALISASI_TAB: 'Realisasi Progres',
 
   // Jenis SPK yang Tanggal Selesai-nya otomatis dihitung (Tanggal Terbit + 5 bulan)
   UNIT_RUMAH_JENIS_SPK: 'UNIT RUMAH',
@@ -103,6 +105,31 @@ var ACCESS_FIELD_DEFS = [
   // Scope tulis-balik SLA per PIC, dipisah koma: "SPK:GP1,SPK:GP2,SPK:GP4",
   // "Purchasing", "HomeWithAi". Kosong/tidak ada kolom = viewer (baca saja).
   { key: 'role', candidates: ['role', 'peran'] }
+];
+
+// Rencana Progres: diisi manual di Sheets (bulk paste dari dokumen Time
+// Schedule & Kurva S existing) -- Grup Proyek/Nama Proyek/Blok/No. Unit
+// dipakai persis sama seperti tab lain utk hitung unitKey (Addendum 6:
+// referensi jadwal per UNIT langsung via Blok, bukan lewat "Tipe Unit").
+var PROGRESS_RENCANA_FIELD_DEFS = [
+  { key: 'grupProyek', candidates: ['grup proyek'] },
+  { key: 'namaProyek', candidates: ['nama proyek'] },
+  { key: 'blokUnit', candidates: ['blok no unit area kerja', 'blok no unit', 'blok unit', 'no unit'] },
+  { key: 'mingguKe', candidates: ['minggu ke', 'minggu'] },
+  { key: 'rencanaProgres', candidates: ['rencana progres mingguan', 'rencana progres', 'rencana'] }
+];
+
+// Realisasi Progres: diisi PIC lewat dashboard (modal Detail per Unit),
+// satu baris baru tiap minggu -- agregat % keseluruhan (bukan per item
+// pekerjaan), sesuai keputusan user.
+var PROGRESS_REALISASI_FIELD_DEFS = [
+  { key: 'grupProyek', candidates: ['grup proyek'] },
+  { key: 'namaProyek', candidates: ['nama proyek'] },
+  { key: 'blokUnit', candidates: ['blok no unit area kerja', 'blok no unit', 'blok unit', 'no unit'] },
+  { key: 'mingguKe', candidates: ['minggu ke', 'minggu'] },
+  { key: 'tanggalUpdate', candidates: ['tanggal update', 'tanggal'] },
+  { key: 'realisasiProgres', candidates: ['realisasi progres mingguan', 'realisasi progres', 'realisasi'] },
+  { key: 'keterangan', candidates: ['keterangan'] }
 ];
 
 // Status yang valid, dipakai untuk validasi ringan & urutan tampilan di UI

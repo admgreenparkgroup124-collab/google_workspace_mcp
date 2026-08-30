@@ -1418,6 +1418,96 @@
   // ---------------------------------------------------------------------
   // Unit detail modal
   // ---------------------------------------------------------------------
+  function todayIsoLocal_() {
+    var d = new Date();
+    return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+  }
+
+  // Kurva S sederhana: rencanaProgres/realisasiProgres yang tersimpan di
+  // Sheets adalah persentase MINGGUAN (bukan kumulatif) -- dijumlahkan di
+  // sini jadi kumulatif, sepanjang gabungan minggu yang benar-benar punya
+  // data (weekKeys), supaya rencana & realisasi tetap sejajar di chart
+  // walau realisasi baru terisi sebagian dari rencana.
+  function buildCumulativeAtWeeks_(list, weekKeys, key) {
+    var byWeek = {};
+    list.forEach(function (r) { byWeek[r.mingguKe] = r[key]; });
+    var sum = 0;
+    return weekKeys.map(function (wk) {
+      if (byWeek[wk] != null) sum += byWeek[wk];
+      return sum;
+    });
+  }
+
+  function renderUnitProgressChart_(weekKeys, rencanaCum, realisasiCum) {
+    destroyChart('unitProgress');
+    var canvas = document.getElementById('unitProgressChart');
+    if (!canvas) return;
+    charts.unitProgress = new Chart(canvas.getContext('2d'), {
+      type: 'line',
+      data: {
+        labels: weekKeys.map(function (wk) { return 'M' + wk; }),
+        datasets: [
+          { label: 'Rencana (%)', data: rencanaCum, borderColor: '#5b8fb9', backgroundColor: 'transparent', tension: 0.2 },
+          { label: 'Realisasi (%)', data: realisasiCum, borderColor: '#1f9d55', backgroundColor: 'transparent', tension: 0.2 }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        scales: { y: { beginAtZero: true, max: 100, ticks: { callback: function (v) { return v + '%'; } } } },
+        plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } } }
+      }
+    });
+  }
+
+  function wireUnitProgressForm_(gp, proyek, unit, unitKey) {
+    var form = document.getElementById('unitProgressForm');
+    if (!form) return;
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var errorEl = document.getElementById('unitProgressError');
+      errorEl.hidden = true;
+
+      var mingguKe = Number(document.getElementById('unitProgressMinggu').value);
+      var realisasi = Number(document.getElementById('unitProgressRealisasi').value);
+      var keterangan = document.getElementById('unitProgressKeterangan').value;
+
+      if (!isFinite(mingguKe) || mingguKe < 1) {
+        errorEl.textContent = 'Minggu Ke- harus berupa angka >= 1.'; errorEl.hidden = false; return;
+      }
+      if (!isFinite(realisasi) || realisasi < 0 || realisasi > 100) {
+        errorEl.textContent = 'Realisasi Progres harus berupa angka 0-100.'; errorEl.hidden = false; return;
+      }
+
+      var submitBtn = form.querySelector('button[type="submit"]');
+      submitBtn.disabled = true;
+      google.script.run
+        .withSuccessHandler(function (payload) {
+          rawData = payload;
+          updateSyncStatus();
+          populateFilterOptions();
+          populateMasterFilterOptions();
+          updateAddButtonsVisibility();
+          renderCurrentView();
+          showToast('success', 'Progres tersimpan.');
+          openUnitDetail({ unitKey: unitKey, unit: unit, gp: gp, proyek: proyek });
+        })
+        .withFailureHandler(function (err) {
+          submitBtn.disabled = false;
+          errorEl.textContent = err && err.message ? err.message : String(err);
+          errorEl.hidden = false;
+        })
+        .addRecord({
+          recordType: 'progresRealisasi',
+          gp: gp,
+          fields: {
+            grupProyek: gp, namaProyek: proyek, blokUnit: unit,
+            mingguKe: mingguKe, realisasiProgres: realisasi,
+            tanggalUpdate: todayIsoLocal_(), keterangan: keterangan
+          }
+        });
+    });
+  }
+
   function openUnitDetail(record) {
     var unitKey = record.unitKey;
     var spkList = rawData.spk.filter(function (r) { return r.unitKey === unitKey; });
@@ -1490,8 +1580,80 @@
     }).join('') : '<p class="unit-empty">Belum ada data Home With AI untuk unit ini.</p>';
     html += '</div>';
 
+    // ---- Progres Konstruksi (Kurva S sederhana, Addendum 6) ----
+    // Progres cuma relevan kalau unit sudah punya SPK (titik mulai) --
+    // "acuannya dari Blok", jadi gp/proyek/unit-nya ikut SPK yang sudah ada.
+    var progressGp = spkList.length ? spkList[0].gp : '';
+    var canEditProgress = spkList.length ? !!spkList[0].canEditSla : false;
+    var rencanaList = rawData.progressRencana.filter(function (r) { return r.unitKey === unitKey; })
+      .sort(function (a, b) { return a.mingguKe - b.mingguKe; });
+    var realisasiList = rawData.progressRealisasi.filter(function (r) { return r.unitKey === unitKey; })
+      .sort(function (a, b) { return a.mingguKe - b.mingguKe; });
+
+    html += '<div class="unit-section"><h4>Progres Konstruksi</h4>';
+    if (!spkList.length) {
+      html += '<p class="unit-empty">Progres konstruksi baru bisa dilacak setelah SPK unit ini terbit.</p>';
+    } else {
+      var weekMap = {};
+      rencanaList.forEach(function (r) {
+        weekMap[r.mingguKe] = weekMap[r.mingguKe] || {};
+        weekMap[r.mingguKe].rencana = r.rencanaProgres;
+      });
+      realisasiList.forEach(function (r) {
+        weekMap[r.mingguKe] = weekMap[r.mingguKe] || {};
+        weekMap[r.mingguKe].realisasi = r.realisasiProgres;
+        weekMap[r.mingguKe].tanggalUpdate = r.tanggalUpdate;
+        weekMap[r.mingguKe].keterangan = r.keterangan;
+      });
+      var weekKeys = Object.keys(weekMap).map(Number).sort(function (a, b) { return a - b; });
+
+      if (weekKeys.length) {
+        html += '<div class="unit-item"><div class="progress-chart-wrap"><canvas id="unitProgressChart"></canvas></div>' +
+          weekKeys.map(function (wk) {
+            var w = weekMap[wk];
+            return '<div class="unit-item-meta">Minggu ' + wk + ': Rencana ' +
+              (w.rencana != null ? w.rencana + '%' : '–') + ' · Realisasi ' +
+              (w.realisasi != null ? w.realisasi + '%' : '–') +
+              (w.tanggalUpdate ? ' (' + formatDate(w.tanggalUpdate) + ')' : '') +
+              (w.keterangan ? ' · ' + escapeHtml(w.keterangan) : '') + '</div>';
+          }).join('') + '</div>';
+      } else {
+        html += '<p class="unit-empty">Belum ada rencana/realisasi progres untuk unit ini.</p>';
+      }
+
+      if (canEditProgress) {
+        html += '<form id="unitProgressForm" class="form-grid progress-form">' +
+          '<div class="form-field"><label>Minggu Ke- <span class="required-mark">*</span></label>' +
+          '<input type="number" id="unitProgressMinggu" min="1" step="1"></div>' +
+          '<div class="form-field"><label>Realisasi Progres (%) <span class="required-mark">*</span></label>' +
+          '<input type="number" id="unitProgressRealisasi" min="0" max="100" step="any"></div>' +
+          '<div class="form-field form-field-wide"><label>Keterangan</label>' +
+          '<input type="text" id="unitProgressKeterangan"></div>' +
+          '<div class="form-actions"><button type="submit" class="btn-primary">Simpan Progres</button></div>' +
+          '</form><div class="form-error" id="unitProgressError" hidden></div>';
+      }
+    }
+    html += '</div>';
+
+    var totalPengeluaran = spkList.reduce(function (s, r) { return s + r.nilaiTotal; }, 0) +
+      purList.reduce(function (s, r) { return s + r.nilai; }, 0) +
+      hwaList.reduce(function (s, r) { return s + r.nilai; }, 0);
+    html += '<div class="unit-total-footer">Total Seluruh Pengeluaran <strong>' + formatRupiah(totalPengeluaran) + '</strong></div>';
+
     document.getElementById('unitModalContent').innerHTML = html;
     document.getElementById('unitModalBackdrop').classList.add('open');
+
+    // weekKeys (var, function-scoped) sudah dihitung di blok "else" di atas
+    // kalau spkList.length true -- dipakai ulang di sini utk render chart
+    // setelah canvas-nya benar-benar ada di DOM (innerHTML sudah di-set).
+    if (spkList.length && weekKeys && weekKeys.length) {
+      renderUnitProgressChart_(
+        weekKeys,
+        buildCumulativeAtWeeks_(rencanaList, weekKeys, 'rencanaProgres'),
+        buildCumulativeAtWeeks_(realisasiList, weekKeys, 'realisasiProgres')
+      );
+    }
+    if (spkList.length && canEditProgress) wireUnitProgressForm_(progressGp, record.proyek, record.unit, unitKey);
   }
 
   document.getElementById('unitModalClose').addEventListener('click', closeUnitModal);
