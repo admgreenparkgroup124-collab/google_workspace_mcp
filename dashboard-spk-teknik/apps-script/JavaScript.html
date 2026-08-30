@@ -1378,6 +1378,7 @@
     { key: 'unit', label: 'Blok/Unit' },
     { key: 'jenisSpk', label: 'Jenis SPK' },
     { key: 'mingguTerakhirLabel', label: 'Minggu Terakhir Diisi' },
+    { key: 'tanggalTerakhir', label: 'Tanggal Terakhir Diisi' },
     { key: 'persenTerakhirLabel', label: '% Realisasi Terakhir' },
     { key: 'statusLabel', label: 'Status' }
   ];
@@ -1408,6 +1409,7 @@
       var row = byUnit[key];
       var last = lastByUnit[key];
       row.mingguTerakhirLabel = last ? ('Minggu ' + last.mingguKe) : null;
+      row.tanggalTerakhir = last ? last.tanggalUpdate : null;
       row.persenTerakhirLabel = last ? (last.realisasiProgres + '%') : null;
       row.statusLabel = last ? 'Ada progres' : 'Belum ada progres';
       return row;
