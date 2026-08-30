@@ -1442,30 +1442,6 @@
     }).join('') : '<p class="unit-empty">Belum ada SPK untuk unit ini.</p>';
     html += '</div>';
 
-    html += '<div class="unit-section"><h4>Home With AI</h4>';
-    html += hwaList.length ? hwaList.map(function (r) {
-      var lines = [];
-      var vendorLine = joinMeta([
-        r.namaVendor ? 'Vendor: ' + escapeHtml(r.namaVendor) : '',
-        (r.satuan || r.hargaSatuan) ? 'Satuan: ' + escapeHtml(r.satuan || '-') + ' · Harga Satuan: ' + formatRupiah(r.hargaSatuan) : ''
-      ]);
-      if (vendorLine) lines.push(vendorLine);
-      lines.push(joinMeta([
-        r.tanggalMulai ? 'Mulai: ' + formatDate(r.tanggalMulai) : '',
-        r.tanggalTerpasang ? 'Terpasang: ' + formatDate(r.tanggalTerpasang) : 'Belum terpasang',
-        r.tanggalSelesai ? 'Selesai: ' + formatDate(r.tanggalSelesai) : '',
-        r.keterangan ? escapeHtml(r.keterangan) : ''
-      ]));
-      if (r.lampiran) lines.push('Lampiran: ' + escapeHtml(r.lampiran));
-
-      return '<div class="unit-item">' +
-        '<div class="unit-item-title"><span class="badge ' + statusBadgeClass(r.status) + '">' + escapeHtml(r.status) + '</span>' +
-        '<span>' + formatRupiah(r.nilai) + '</span></div>' +
-        lines.map(function (l) { return '<div class="unit-item-meta">' + l + '</div>'; }).join('') +
-        '</div>';
-    }).join('') : '<p class="unit-empty">Belum ada data Home With AI untuk unit ini.</p>';
-    html += '</div>';
-
     html += '<div class="unit-section"><h4>Purchasing (Promo &amp; Material Unit)</h4>';
     html += purList.length ? purList.map(function (r) {
       var lines = [];
@@ -1488,6 +1464,30 @@
         lines.map(function (l) { return '<div class="unit-item-meta">' + l + '</div>'; }).join('') +
         '</div>';
     }).join('') : '<p class="unit-empty">Belum ada data Purchasing untuk unit ini.</p>';
+    html += '</div>';
+
+    html += '<div class="unit-section"><h4>Home With AI</h4>';
+    html += hwaList.length ? hwaList.map(function (r) {
+      var lines = [];
+      var vendorLine = joinMeta([
+        r.namaVendor ? 'Vendor: ' + escapeHtml(r.namaVendor) : '',
+        (r.satuan || r.hargaSatuan) ? 'Satuan: ' + escapeHtml(r.satuan || '-') + ' · Harga Satuan: ' + formatRupiah(r.hargaSatuan) : ''
+      ]);
+      if (vendorLine) lines.push(vendorLine);
+      lines.push(joinMeta([
+        r.tanggalMulai ? 'Mulai: ' + formatDate(r.tanggalMulai) : '',
+        r.tanggalTerpasang ? 'Terpasang: ' + formatDate(r.tanggalTerpasang) : 'Belum terpasang',
+        r.tanggalSelesai ? 'Selesai: ' + formatDate(r.tanggalSelesai) : '',
+        r.keterangan ? escapeHtml(r.keterangan) : ''
+      ]));
+      if (r.lampiran) lines.push('Lampiran: ' + escapeHtml(r.lampiran));
+
+      return '<div class="unit-item">' +
+        '<div class="unit-item-title"><span class="badge ' + statusBadgeClass(r.status) + '">' + escapeHtml(r.status) + '</span>' +
+        '<span>' + formatRupiah(r.nilai) + '</span></div>' +
+        lines.map(function (l) { return '<div class="unit-item-meta">' + l + '</div>'; }).join('') +
+        '</div>';
+    }).join('') : '<p class="unit-empty">Belum ada data Home With AI untuk unit ini.</p>';
     html += '</div>';
 
     document.getElementById('unitModalContent').innerHTML = html;
