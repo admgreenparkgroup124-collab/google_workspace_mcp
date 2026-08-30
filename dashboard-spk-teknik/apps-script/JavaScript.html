@@ -502,9 +502,9 @@
   // renderHwaOverview apa adanya, render ke elemen id lain (prefix
   // "semua...") supaya tidak bentrok dgn elemen id sub-tab kategori
   // sendiri -- lihat markup #dashboardSubview-semua di Index.html.
-  var SEMUA_SPK_IDS = { cards: 'semuaSpkSummaryCards', tren: 'chartSemuaSpkTren', trenKey: 'semuaSpkTren', status: 'chartSemuaSpkStatus', statusKey: 'semuaSpkStatus' };
-  var SEMUA_PUR_IDS = { cards: 'semuaPurSummaryCards', tren: 'chartSemuaPurTren', trenKey: 'semuaPurTren', status: 'chartSemuaPurStatus', statusKey: 'semuaPurStatus' };
-  var SEMUA_HWA_IDS = { cards: 'semuaHwaSummaryCards', tren: 'chartSemuaHwaTren', trenKey: 'semuaHwaTren', status: 'chartSemuaHwaStatus', statusKey: 'semuaHwaStatus' };
+  var SEMUA_SPK_IDS = { cards: 'semuaSpkSummaryCards', tren: 'chartSemuaSpkTren', trenKey: 'semuaSpkTren', status: 'chartSemuaSpkStatus', statusKey: 'semuaSpkStatus', statusDetails: 'semuaSpkStatusRincian' };
+  var SEMUA_PUR_IDS = { cards: 'semuaPurSummaryCards', tren: 'chartSemuaPurTren', trenKey: 'semuaPurTren', status: 'chartSemuaPurStatus', statusKey: 'semuaPurStatus', statusDetails: 'semuaPurStatusRincian' };
+  var SEMUA_HWA_IDS = { cards: 'semuaHwaSummaryCards', tren: 'chartSemuaHwaTren', trenKey: 'semuaHwaTren', status: 'chartSemuaHwaStatus', statusKey: 'semuaHwaStatus', statusDetails: 'semuaHwaStatusRincian' };
 
   function renderAll() {
     var fSpk = getFilteredSpk();
@@ -592,15 +592,17 @@
   // kategori) -- kelompokkan `rows` berdasar `keyFn`, hitung count & total
   // nilai (`valueFn`) per kelompok, kembalikan { order, countPills,
   // nilaiPills } siap ditempel ke card.breakdown.
-  function buildBreakdown(rows, keyFn, valueFn, pillClassFn) {
+  function buildBreakdown(rows, keyFn, valueFn, pillClassFn, itemLabelFn) {
     var order = [];
     var count = {};
     var nilai = {};
+    var items = {};
     rows.forEach(function (r) {
       var k = keyFn(r) || '(Tidak diisi)';
-      if (count[k] === undefined) { count[k] = 0; nilai[k] = 0; order.push(k); }
+      if (count[k] === undefined) { count[k] = 0; nilai[k] = 0; items[k] = []; order.push(k); }
       count[k]++;
       nilai[k] += valueFn(r);
+      if (itemLabelFn) items[k].push(itemLabelFn(r));
     });
     function pill(k, text) {
       var cls = pillClassFn ? pillClassFn(k) : 'badge-gray';
@@ -610,9 +612,34 @@
       order: order,
       count: count,
       nilai: nilai,
+      items: items,
       countPills: order.map(function (k) { return pill(k, count[k]); }).join(''),
       nilaiPills: order.map(function (k) { return pill(k, formatRupiah(nilai[k])); }).join('')
     };
+  }
+
+  // Rincian nama (dipakai card tanpa breakdown pill count/nilai, mis. Total
+  // Proyek & Unit Tertinggal Jadwal Konstruksi) -- daftar nama unik jadi
+  // badge biasa (bukan pasangan label:nilai spt buildBreakdown).
+  function buildNamePills(names) {
+    return names.map(function (n) { return '<span class="badge badge-gray">' + escapeHtml(n) + '</span>'; }).join('');
+  }
+
+  // Rincian klik pada chart Status Progres (donut) -- tampilkan daftar nama
+  // baris yang termasuk status/segmen yang diklik, di container di bawah
+  // chart. `itemsByLabel` opsional: { label: [nama1, nama2, ...] }.
+  function showChartRincian_(detailsElId, label, itemsByLabel) {
+    if (!detailsElId) return;
+    var el = document.getElementById(detailsElId);
+    if (!el) return;
+    var items = (itemsByLabel && itemsByLabel[label]) || [];
+    if (!items.length) {
+      el.innerHTML = '<div class="chart-rincian-empty">Tidak ada data untuk "' + escapeHtml(label) + '".</div>';
+    } else {
+      el.innerHTML = '<div class="chart-rincian-title">' + escapeHtml(label) + ' (' + items.length + ')</div>' +
+        '<div class="chart-rincian-list">' + buildNamePills(items) + '</div>';
+    }
+    el.hidden = false;
   }
 
   // ---------------------------------------------------------------------
@@ -680,15 +707,31 @@
     });
   }
 
-  function renderStatusProportionChart(canvasId, chartKey, labels, values, colors) {
+  // `itemsByLabel`/`detailsElId` opsional: kalau diisi, klik potongan donut
+  // ATAU klik legend-nya menampilkan daftar nama baris untuk status itu di
+  // container `detailsElId` (lihat showChartRincian_) -- interaktif, tidak
+  // sekadar tooltip hover.
+  function renderStatusProportionChart(canvasId, chartKey, labels, values, colors, itemsByLabel, detailsElId) {
     destroyChart(chartKey);
     var ctx = document.getElementById(canvasId).getContext('2d');
+    function onPick(idx) {
+      if (idx == null || idx < 0) return;
+      showChartRincian_(detailsElId, labels[idx], itemsByLabel);
+    }
     charts[chartKey] = new Chart(ctx, {
       type: 'doughnut',
       data: { labels: labels, datasets: [{ data: values, backgroundColor: colors }] },
       options: {
         responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } } }
+        onClick: function (evt, elements) {
+          if (elements && elements.length) onPick(elements[0].index);
+        },
+        plugins: {
+          legend: {
+            position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } },
+            onClick: function (evt, legendItem) { onPick(legendItem.index); }
+          }
+        }
       }
     });
   }
@@ -697,42 +740,59 @@
   // "Semua" -- ids opsional supaya kartu/chart-nya render ke elemen yang
   // berbeda tanpa duplikasi logic; default ke id sub-tab SPK sendiri) ----
   function renderSpkOverview(fSpk, ids) {
-    ids = ids || { cards: 'spkSummaryCards', tren: 'chartSpkTrenPenerbitan', trenKey: 'spkTrenPenerbitan', status: 'chartSpkStatusProgres', statusKey: 'spkStatusProgres' };
+    ids = ids || { cards: 'spkSummaryCards', tren: 'chartSpkTrenPenerbitan', trenKey: 'spkTrenPenerbitan', status: 'chartSpkStatusProgres', statusKey: 'spkStatusProgres', statusDetails: 'spkStatusRincian' };
     var totalNilai = fSpk.reduce(function (s, r) { return s + r.nilaiTotal; }, 0);
     var overdueCount = fSpk.filter(function (r) { return r.isOverdue; }).length;
     var jenis = buildBreakdown(fSpk, function (r) { return r.jenisSpk; }, function (r) { return r.nilaiTotal; });
-    var totalProyek = {}; fSpk.forEach(function (r) { if (r.proyek) totalProyek[normKey(r.proyek)] = true; });
+    var totalProyek = {}; var proyekNames = [];
+    fSpk.forEach(function (r) {
+      if (!r.proyek) return;
+      var k = normKey(r.proyek);
+      if (!totalProyek[k]) { totalProyek[k] = true; proyekNames.push(r.proyek); }
+    });
 
     // Unit tertinggal jadwal konstruksi (Addendum 8) -- dedup per unitKey
     // (satu unit bisa punya >1 baris SPK), dihitung dari unit-unit yang
     // sedang tampil di filter Dashboard saat ini.
     var seenUnitKeys = {};
     var behindCount = 0;
+    var behindNames = [];
     fSpk.forEach(function (r) {
       if (!r.unitKey || seenUnitKeys[r.unitKey]) return;
       seenUnitKeys[r.unitKey] = true;
       var status = computeUnitProgressStatus_(r.unitKey);
-      if (status && status.isBehind) behindCount++;
+      if (status && status.isBehind) {
+        behindCount++;
+        behindNames.push((r.proyek || '-') + (r.unit ? ' – ' + r.unit : ''));
+      }
+    });
+
+    var spkStatusItems = { 'Sesuai Jadwal': [], 'Overdue': [] };
+    fSpk.forEach(function (r) {
+      var label = r.isOverdue ? 'Overdue' : 'Sesuai Jadwal';
+      spkStatusItems[label].push((r.proyek || '-') + (r.unit ? ' – ' + r.unit : ''));
     });
 
     renderCardGrid(ids.cards, [
-      { label: 'Total Proyek', value: Object.keys(totalProyek).length },
+      { label: 'Total Proyek', value: Object.keys(totalProyek).length, breakdown: buildNamePills(proyekNames) },
       { label: 'Total SPK', value: fSpk.length, sub: overdueCount + ' overdue (Unit Rumah)', breakdown: jenis.countPills },
       { label: 'Total Nilai Transaksi', value: formatRupiah(totalNilai), breakdown: jenis.nilaiPills },
-      { label: 'Unit Tertinggal Jadwal Konstruksi', value: behindCount, sub: 'Realisasi kumulatif di bawah rencana s/d minggu berjalan', alert: behindCount > 0 }
+      { label: 'Unit Tertinggal Jadwal Konstruksi', value: behindCount, sub: 'Realisasi kumulatif di bawah rencana s/d minggu berjalan', alert: behindCount > 0, breakdown: buildNamePills(behindNames) }
     ]);
 
     renderTrendCountChart(ids.tren, ids.trenKey, fSpk, 'tanggalTerbit', 'Jumlah SPK Terbit', '#5b8fb9', spkTrendGranularity);
     renderStatusProportionChart(ids.status, ids.statusKey,
-      ['Sesuai Jadwal', 'Overdue'], [fSpk.length - overdueCount, overdueCount], ['#1f9d55', '#c53030']);
+      ['Sesuai Jadwal', 'Overdue'], [fSpk.length - overdueCount, overdueCount], ['#1f9d55', '#c53030'],
+      spkStatusItems, ids.statusDetails);
   }
 
   // ---- Overview Purchasing (dashboard sub-tab Purchasing + "Semua") ----
   function renderPurchasingOverview(fPur, ids) {
-    ids = ids || { cards: 'purSummaryCards', tren: 'chartPurTren', trenKey: 'purTren', status: 'chartPurStatus', statusKey: 'purStatus' };
+    ids = ids || { cards: 'purSummaryCards', tren: 'chartPurTren', trenKey: 'purTren', status: 'chartPurStatus', statusKey: 'purStatus', statusDetails: 'purStatusRincian' };
     var totalNilai = fPur.reduce(function (s, r) { return s + r.nilai; }, 0);
     var jenis = buildBreakdown(fPur, function (r) { return r.jenisPengadaan; }, function (r) { return r.nilai; });
-    var status = buildBreakdown(fPur, function (r) { return r.statusPekerjaan; }, function () { return 0; });
+    var itemLabel = function (r) { return (r.proyek || '-') + (r.unit ? ' – ' + r.unit : '') + ' (' + (r.namaBarang || '-') + ')'; };
+    var status = buildBreakdown(fPur, function (r) { return r.statusPekerjaan; }, function () { return 0; }, null, itemLabel);
 
     renderCardGrid(ids.cards, [
       { label: 'Total PO Purchasing', value: fPur.length, breakdown: jenis.countPills },
@@ -741,14 +801,16 @@
 
     renderTrendCountChart(ids.tren, ids.trenKey, fPur, 'tanggalMulai', 'Jumlah PO', '#5b8fb9', purTrendGranularity);
     renderStatusProportionChart(ids.status, ids.statusKey,
-      status.order, status.order.map(function (k) { return status.count[k]; }), PALETTE);
+      status.order, status.order.map(function (k) { return status.count[k]; }), PALETTE,
+      status.items, ids.statusDetails);
   }
 
   // ---- Overview Home With AI (dashboard sub-tab Home With AI + "Semua") ----
   function renderHwaOverview(fHwa, ids) {
-    ids = ids || { cards: 'hwaSummaryCards', tren: 'chartHwaTren', trenKey: 'hwaTren', status: 'chartHwaStatusProgres', statusKey: 'hwaStatusProgres' };
+    ids = ids || { cards: 'hwaSummaryCards', tren: 'chartHwaTren', trenKey: 'hwaTren', status: 'chartHwaStatusProgres', statusKey: 'hwaStatusProgres', statusDetails: 'hwaStatusRincian' };
     var totalNilai = fHwa.reduce(function (s, r) { return s + r.nilai; }, 0);
-    var status = buildBreakdown(fHwa, function (r) { return r.status; }, function (r) { return r.nilai; }, statusBadgeClass);
+    var itemLabel = function (r) { return (r.proyek || '-') + (r.unit ? ' – ' + r.unit : ''); };
+    var status = buildBreakdown(fHwa, function (r) { return r.status; }, function (r) { return r.nilai; }, statusBadgeClass, itemLabel);
 
     renderCardGrid(ids.cards, [
       { label: 'Total PO Home With AI', value: fHwa.length, breakdown: status.countPills },
@@ -757,7 +819,8 @@
 
     renderStatusProportionChart(ids.status, ids.statusKey,
       status.order, status.order.map(function (k) { return status.count[k]; }),
-      status.order.map(function (k) { return STATUS_COLORS[k] || '#94a3b8'; }));
+      status.order.map(function (k) { return STATUS_COLORS[k] || '#94a3b8'; }),
+      status.items, ids.statusDetails);
     renderTrendCountChart(ids.tren, ids.trenKey, fHwa, 'tanggalMulai', 'Jumlah PO', '#5b8fb9', hwaTrendGranularity);
   }
 

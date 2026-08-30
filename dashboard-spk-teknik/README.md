@@ -434,6 +434,14 @@ sendiri), cara update:
       Order/On Proses/Terpasang).
     Filter Tahun/Bulan/GP/Proyek/Cari tetap berlaku di semua
     sub-tab; chip Kategori cuma tampil di sub-tab Semua.
+    **Semua card & chart Status Progres bisa diklik untuk rincian**: card
+    dengan tanda panah (▸) — Total SPK, Total Nilai Transaksi, Total per
+    Jenis/Status, Total Proyek, Unit Tertinggal Jadwal Konstruksi — kalau
+    diklik memperluas daftar rincian di bawahnya (nama proyek/unit atau
+    breakdown per jenis/status) tanpa pindah halaman; klik lagi untuk
+    menutup. Chart donut **Status Progres** juga interaktif: klik salah
+    satu potongan atau legend-nya menampilkan daftar proyek/unit/PO
+    untuk status itu di bawah chart.
   - **Master Data SPK** — seluruh kolom SPK apa adanya (persis tab GP1–GP4
     di spreadsheet), + kartu ringkasan (**Total SPK** & Total Nilai) di
     atas tabel, + filter Proyek & Jenis SPK.
