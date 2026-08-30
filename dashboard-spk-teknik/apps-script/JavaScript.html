@@ -1744,7 +1744,44 @@
     document.querySelectorAll('#appNav button').forEach(function (b) { b.classList.toggle('active', b === btn); });
     document.querySelectorAll('.view').forEach(function (el) { el.hidden = (el.id !== 'view-' + currentView); });
     renderCurrentView();
+    closeMobileSidebar();
   });
+
+  // ---------------------------------------------------------------------
+  // Sidebar ERP-style: bisa dilipat jadi icon-only di desktop (preferensi
+  // tersimpan per browser), dan jadi menu off-canvas (slide-in dari kiri +
+  // backdrop) di layar sempit -- penting krn SPV Lapangan (Addendum 7)
+  // banyak akses dari HP. Dua mode ini independen: kelas .collapsed dan
+  // .mobile-open dikontrol terpisah, breakpoint 880px yang menentukan mode
+  // mana yang aktif secara visual (lihat Styles.html).
+  // ---------------------------------------------------------------------
+  var SIDEBAR_COLLAPSED_KEY = 'gpg_spk_dashboard_sidebar_collapsed';
+  var sidebarEl = document.getElementById('sidebar');
+  var sidebarBackdropEl = document.getElementById('sidebarBackdrop');
+
+  function loadSidebarCollapsedPreference() {
+    try { return localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === '1'; } catch (e) { return false; }
+  }
+  function saveSidebarCollapsedPreference(collapsed) {
+    try { localStorage.setItem(SIDEBAR_COLLAPSED_KEY, collapsed ? '1' : '0'); } catch (e) { /* abaikan */ }
+  }
+  if (loadSidebarCollapsedPreference()) sidebarEl.classList.add('collapsed');
+
+  document.getElementById('sidebarCollapseBtn').addEventListener('click', function () {
+    var collapsed = sidebarEl.classList.toggle('collapsed');
+    saveSidebarCollapsedPreference(collapsed);
+  });
+
+  function openMobileSidebar() {
+    sidebarEl.classList.add('mobile-open');
+    sidebarBackdropEl.classList.add('open');
+  }
+  function closeMobileSidebar() {
+    sidebarEl.classList.remove('mobile-open');
+    sidebarBackdropEl.classList.remove('open');
+  }
+  document.getElementById('mobileNavToggle').addEventListener('click', openMobileSidebar);
+  sidebarBackdropEl.addEventListener('click', closeMobileSidebar);
 
   // ---------------------------------------------------------------------
   // Auto-refresh interval (bisa diatur: 1/5/10/20/30 menit, tersimpan per browser)

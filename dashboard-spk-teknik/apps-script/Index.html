@@ -8,42 +8,61 @@
   <?!= include('Styles'); ?>
 </head>
 <body>
-  <div id="app">
-    <header class="topbar">
-      <div class="topbar-brand">
+  <div id="app" class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-brand">
         <div class="brand-mark">GPG</div>
         <div class="brand-text">
           <h1>Dashboard Monitoring SPK &amp; PO</h1>
           <p>Departemen Teknik — Green Park Group</p>
         </div>
       </div>
-      <div class="topbar-meta">
-        <div class="clock" id="clock">–</div>
-        <div class="sync-status" id="syncStatus">Memuat data…</div>
-        <div class="sync-interval">
-          <label for="syncInterval">Auto-refresh</label>
-          <select id="syncInterval">
-            <option value="1">1 menit</option>
-            <option value="5">5 menit</option>
-            <option value="10">10 menit</option>
-            <option value="20">20 menit</option>
-            <option value="30">30 menit</option>
-          </select>
-        </div>
-        <button id="refreshBtn" class="btn-refresh" type="button" title="Refresh data sekarang">⟳ Refresh</button>
-        <div class="user-badge" title="Masuk sebagai">
-          <?= userEmail ?>
-        </div>
-      </div>
       <nav class="app-nav" id="appNav" aria-label="Menu halaman">
-        <button data-view="dashboard" class="active" type="button">Dashboard</button>
-        <button data-view="master-spk" type="button">Master Data SPK</button>
-        <button data-view="master-purchasing" type="button">Master Data Purchasing</button>
-        <button data-view="master-hwa" type="button">Master Data Home With AI</button>
-        <button data-view="master-sla" type="button">Master Data SLA</button>
-        <button data-view="progres-input" type="button">Input Progres</button>
+        <button data-view="dashboard" class="active" type="button" title="Dashboard">
+          <span class="nav-icon">📊</span><span class="nav-label">Dashboard</span>
+        </button>
+        <button data-view="master-spk" type="button" title="Master Data SPK">
+          <span class="nav-icon">📄</span><span class="nav-label">Master Data SPK</span>
+        </button>
+        <button data-view="master-purchasing" type="button" title="Master Data Purchasing">
+          <span class="nav-icon">🛒</span><span class="nav-label">Master Data Purchasing</span>
+        </button>
+        <button data-view="master-hwa" type="button" title="Master Data Home With AI">
+          <span class="nav-icon">🏠</span><span class="nav-label">Master Data Home With AI</span>
+        </button>
+        <button data-view="master-sla" type="button" title="Master Data SLA">
+          <span class="nav-icon">⏱</span><span class="nav-label">Master Data SLA</span>
+        </button>
+        <button data-view="progres-input" type="button" title="Input Progres">
+          <span class="nav-icon">📷</span><span class="nav-label">Input Progres</span>
+        </button>
       </nav>
-    </header>
+      <button class="sidebar-collapse-btn" id="sidebarCollapseBtn" type="button" title="Lipat/lebarkan menu" aria-label="Lipat/lebarkan menu">«</button>
+    </aside>
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+    <div class="app-main">
+      <header class="topbar">
+        <button class="mobile-nav-toggle" id="mobileNavToggle" type="button" aria-label="Buka menu">☰</button>
+        <div class="topbar-meta">
+          <div class="clock" id="clock">–</div>
+          <div class="sync-status" id="syncStatus">Memuat data…</div>
+          <div class="sync-interval">
+            <label for="syncInterval">Auto-refresh</label>
+            <select id="syncInterval">
+              <option value="1">1 menit</option>
+              <option value="5">5 menit</option>
+              <option value="10">10 menit</option>
+              <option value="20">20 menit</option>
+              <option value="30">30 menit</option>
+            </select>
+          </div>
+          <button id="refreshBtn" class="btn-refresh" type="button" title="Refresh data sekarang">⟳ Refresh</button>
+          <div class="user-badge" title="Masuk sebagai">
+            <?= userEmail ?>
+          </div>
+        </div>
+      </header>
 
     <!-- ============================== VIEW: Dashboard ============================== -->
     <div id="view-dashboard" class="view">
@@ -336,6 +355,8 @@
       di Master Data SPK/Purchasing/Home With AI, dan halaman "Input Progres" — semua dibatasi per Role
       PIC/SPV terkait. Perubahan data lain dilakukan langsung di spreadsheet oleh PIC masing-masing.
     </footer>
+    </div>
+    <!-- /app-main -->
 
     <div class="unit-modal-backdrop" id="unitModalBackdrop">
       <div class="unit-modal" role="dialog" aria-modal="true">

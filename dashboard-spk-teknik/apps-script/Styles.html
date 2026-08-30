@@ -31,25 +31,33 @@
     -webkit-font-smoothing: antialiased;
   }
 
-  #app { display: flex; flex-direction: column; min-height: 100vh; }
+  #app.app-shell { display: flex; flex-direction: row; align-items: stretch; min-height: 100vh; }
 
-  /* ---------- Header ---------- */
-  .topbar {
+  /* ---------- Sidebar (ERP-style, collapsible, off-canvas on mobile) ---------- */
+  .sidebar {
+    width: 240px;
+    flex-shrink: 0;
     background: var(--navy-900);
     color: var(--white);
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 14px 24px;
-    flex-wrap: wrap;
-    gap: 12px;
+    flex-direction: column;
     position: sticky;
     top: 0;
-    z-index: 20;
+    align-self: flex-start;
+    height: 100vh;
+    overflow-y: auto;
+    transition: width .2s ease;
+    z-index: 30;
   }
-  .topbar-brand { display: flex; align-items: center; gap: 12px; }
+  .sidebar-brand {
+    display: flex; align-items: center; gap: 12px;
+    padding: 18px 16px;
+    border-bottom: 1px solid rgba(255,255,255,.12);
+  }
+  .sidebar-brand .brand-text { overflow: hidden; white-space: nowrap; }
   .brand-mark {
     width: 40px; height: 40px;
+    flex-shrink: 0;
     background: linear-gradient(135deg, var(--navy-500), var(--navy-700));
     border: 1px solid rgba(255,255,255,.25);
     border-radius: 8px;
@@ -58,7 +66,88 @@
   }
   .brand-text h1 { font-size: 16px; margin: 0; font-weight: 600; }
   .brand-text p { font-size: 11.5px; margin: 2px 0 0; color: #a9c0d6; }
-  .topbar-meta { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+
+  .sidebar .app-nav {
+    flex: 1;
+    width: auto;
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    gap: 2px;
+    padding: 12px 10px;
+    margin-top: 0;
+    border-top: none;
+  }
+  .sidebar .app-nav button {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    text-align: left;
+    padding: 9px 10px;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+  .sidebar .app-nav button .nav-icon { font-size: 15px; width: 18px; text-align: center; flex-shrink: 0; }
+  .sidebar .app-nav button .nav-label { overflow: hidden; text-overflow: ellipsis; }
+
+  .sidebar-collapse-btn {
+    margin: 8px 10px 14px;
+    background: rgba(255,255,255,.08);
+    border: 1px solid rgba(255,255,255,.2);
+    color: #cfe0f0;
+    border-radius: 6px;
+    padding: 7px;
+    cursor: pointer;
+    font-size: 13px;
+  }
+  .sidebar-collapse-btn:hover { background: rgba(255,255,255,.16); }
+
+  /* Collapsed: desktop icon-only rail */
+  .sidebar.collapsed { width: 64px; }
+  .sidebar.collapsed .sidebar-brand { justify-content: center; padding: 18px 8px; }
+  .sidebar.collapsed .sidebar-brand .brand-text,
+  .sidebar.collapsed .app-nav button .nav-label { display: none; }
+  .sidebar.collapsed .app-nav button { justify-content: center; padding: 9px 0; }
+  .sidebar.collapsed .sidebar-collapse-btn { transform: rotate(180deg); }
+
+  .app-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+  .sidebar-backdrop {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(15, 37, 64, .5);
+    z-index: 29;
+  }
+
+  .mobile-nav-toggle {
+    display: none;
+    width: 34px; height: 34px;
+    align-items: center; justify-content: center;
+    background: rgba(255,255,255,.1);
+    border: 1px solid rgba(255,255,255,.3);
+    color: var(--white);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+
+  /* ---------- Header (topbar meta: clock/sync/refresh/user, nav moved to sidebar) ---------- */
+  .topbar {
+    background: var(--navy-900);
+    color: var(--white);
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 14px 24px;
+    flex-wrap: wrap;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+  }
+  .topbar-meta { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-left: auto; }
   .clock { font-variant-numeric: tabular-nums; font-size: 13px; color: #cfe0f0; min-width: 190px; text-align: right; }
   .sync-status { font-size: 11.5px; color: #9fb7cf; }
   .btn-refresh {
@@ -96,16 +185,7 @@
     white-space: nowrap;
   }
 
-  /* ---------- App nav (switches between Dashboard / Master Data views) ---------- */
-  .app-nav {
-    width: 100%;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    padding-top: 10px;
-    margin-top: 10px;
-    border-top: 1px solid rgba(255,255,255,.12);
-  }
+  /* ---------- App nav buttons (base look, laid out by .sidebar .app-nav above) ---------- */
   .app-nav button {
     background: transparent;
     border: 1px solid transparent;
@@ -556,5 +636,30 @@
     .filters { top: 0; padding: 12px 16px; }
     .summary-cards, .charts-grid, .table-section { padding-left: 16px; padding-right: 16px; }
     .chart-card-wide { grid-column: span 1; }
+  }
+
+  /* ---------- Sidebar off-canvas (mobile/HP -- penting utk SPV Lapangan) ---------- */
+  @media (max-width: 880px) {
+    .sidebar {
+      position: fixed;
+      top: 0;
+      left: -260px;
+      width: 240px;
+      height: 100vh;
+      transition: left .25s ease;
+    }
+    .sidebar.mobile-open { left: 0; }
+    /* Abaikan mode "collapsed" (icon-only) desktop di layar sempit -- off-canvas
+       selalu tampil penuh dgn label supaya tetap gampang dibaca/disentuh di HP. */
+    .sidebar.collapsed { width: 240px; }
+    .sidebar.collapsed .sidebar-brand { justify-content: flex-start; padding: 18px 16px; }
+    .sidebar.collapsed .sidebar-brand .brand-text,
+    .sidebar.collapsed .app-nav button .nav-label { display: block; }
+    .sidebar.collapsed .app-nav button { justify-content: flex-start; padding: 9px 10px; }
+    .sidebar-collapse-btn { display: none; }
+    .sidebar-backdrop.open { display: block; }
+    .mobile-nav-toggle { display: inline-flex; }
+    .topbar { justify-content: space-between; }
+    .topbar-meta { margin-left: 0; }
   }
 </style>

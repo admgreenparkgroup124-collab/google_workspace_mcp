@@ -400,10 +400,16 @@ sendiri), cara update:
 - Kalau muncul halaman "Akses Ditolak", cek: (a) email yang dipakai login
   benar-benar ada di tab Akses (tanpa spasi/typo), (b) file spreadsheet
   sudah di-share ke email tsb.
-- Ada 6 menu di bagian atas (di bawah header), masing-masing punya filter
-  GP (bentuk tab tombol Semua/GP1/GP2/GP3/GP4, konsisten di menu-menu
-  Master Data & Input Progres) + Proyek sendiri (menyesuaikan GP yang
-  dipilih) selain filter yang disebut di bawah:
+- Ada 6 menu di **sidebar sebelah kiri** (gaya ERP), masing-masing punya
+  filter GP (bentuk tab tombol Semua/GP1/GP2/GP3/GP4, konsisten di menu-
+  menu Master Data & Input Progres) + Proyek sendiri (menyesuaikan GP yang
+  dipilih) selain filter yang disebut di bawah. Sidebar bisa **dilipat**
+  jadi rel ikon saja lewat tombol `«` di bawah daftar menu (hemat ruang
+  layar, preferensinya tersimpan per browser) — klik lagi untuk
+  melebarkannya. Di layar sempit/HP (penting untuk SPV Lapangan yang
+  banyak akses dari lapangan), sidebar otomatis jadi menu **off-canvas**:
+  disembunyikan, muncul lewat tombol **☰** di pojok kiri atas, klik di
+  luar sidebar atau pilih satu menu untuk menutupnya lagi.
   - **Dashboard** — punya 4 sub-tab: **Semua** (ringkasan gabungan: filter
     Tahun/Bulan/GP/Proyek/Kategori + kotak pencarian, kartu ringkasan,
     alert overdue, 5 grafik, dan tabel per kategori SPK/Home With
