@@ -811,8 +811,8 @@
   // ---------------------------------------------------------------------
   // Charts
   // ---------------------------------------------------------------------
-  var PALETTE = ['#2f5d8a', '#1c3a5e', '#5b8fb9', '#8fb4d4', '#0f2540', '#a9c0d6'];
-  var STATUS_COLORS = { 'Belum Order': '#94a3b8', 'On Proses': '#b7791f', 'Terpasang': '#1f9d55' };
+  var PALETTE = ['#2d6a4f', '#1b4332', '#52b788', '#95d5b2', '#0b3d2b', '#b7e4c7'];
+  var STATUS_COLORS = { 'Belum Order': '#94b0a3', 'On Proses': '#b7791f', 'Terpasang': '#1f9d55' };
 
   function destroyChart(key) {
     if (charts[key]) { charts[key].destroy(); delete charts[key]; }
@@ -924,7 +924,7 @@
       { label: 'Unit Tertinggal Jadwal Konstruksi', value: behindCount, sub: 'Realisasi kumulatif di bawah rencana s/d minggu berjalan', alert: behindCount > 0, breakdown: buildNamePills(behindNames) }
     ]);
 
-    renderTrendCountChart(ids.tren, ids.trenKey, fSpk, 'tanggalTerbit', 'Jumlah SPK Terbit', '#5b8fb9', spkTrendGranularity);
+    renderTrendCountChart(ids.tren, ids.trenKey, fSpk, 'tanggalTerbit', 'Jumlah SPK Terbit', '#40916c', spkTrendGranularity);
     renderStatusProportionChart(ids.status, ids.statusKey,
       ['Sesuai Jadwal', 'Overdue'], [fSpk.length - overdueCount, overdueCount], ['#1f9d55', '#c53030'],
       spkStatusItems, ids.statusDetails);
@@ -943,7 +943,7 @@
       { label: 'Total Nilai PO Purchasing', value: formatRupiah(totalNilai), breakdown: jenis.nilaiPills }
     ]);
 
-    renderTrendCountChart(ids.tren, ids.trenKey, fPur, 'tanggalMulai', 'Jumlah PO', '#5b8fb9', purTrendGranularity);
+    renderTrendCountChart(ids.tren, ids.trenKey, fPur, 'tanggalMulai', 'Jumlah PO', '#40916c', purTrendGranularity);
     renderStatusProportionChart(ids.status, ids.statusKey,
       status.order, status.order.map(function (k) { return status.count[k]; }), PALETTE,
       status.items, ids.statusDetails);
@@ -963,9 +963,9 @@
 
     renderStatusProportionChart(ids.status, ids.statusKey,
       status.order, status.order.map(function (k) { return status.count[k]; }),
-      status.order.map(function (k) { return STATUS_COLORS[k] || '#94a3b8'; }),
+      status.order.map(function (k) { return STATUS_COLORS[k] || '#94b0a3'; }),
       status.items, ids.statusDetails);
-    renderTrendCountChart(ids.tren, ids.trenKey, fHwa, 'tanggalMulai', 'Jumlah PO', '#5b8fb9', hwaTrendGranularity);
+    renderTrendCountChart(ids.tren, ids.trenKey, fHwa, 'tanggalMulai', 'Jumlah PO', '#40916c', hwaTrendGranularity);
   }
 
   function baseBarOptions(axisLabel, isCurrency, horizontal) {
@@ -2025,7 +2025,7 @@
       data: {
         labels: weekKeys.map(function (wk) { return 'M' + wk; }),
         datasets: [
-          { label: 'Rencana (%)', data: rencanaCum, borderColor: '#5b8fb9', backgroundColor: 'transparent', tension: 0.2 },
+          { label: 'Rencana (%)', data: rencanaCum, borderColor: '#5b6b7c', backgroundColor: 'transparent', tension: 0.2 },
           { label: 'Realisasi (%)', data: realisasiCum, borderColor: '#1f9d55', backgroundColor: 'transparent', tension: 0.2 }
         ]
       },
