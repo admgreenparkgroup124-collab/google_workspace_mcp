@@ -30,6 +30,9 @@
         <button data-view="master-hwa" type="button" title="Master Data Home With AI">
           <span class="nav-icon">🏠</span><span class="nav-label">Master Data Home With AI</span>
         </button>
+        <button data-view="master-wifi" type="button" title="Master Data Pembelian WiFi">
+          <span class="nav-icon">📶</span><span class="nav-label">Pembelian WiFi</span>
+        </button>
         <button data-view="master-sla" type="button" title="Master Data SLA">
           <span class="nav-icon">⏱</span><span class="nav-label">Master Data SLA</span>
         </button>
@@ -329,6 +332,11 @@
         <div class="table-toolbar">
           <select id="masterHwaProyekFilter"><option value="">Semua Proyek</option></select>
           <select id="masterHwaStatusFilter"><option value="">Semua Status</option></select>
+          <select id="masterHwaKategoriFilter">
+            <option value="">Semua Kategori</option>
+            <option value="HOME WITH AI">Home With AI</option>
+            <option value="SMARTHOME">Smarthome</option>
+          </select>
           <input type="text" id="masterHwaSearch" placeholder="Cari GP, proyek, unit…">
           <button id="addHwaBtn" class="btn-add" type="button" hidden>+ Tambah Data</button>
           <span id="masterHwaCount" class="toolbar-count"></span>
@@ -340,6 +348,34 @@
           </table>
         </div>
         <p class="master-hint">Menampilkan seluruh kolom tab Home With AI di spreadsheet sumber (baca-saja).</p>
+      </section>
+    </div>
+
+    <!-- ============================== VIEW: Master Data Pembelian WiFi ============================== -->
+    <div id="view-master-wifi" class="view" hidden>
+      <section class="alert-row" id="wifiAlertZone"></section>
+      <section class="master-summary" id="masterWifiSummary"></section>
+      <section class="table-section">
+        <div class="table-tabs" id="masterWifiGpTabs">
+          <button data-gp="" class="active" type="button">Semua</button>
+          <button data-gp="GP1" type="button">GP1</button>
+          <button data-gp="GP2" type="button">GP2</button>
+          <button data-gp="GP3" type="button">GP3</button>
+          <button data-gp="GP4" type="button">GP4</button>
+        </div>
+        <div class="table-toolbar">
+          <select id="masterWifiProyekFilter"><option value="">Semua Proyek</option></select>
+          <input type="text" id="masterWifiSearch" placeholder="Cari GP, proyek, unit, provider…">
+          <button id="addWifiBtn" class="btn-add" type="button" hidden>+ Tambah Data</button>
+          <span id="masterWifiCount" class="toolbar-count"></span>
+        </div>
+        <div class="table-wrap table-wrap-full">
+          <table id="masterWifiTable">
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <p class="master-hint">Menampilkan seluruh kolom tab Pembelian WiFi di spreadsheet sumber (baca-saja). Baris dengan jadwal pembayaran selanjutnya sudah lewat/mendekati ditandai warna.</p>
       </section>
     </div>
 

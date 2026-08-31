@@ -1,6 +1,7 @@
 /**
- * Baca & normalisasi data dari 6 tab (GP1-GP4 SPK, Home With AI,
- * Purchasing), lalu satukan jadi satu payload JSON datar untuk dashboard.
+ * Baca & normalisasi data dari 7 tab (GP1-GP4 SPK, Home With AI,
+ * Purchasing, Pembelian WiFi), lalu satukan jadi satu payload JSON datar
+ * untuk dashboard.
  *
  * Desain: tiap record diberi `unitKey`/`projectKey` yang sudah dinormalisasi
  * secara identik (lihat makeUnitKey/makeProjectKey di Utils.gs). Karena
@@ -21,10 +22,11 @@ function buildDashboardPayload_(requestingEmail) {
   var spk = getSpkRows_(today, scopes);
   var homeWithAi = getHomeWithAiRows_(today, scopes);
   var purchasing = getPurchasingRows_(today, scopes);
+  var pembelianWifi = getPembelianWifiRows_(today, scopes);
   var progressRencana = getProgressRencanaRows_();
   var progressRealisasi = getProgressRealisasiRows_(scopes);
 
-  var meta = buildMeta_(spk, homeWithAi, purchasing);
+  var meta = buildMeta_(spk, homeWithAi, purchasing, pembelianWifi);
   // Scope mentah viewer sendiri (mis. ['SPK:GP1','SPK:GP2','SPK:GP4']) --
   // dipakai client utk memutuskan tombol "+ Tambah Data" mana yang
   // ditampilkan, tanpa perlu endpoint terpisah.
@@ -35,6 +37,7 @@ function buildDashboardPayload_(requestingEmail) {
     spk: spk,
     homeWithAi: homeWithAi,
     purchasing: purchasing,
+    pembelianWifi: pembelianWifi,
     progressRencana: progressRencana,
     progressRealisasi: progressRealisasi,
     meta: meta
@@ -134,6 +137,9 @@ function writeNewRecord_(recordType, gp, fields) {
   } else if (recordType === 'homeWithAi') {
     tabName = CONFIG.HOME_WITH_AI_TAB;
     fieldDefs = HOME_WITH_AI_FIELD_DEFS;
+  } else if (recordType === 'pembelianWifi') {
+    tabName = CONFIG.PEMBELIAN_WIFI_TAB;
+    fieldDefs = PEMBELIAN_WIFI_FIELD_DEFS;
   } else if (recordType === 'progresRealisasi') {
     tabName = CONFIG.PROGRESS_REALISASI_TAB;
     fieldDefs = PROGRESS_REALISASI_FIELD_DEFS;
@@ -318,6 +324,16 @@ function getHomeWithAiRows_(today, scopes) {
       tanggalSelesai: toIsoDateString(tanggalSelesai),
       lampiran: safeText(cellValue(row, headerMap, 'lampiran')),
       keterangan: safeText(cellValue(row, headerMap, 'keterangan')),
+      // Field baru Addendum 9 -- lihat komentar HOME_WITH_AI_FIELD_DEFS
+      // di Config.gs. Kategori kosong dianggap 'HOME WITH AI' (baris lama
+      // sebelum kolom ini ada tetap konsisten dgn nama tab-nya).
+      kategori: safeText(cellValue(row, headerMap, 'kategori')) || 'HOME WITH AI',
+      listDevice: safeText(cellValue(row, headerMap, 'listDevice')),
+      spv: safeText(cellValue(row, headerMap, 'spv')),
+      statusDevice: safeText(cellValue(row, headerMap, 'statusDevice')),
+      masaGaransi: toIsoDateString(parseDateCell(cellValue(row, headerMap, 'masaGaransi'))),
+      pemasanganWifi: safeText(cellValue(row, headerMap, 'pemasanganWifi')),
+      pemasanganExtender: safeText(cellValue(row, headerMap, 'pemasanganExtender')),
       slaTargetHari: sla.slaTargetHari,
       slaStartDate: sla.slaStartDate,
       slaTargetDate: sla.slaTargetDate,
@@ -327,6 +343,66 @@ function getHomeWithAiRows_(today, scopes) {
       canEditSla: hasScope_(scopes, 'homeWithAi'),
       tahun: tanggalTerpasang ? tanggalTerpasang.getFullYear() : null,
       bulan: tanggalTerpasang ? tanggalTerpasang.getMonth() + 1 : null
+    });
+  }
+
+  return rows;
+}
+
+// ---------------------------------------------------------------------
+// Pembelian WiFi (Addendum 9) -- tab baru, tracker langganan internet per
+// unit. Murni tambahan, tidak terkait mekanisme SLA/overdue tab lain.
+// wifiOverdue/wifiDueSoon dihitung dari "Jadwal Pembayaran Selanjutnya"
+// (tanggal jatuh tempo pembayaran berikutnya) vs hari ini -- sama sekali
+// terpisah dari computeSla_ (bukan konsep "target hari sejak mulai").
+// ---------------------------------------------------------------------
+function getPembelianWifiRows_(today, scopes) {
+  var sheet = getSpreadsheet().getSheetByName(CONFIG.PEMBELIAN_WIFI_TAB);
+  if (!sheet) return [];
+
+  var values = sheet.getDataRange().getValues();
+  if (values.length < 2) return [];
+
+  var headerMap = buildHeaderMap(values[0], PEMBELIAN_WIFI_FIELD_DEFS);
+  var rows = [];
+
+  for (var r = 1; r < values.length; r++) {
+    var row = values[r];
+    var gp = safeText(cellValue(row, headerMap, 'grupProyek'));
+    var proyek = safeText(cellValue(row, headerMap, 'namaProyek'));
+    var unit = safeText(cellValue(row, headerMap, 'blokUnit'));
+    var provider = safeText(cellValue(row, headerMap, 'provider'));
+    if (!gp && !proyek && !unit && !provider) continue;
+
+    var tanggalAktivasi = parseDateCell(cellValue(row, headerMap, 'tanggalAktivasi'));
+    var tanggalBerakhir = parseDateCell(cellValue(row, headerMap, 'tanggalBerakhir'));
+    var jadwalBayarSelanjutnya = parseDateCell(cellValue(row, headerMap, 'jadwalBayarSelanjutnya'));
+
+    var wifiOverdue = !!(jadwalBayarSelanjutnya && jadwalBayarSelanjutnya.getTime() < today.getTime());
+    var dueSoonCutoff = jadwalBayarSelanjutnya ? addDays(today, CONFIG.WIFI_DUE_SOON_DAYS) : null;
+    var wifiDueSoon = !!(jadwalBayarSelanjutnya && !wifiOverdue && dueSoonCutoff &&
+      jadwalBayarSelanjutnya.getTime() <= dueSoonCutoff.getTime());
+
+    rows.push({
+      id: 'WIFI-' + (r + 1),
+      gp: gp,
+      proyek: proyek,
+      unit: unit,
+      unitKey: unit ? makeUnitKey(gp, proyek, unit) : '',
+      projectKey: makeProjectKey(gp, proyek),
+      provider: provider,
+      biayaBundling: safeNumber(cellValue(row, headerMap, 'biayaBundling')),
+      masaAktif: safeText(cellValue(row, headerMap, 'masaAktif')),
+      noVa: safeText(cellValue(row, headerMap, 'noVa')),
+      idPelanggan: safeText(cellValue(row, headerMap, 'idPelanggan')),
+      tanggalAktivasi: toIsoDateString(tanggalAktivasi),
+      tanggalBerakhir: toIsoDateString(tanggalBerakhir),
+      jadwalBayarSelanjutnya: toIsoDateString(jadwalBayarSelanjutnya),
+      wifiOverdue: wifiOverdue,
+      wifiDueSoon: wifiDueSoon,
+      keterangan: safeText(cellValue(row, headerMap, 'keterangan')),
+      tahun: tanggalAktivasi ? tanggalAktivasi.getFullYear() : null,
+      bulan: tanggalAktivasi ? tanggalAktivasi.getMonth() + 1 : null
     });
   }
 
@@ -529,7 +605,7 @@ function uploadProgressPhotos_(photos) {
 // Kumpulkan daftar tahun, GP, dan proyek-per-GP yang benar-benar muncul di
 // data, supaya dropdown filter di client tidak perlu hardcode dan otomatis
 // menyesuaikan begitu data baru masuk.
-function buildMeta_(spk, homeWithAi, purchasing) {
+function buildMeta_(spk, homeWithAi, purchasing, pembelianWifi) {
   var years = {};
   var gpByKey = {}; // normalizedKey -> nama tampilan (pertama ditemukan)
   var projectByGp = {}; // normalizedGpKey -> { normalizedProjectKey -> nama tampilan }
@@ -550,6 +626,7 @@ function buildMeta_(spk, homeWithAi, purchasing) {
   spk.forEach(note);
   homeWithAi.forEach(note);
   purchasing.forEach(note);
+  (pembelianWifi || []).forEach(note);
 
   var gpList = Object.keys(gpByKey).sort().map(function (k) { return gpByKey[k]; });
   var projectsByGp = {};

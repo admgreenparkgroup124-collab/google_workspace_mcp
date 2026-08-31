@@ -72,7 +72,7 @@ function getUserScopes_(email) {
 // sebelumnya (lihat getUserScopes_) -- dipakai DataService.gs saat
 // membangun banyak baris sekaligus, supaya tidak baca ulang tab Akses
 // per baris. recordType: 'spk' | 'purchasing' | 'homeWithAi' |
-// 'progresRealisasi'. gp dipakai utk recordType yang scope-nya per GP
+// 'pembelianWifi' | 'progresRealisasi'. gp dipakai utk recordType yang scope-nya per GP
 // ('spk' -> "SPK:GP1", 'progresRealisasi' -> "SPV:GP1"); diabaikan utk
 // 'purchasing'/'homeWithAi' (scope-nya "Purchasing"/"HomeWithAi" saja).
 function hasScope_(scopes, recordType, gp) {
@@ -88,6 +88,9 @@ function hasScope_(scopes, recordType, gp) {
   if (recordType === 'homeWithAi') {
     return scopes.some(function (s) { return normalizeKey(s) === 'HOMEWITHAI'; });
   }
+  if (recordType === 'pembelianWifi') {
+    return scopes.some(function (s) { return normalizeKey(s) === 'PEMBELIANWIFI'; });
+  }
   // Progres konstruksi mingguan (Addendum 7) = tanggung jawab SPV
   // Lapangan per GP, role terpisah dari PIC SPK ("SPV:GP1" dst di
   // kolom Role tab Akses) -- BUKAN lagi scope 'spk' seperti versi
@@ -99,8 +102,8 @@ function hasScope_(scopes, recordType, gp) {
   return false;
 }
 
-// recordType: 'spk' | 'purchasing' | 'homeWithAi' | 'progresRealisasi'.
-// Dipakai saat mengecek satu permintaan tulis-balik tunggal
+// recordType: 'spk' | 'purchasing' | 'homeWithAi' | 'pembelianWifi' |
+// 'progresRealisasi'. Dipakai saat mengecek satu permintaan tulis-balik tunggal
 // (updateSlaTargetHari/addRecord/addProgressRealisasi di Code.gs).
 function canEditSla_(email, recordType, gp) {
   return hasScope_(getUserScopes_(email), recordType, gp);

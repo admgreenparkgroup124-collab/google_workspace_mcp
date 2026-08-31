@@ -13,9 +13,15 @@ var CONFIG = {
   SPK_TABS: ['GP1', 'GP2', 'GP3', 'GP4'],
   HOME_WITH_AI_TAB: 'Home With AI',
   PURCHASING_TAB: 'Purchasing',
+  PEMBELIAN_WIFI_TAB: 'Pembelian WiFi',
   ACCESS_TAB: 'Akses',
   PROGRESS_RENCANA_TAB: 'Rencana Progres',
   PROGRESS_REALISASI_TAB: 'Realisasi Progres',
+
+  // Batas "mendekati jadwal pembayaran WiFi selanjutnya" (Addendum 9) --
+  // dipakai getPembelianWifiRows_ (DataService.gs) menandai wifiDueSoon,
+  // murni cosmetic threshold, tidak terkait mekanisme SLA yang sudah ada.
+  WIFI_DUE_SOON_DAYS: 14,
 
   // Folder Drive (dibuat otomatis sbg subfolder di sebelah file
   // spreadsheet ini) tempat foto progres konstruksi mingguan disimpan --
@@ -84,7 +90,37 @@ var HOME_WITH_AI_FIELD_DEFS = [
   { key: 'tanggalSelesai', candidates: ['tanggal selesai'] },
   { key: 'lampiran', candidates: ['lampiran'] },
   { key: 'keterangan', candidates: ['keterangan'] },
-  { key: 'targetHariSla', candidates: ['target hari sla', 'target hari'] }
+  { key: 'targetHariSla', candidates: ['target hari sla', 'target hari'] },
+  // Field baru (Addendum 9, terinspirasi struktur sheet "DASHBOARD HOME
+  // WITH AI" milik tim CSO/SPV -- diadaptasi ke pola field def kita
+  // sendiri, BUKAN diimpor langsung). Semua boleh dikosongkan (baris lama
+  // tanpa kolom ini tetap valid, non-breaking).
+  { key: 'kategori', candidates: ['kategori'] }, // 'HOME WITH AI' | 'SMARTHOME'
+  { key: 'listDevice', candidates: ['list device', 'device'] },
+  { key: 'spv', candidates: ['spv'] },
+  { key: 'statusDevice', candidates: ['status device'] },
+  { key: 'masaGaransi', candidates: ['masa garansi'] },
+  { key: 'pemasanganWifi', candidates: ['pemasangan wifi'] },
+  { key: 'pemasanganExtender', candidates: ['pemasangan extender'] }
+];
+
+// Pembelian WiFi (Addendum 9) -- tracker langganan internet per unit,
+// terpisah dari tab Home With AI (satu unit HWA belum tentu punya
+// langganan WiFi terkelola di sini, dan sebaliknya). Pola field def sama
+// persis dengan tab lain (Grup Proyek/Nama Proyek/Blok-No Unit).
+var PEMBELIAN_WIFI_FIELD_DEFS = [
+  { key: 'grupProyek', candidates: ['grup proyek'] },
+  { key: 'namaProyek', candidates: ['nama proyek'] },
+  { key: 'blokUnit', candidates: ['blok no unit area kerja', 'blok no unit', 'blok unit', 'no unit'] },
+  { key: 'provider', candidates: ['provider'] },
+  { key: 'biayaBundling', candidates: ['biaya bundling rp', 'biaya bundling'] },
+  { key: 'masaAktif', candidates: ['masa aktif'] },
+  { key: 'noVa', candidates: ['no va', 'nomor va'] },
+  { key: 'idPelanggan', candidates: ['id pelanggan'] },
+  { key: 'tanggalAktivasi', candidates: ['tanggal aktivasi', 'tanggal pembayaran va 1'] },
+  { key: 'tanggalBerakhir', candidates: ['tanggal berakhir'] },
+  { key: 'jadwalBayarSelanjutnya', candidates: ['jadwal pembayaran selanjutnya', 'jadwal pembayaran'] },
+  { key: 'keterangan', candidates: ['keterangan'] }
 ];
 
 var PURCHASING_FIELD_DEFS = [
@@ -153,6 +189,7 @@ var PROGRESS_REALISASI_FIELD_DEFS = [
 
 // Status yang valid, dipakai untuk validasi ringan & urutan tampilan di UI
 var HOME_WITH_AI_STATUSES = ['Belum Order', 'On Proses', 'Terpasang'];
+var HOME_WITH_AI_KATEGORI = ['HOME WITH AI', 'SMARTHOME'];
 var PURCHASING_MATERIAL_STATUSES = ['Belum Order', 'On Proses', 'Sudah Order'];
 var PURCHASING_PROMO_STATUSES = ['Belum Terpasang', 'On Proses', 'Terpasang'];
 var JENIS_PENGADAAN = ['Promo Unit', 'Material PSU', 'Material Unit Bangunan'];

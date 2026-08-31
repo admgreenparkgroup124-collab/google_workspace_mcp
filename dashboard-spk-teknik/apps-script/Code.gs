@@ -82,6 +82,19 @@ function updateSlaTargetHari(payload) {
 // lewat endpoint ini lagi -- lihat addProgressRealisasi() di bawah,
 // endpoint terpisah karena payload-nya bawa foto (upload ke Drive) dan
 // scope-nya beda (SPV Lapangan, bukan PIC SPK/Purchasing/HWA).
+// Field "utama" (tanggal & nilai) yang wajib diisi per recordType --
+// dipakai addRecord() di bawah. Sengaja jadi lookup table (bukan ternary
+// spk-vs-lainnya seperti sebelumnya) supaya menambah recordType baru
+// (Addendum 9: 'pembelianWifi') tidak perlu mengubah logic validasi,
+// cukup tambah satu entri; perilaku utk spk/purchasing/homeWithAi yang
+// sudah ada TIDAK berubah (pesan error & field yang dicek persis sama).
+var RECORD_TYPE_MAIN_FIELDS_ = {
+  spk: { dateKey: 'tanggalTerbit', dateLabel: 'Tanggal Terbit', valueKey: 'nilaiKontrak', valueLabel: 'Nilai Kontrak' },
+  purchasing: { dateKey: 'tanggalMulai', dateLabel: 'Tanggal Order/Mulai', valueKey: 'nilai', valueLabel: 'Harga Total' },
+  homeWithAi: { dateKey: 'tanggalMulai', dateLabel: 'Tanggal Order/Mulai', valueKey: 'nilai', valueLabel: 'Harga Total' },
+  pembelianWifi: { dateKey: 'tanggalAktivasi', dateLabel: 'Tanggal Aktivasi', valueKey: 'biayaBundling', valueLabel: 'Biaya Bundling' }
+};
+
 function addRecord(payload) {
   var access = checkAccess();
   if (!access.allowed) {
@@ -93,7 +106,8 @@ function addRecord(payload) {
   var gp = payload.gp;
   var fields = payload.fields || {};
 
-  if (['spk', 'purchasing', 'homeWithAi'].indexOf(recordType) === -1) {
+  var mainFields = RECORD_TYPE_MAIN_FIELDS_[recordType];
+  if (!mainFields) {
     throw new Error('recordType tidak valid.');
   }
 
@@ -105,15 +119,13 @@ function addRecord(payload) {
     throw new Error('Nama Proyek tidak boleh kosong.');
   }
 
-  var mainDateKey = recordType === 'spk' ? 'tanggalTerbit' : 'tanggalMulai';
-  if (!safeText(fields[mainDateKey])) {
-    throw new Error((recordType === 'spk' ? 'Tanggal Terbit' : 'Tanggal Order/Mulai') + ' tidak boleh kosong.');
+  if (!safeText(fields[mainFields.dateKey])) {
+    throw new Error(mainFields.dateLabel + ' tidak boleh kosong.');
   }
 
-  var mainValueKey = recordType === 'spk' ? 'nilaiKontrak' : 'nilai';
-  var mainValue = Number(fields[mainValueKey]);
+  var mainValue = Number(fields[mainFields.valueKey]);
   if (!isFinite(mainValue) || mainValue < 0) {
-    throw new Error((recordType === 'spk' ? 'Nilai Kontrak' : 'Harga Total') + ' harus berupa angka >= 0.');
+    throw new Error(mainFields.valueLabel + ' harus berupa angka >= 0.');
   }
 
   writeNewRecord_(recordType, gp, fields);
