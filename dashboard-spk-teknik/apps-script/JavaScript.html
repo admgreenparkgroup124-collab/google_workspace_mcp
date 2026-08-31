@@ -1849,16 +1849,8 @@
     var weekKeys = Object.keys(weekMap).map(Number).sort(function (a, b) { return a - b; });
 
     if (weekKeys.length) {
-      html += '<div class="unit-item"><div class="progress-chart-wrap"><canvas id="progresInputChart"></canvas></div>' +
-        weekKeys.map(function (wk) {
-          var w = weekMap[wk];
-          return '<div class="unit-item-meta">Minggu ' + wk + ': Rencana ' +
-            (w.rencana != null ? w.rencana + '%' : '–') + rencanaItemsLabel_(rencanaList, wk) + ' · Realisasi ' +
-            (w.realisasi != null ? w.realisasi + '%' : '–') +
-            (w.tanggalUpdate ? ' (' + formatDate(w.tanggalUpdate) + ')' : '') +
-            (w.keterangan ? ' · ' + escapeHtml(w.keterangan) : '') +
-            fotoLinksHtml_(w.lampiranFoto) + '</div>';
-        }).join('') + '</div>';
+      html += '<div class="unit-item"><div class="progress-chart-wrap"><canvas id="progresInputChart"></canvas></div></div>' +
+        weeklyHistoryTableHtml_(weekKeys, weekMap, rencanaList);
     } else {
       html += '<p class="unit-empty">Belum ada rencana/realisasi progres untuk unit ini.</p>';
     }
@@ -1871,6 +1863,8 @@
       html += '<p class="unit-empty">Anda tidak berwenang menginput progres konstruksi untuk ' + escapeHtml(gp) + '.</p>';
     } else {
       html += '<form id="progresInputForm" class="form-grid progress-form">' +
+        '<div class="form-field"><label>Tanggal Input</label>' +
+        '<input type="text" id="progresInputTanggal" value="' + todayDisplay_() + '" readonly></div>' +
         '<div class="form-field"><label>Minggu Ke- <span class="required-mark">*</span></label>' +
         '<input type="number" id="progresInputMinggu" min="1" step="1"></div>' +
         '<div class="form-field"><label>Realisasi Progres (%) <span class="required-mark">*</span></label>' +
@@ -2051,15 +2045,47 @@
   // uploadProgressPhotos_ di DataService.gs) jadi daftar link "Foto 1",
   // "Foto 2", dst yang bisa langsung dibuka (foto di-share
   // ANYONE_WITH_LINK view-only, jadi siapapun yang login dashboard bisa
-  // membukanya) -- dipakai di riwayat Progres Konstruksi (modal Detail per
-  // Unit & halaman Input Progres) supaya bukti foto SPV benar-benar bisa
-  // dilihat, bukan cuma dihitung jumlahnya.
+  // membukanya) -- dipakai sbg satu kolom tabel riwayat Progres Konstruksi
+  // (modal Detail per Unit & halaman Input Progres) supaya bukti foto SPV
+  // benar-benar bisa dilihat, bukan cuma dihitung jumlahnya.
   function fotoLinksHtml_(lampiranFoto) {
     var urls = lampiranFoto ? lampiranFoto.split(',').map(function (s) { return s.trim(); }).filter(function (s) { return s; }) : [];
-    if (!urls.length) return '';
-    return ' · 📷 ' + urls.map(function (url, i) {
+    if (!urls.length) return '–';
+    return urls.map(function (url, i) {
       return '<a href="' + escapeHtml(url) + '" target="_blank" rel="noopener">Foto ' + (i + 1) + '</a>';
     }).join(', ');
+  }
+
+  // Riwayat 16 minggu (Minggu 1..16) dulunya ditumpuk sbg baris teks polos
+  // dalam satu kotak .unit-item -- padat & susah dipindai. Diganti jadi
+  // tabel sungguhan (1 baris = 1 minggu, kolom terpisah) supaya "rapih"
+  // sesuai permintaan user, dipakai di 2 tempat yg butuh riwayat mingguan
+  // (openUnitDetail & openProgresInputModal).
+  function weeklyHistoryTableHtml_(weekKeys, weekMap, rencanaList) {
+    var rows = weekKeys.map(function (wk) {
+      var w = weekMap[wk];
+      return '<tr>' +
+        '<td>Minggu ' + wk + '</td>' +
+        '<td>' + (w.rencana != null ? w.rencana + '%' : '–') + rencanaItemsLabel_(rencanaList, wk) + '</td>' +
+        '<td>' + (w.realisasi != null ? w.realisasi + '%' : '–') + '</td>' +
+        '<td>' + (w.tanggalUpdate ? formatDate(w.tanggalUpdate) : '–') + '</td>' +
+        '<td>' + (w.keterangan ? escapeHtml(w.keterangan) : '–') + '</td>' +
+        '<td>' + fotoLinksHtml_(w.lampiranFoto) + '</td>' +
+        '</tr>';
+    }).join('');
+    return '<div class="table-wrap table-wrap-full unit-history-table-wrap"><table>' +
+      '<thead><tr><th>Minggu</th><th>Rencana</th><th>Realisasi</th><th>Tanggal</th><th>Keterangan</th><th>Foto</th></tr></thead>' +
+      '<tbody>' + rows + '</tbody></table></div>';
+  }
+
+  // Tanggal hari ini, format tampilan sama dgn formatDate() -- dipakai sbg
+  // field "Tanggal Input" (read-only) di form Input Progres Minggu Ini,
+  // konfirmasi visual bahwa tanggalUpdate yg otomatis diisi server
+  // (addProgressRealisasi di Code.gs) memang tanggal hari ini.
+  function todayDisplay_() {
+    var d = new Date();
+    var iso = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    return formatDate(iso);
   }
 
   // String "YYYY-MM-DD" -> Date lokal (bukan UTC midnight spt `new
@@ -2292,16 +2318,8 @@
       }
 
       if (weekKeys.length) {
-        html += '<div class="unit-item"><div class="progress-chart-wrap"><canvas id="unitProgressChart"></canvas></div>' +
-          weekKeys.map(function (wk) {
-            var w = weekMap[wk];
-            return '<div class="unit-item-meta">Minggu ' + wk + ': Rencana ' +
-              (w.rencana != null ? w.rencana + '%' : '–') + rencanaItemsLabel_(rencanaList, wk) + ' · Realisasi ' +
-              (w.realisasi != null ? w.realisasi + '%' : '–') +
-              (w.tanggalUpdate ? ' (' + formatDate(w.tanggalUpdate) + ')' : '') +
-              (w.keterangan ? ' · ' + escapeHtml(w.keterangan) : '') +
-              fotoLinksHtml_(w.lampiranFoto) + '</div>';
-          }).join('') + '</div>';
+        html += '<div class="unit-item"><div class="progress-chart-wrap"><canvas id="unitProgressChart"></canvas></div></div>' +
+          weeklyHistoryTableHtml_(weekKeys, weekMap, rencanaList);
       } else {
         html += '<p class="unit-empty">Belum ada rencana/realisasi progres untuk unit ini.</p>';
       }

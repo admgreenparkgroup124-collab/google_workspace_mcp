@@ -627,6 +627,14 @@
   .unit-item-meta { color: var(--ink-soft); }
   .unit-empty { color: var(--ink-soft); font-size: 12.5px; font-style: italic; }
   .progress-chart-wrap { position: relative; height: 180px; margin-bottom: 8px; }
+  /* Tabel riwayat Progres Konstruksi per-minggu (M1-M16) di dalam modal --
+     dipisah dari kartu chart di atasnya, tanpa shadow (sudah di dalam
+     .unit-modal yang punya shadow sendiri), teks boleh wrap (kolom
+     Keterangan/Foto bisa panjang). */
+  .unit-history-table-wrap { box-shadow: none; margin-bottom: 4px; }
+  .unit-history-table-wrap table td, .unit-history-table-wrap table th { white-space: normal; }
+  .unit-history-table-wrap table td { font-size: 12px; }
+  #progresInputTanggal[readonly] { background: #f3f5f7; color: var(--ink-soft); cursor: default; }
   .progress-form { margin-top: 12px; }
   .unit-total-footer {
     margin-top: 18px;
