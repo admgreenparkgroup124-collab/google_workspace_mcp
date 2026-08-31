@@ -526,7 +526,7 @@ sendiri), cara update:
     Garansi, Pemasangan WiFi/Extender, Lampiran — Addendum 9) + kartu
     ringkasan (**Total PO** & Total Nilai) + filter Proyek/Status/Kategori
     (Home With AI/Smarthome).
-  - **Pembelian WiFi** (Addendum 9) — seluruh kolom tab Pembelian WiFi apa
+  - **Master Data Pembelian WiFi** (Addendum 9) — seluruh kolom tab Pembelian WiFi apa
     adanya (Provider, Biaya Bundling, Masa Aktif, No. VA, ID Pelanggan,
     Tanggal Aktivasi/Berakhir, Jadwal Pembayaran Selanjutnya, Keterangan)
     + kartu ringkasan (**Total Langganan** & Total Biaya) + filter GP
