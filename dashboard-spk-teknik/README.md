@@ -474,9 +474,8 @@ sendiri), cara update:
     ditambah alert keterlambatan progres di atas (lihat di bawah) dan
     tabel detail per kategori SPK/Home With AI/Purchasing di bawah — jadi
     tidak perlu buka tiap sub-tab satu per satu untuk melihat semuanya
-    sekaligus. Filter Tahun/Bulan/GP/
-    Proyek/Kategori + kotak pencarian tetap berlaku untuk seluruh sub-tab
-    Semua. Isi tiap kategorinya:
+    sekaligus. Filter Tahun/Bulan/GP/Proyek + kotak pencarian tetap
+    berlaku untuk seluruh sub-tab Semua. Isi tiap kategorinya:
     - **SPK**: card Total Proyek, Total SPK (rincian PSU/Unit Rumah),
       Total Nilai Transaksi (rincian PSU/Unit Rumah), Unit Tertinggal
       Jadwal Konstruksi (Bagian 2g/2h); grafik **garis** Trend Penerbitan
@@ -490,8 +489,7 @@ sendiri), cara update:
       Nilai Transaksi Home With AI; grafik garis Trend PO Home With
       AI (toggle Bulan/Tahun), chart Status Progres (proporsi Belum
       Order/On Proses/Terpasang).
-    Filter Tahun/Bulan/GP/Proyek/Cari tetap berlaku di semua
-    sub-tab; chip Kategori cuma tampil di sub-tab Semua.
+    Filter Tahun/Bulan/GP/Proyek/Cari tetap berlaku di semua sub-tab.
     **Semua card & chart Status Progres bisa diklik untuk rincian**: card
     dengan tanda panah (▸) — Total SPK, Total Nilai Transaksi, Total per
     Jenis/Status, Total Proyek, Unit Tertinggal Jadwal Konstruksi — kalau

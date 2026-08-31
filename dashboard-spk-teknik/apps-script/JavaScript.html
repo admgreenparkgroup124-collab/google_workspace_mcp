@@ -8,7 +8,6 @@
   var rawData = { spk: [], homeWithAi: [], purchasing: [], pembelianWifi: [], meta: { years: [], gpList: [], projectsByGp: {} }, generatedAt: null };
 
   var filters = {
-    kategori: { 'SPK': true, 'Purchasing': true, 'Home With AI': true },
     tahun: '',
     bulan: '',
     gp: '',     // single value -- dropdown, '' = Semua
@@ -432,22 +431,6 @@
   // Filter options
   // ---------------------------------------------------------------------
   function populateFilterOptions() {
-    // Kategori chips (fixed set, keep current active state)
-    var katWrap = document.getElementById('filterKategori');
-    katWrap.innerHTML = '';
-    ['SPK', 'Purchasing', 'Home With AI'].forEach(function (kat) {
-      var chip = document.createElement('button');
-      chip.type = 'button';
-      chip.className = 'chip' + (filters.kategori[kat] ? ' active' : '');
-      chip.textContent = kat;
-      chip.addEventListener('click', function () {
-        filters.kategori[kat] = !filters.kategori[kat];
-        chip.classList.toggle('active');
-        renderAll();
-      });
-      katWrap.appendChild(chip);
-    });
-
     // Tahun
     var tahunSel = document.getElementById('filterTahun');
     var currentTahun = tahunSel.value;
@@ -552,7 +535,6 @@
   // Filtering
   // ---------------------------------------------------------------------
   function passesCommonFilters(rec, kategoriKey) {
-    if (!filters.kategori[kategoriKey]) return false;
     if (filters.tahun && String(rec.tahun || '') !== String(filters.tahun)) return false;
     if (filters.bulan && String(rec.bulan || '') !== String(filters.bulan)) return false;
     if (filters.gp && normKey(rec.gp) !== normKey(filters.gp)) return false;
@@ -613,7 +595,6 @@
     dashboardSubTab = btn.getAttribute('data-subtab');
     document.querySelectorAll('#dashboardSubTabs button').forEach(function (b) { b.classList.toggle('active', b === btn); });
     document.querySelectorAll('.dashboard-subview').forEach(function (el) { el.hidden = (el.id !== 'dashboardSubview-' + dashboardSubTab); });
-    document.getElementById('filterKategoriGroup').hidden = (dashboardSubTab !== 'semua');
     renderAll();
   });
 
@@ -2689,7 +2670,7 @@
   });
 
   document.getElementById('resetFiltersBtn').addEventListener('click', function () {
-    filters = { kategori: { 'SPK': true, 'Purchasing': true, 'Home With AI': true }, tahun: '', bulan: '', gp: '', proyek: '', search: '' };
+    filters = { tahun: '', bulan: '', gp: '', proyek: '', search: '' };
     document.getElementById('filterSearch').value = '';
     populateFilterOptions();
     renderAll();
