@@ -1852,13 +1852,12 @@
       html += '<div class="unit-item"><div class="progress-chart-wrap"><canvas id="progresInputChart"></canvas></div>' +
         weekKeys.map(function (wk) {
           var w = weekMap[wk];
-          var fotoCount = w.lampiranFoto ? w.lampiranFoto.split(',').filter(function (s) { return s.trim(); }).length : 0;
           return '<div class="unit-item-meta">Minggu ' + wk + ': Rencana ' +
             (w.rencana != null ? w.rencana + '%' : '–') + rencanaItemsLabel_(rencanaList, wk) + ' · Realisasi ' +
             (w.realisasi != null ? w.realisasi + '%' : '–') +
             (w.tanggalUpdate ? ' (' + formatDate(w.tanggalUpdate) + ')' : '') +
             (w.keterangan ? ' · ' + escapeHtml(w.keterangan) : '') +
-            (fotoCount ? ' · 📷 ' + fotoCount + ' foto' : '') + '</div>';
+            fotoLinksHtml_(w.lampiranFoto) + '</div>';
         }).join('') + '</div>';
     } else {
       html += '<p class="unit-empty">Belum ada rencana/realisasi progres untuk unit ini.</p>';
@@ -2046,6 +2045,21 @@
     var items = rencanaList.filter(function (r) { return r.mingguKe === mingguKe && r.uraianPekerjaan; });
     if (!items.length) return '';
     return ' (' + items.map(function (r) { return escapeHtml(r.uraianPekerjaan) + ': ' + r.rencanaProgres + '%'; }).join(', ') + ')';
+  }
+
+  // Render "lampiranFoto" (string URL Drive dipisah ", ", lihat
+  // uploadProgressPhotos_ di DataService.gs) jadi daftar link "Foto 1",
+  // "Foto 2", dst yang bisa langsung dibuka (foto di-share
+  // ANYONE_WITH_LINK view-only, jadi siapapun yang login dashboard bisa
+  // membukanya) -- dipakai di riwayat Progres Konstruksi (modal Detail per
+  // Unit & halaman Input Progres) supaya bukti foto SPV benar-benar bisa
+  // dilihat, bukan cuma dihitung jumlahnya.
+  function fotoLinksHtml_(lampiranFoto) {
+    var urls = lampiranFoto ? lampiranFoto.split(',').map(function (s) { return s.trim(); }).filter(function (s) { return s; }) : [];
+    if (!urls.length) return '';
+    return ' · 📷 ' + urls.map(function (url, i) {
+      return '<a href="' + escapeHtml(url) + '" target="_blank" rel="noopener">Foto ' + (i + 1) + '</a>';
+    }).join(', ');
   }
 
   // String "YYYY-MM-DD" -> Date lokal (bukan UTC midnight spt `new
@@ -2267,6 +2281,7 @@
         weekMap[r.mingguKe].realisasi = r.realisasiProgres;
         weekMap[r.mingguKe].tanggalUpdate = r.tanggalUpdate;
         weekMap[r.mingguKe].keterangan = r.keterangan;
+        weekMap[r.mingguKe].lampiranFoto = r.lampiranFoto;
       });
       var weekKeys = Object.keys(weekMap).map(Number).sort(function (a, b) { return a - b; });
 
@@ -2284,7 +2299,8 @@
               (w.rencana != null ? w.rencana + '%' : '–') + rencanaItemsLabel_(rencanaList, wk) + ' · Realisasi ' +
               (w.realisasi != null ? w.realisasi + '%' : '–') +
               (w.tanggalUpdate ? ' (' + formatDate(w.tanggalUpdate) + ')' : '') +
-              (w.keterangan ? ' · ' + escapeHtml(w.keterangan) : '') + '</div>';
+              (w.keterangan ? ' · ' + escapeHtml(w.keterangan) : '') +
+              fotoLinksHtml_(w.lampiranFoto) + '</div>';
           }).join('') + '</div>';
       } else {
         html += '<p class="unit-empty">Belum ada rencana/realisasi progres untuk unit ini.</p>';
