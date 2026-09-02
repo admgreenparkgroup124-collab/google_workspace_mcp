@@ -103,22 +103,26 @@ kapan saja Anda sempat mengisi datanya.
 Baris header:
 
 ```
-Grup Proyek | Nama Proyek | Blok/No. Unit | Jenis Pengadaan | Nama Barang/Item | Nama Pekerjaan | Nama Vendor | Qty | Satuan | Harga Satuan (Rp) | Harga Total (Rp) | Status Pekerjaan | Tanggal Order/Mulai | Tanggal | Lampiran | Keterangan | Target Hari (SLA)
+Grup Proyek | Nama Proyek | Blok/No. Unit | Jenis Pengadaan | Kategori | Nama Barang/Item | Nama Pekerjaan | Nama Vendor | Qty | Satuan | Harga Satuan (Rp) | Harga Total (Rp) | Status Pekerjaan | Tanggal Order/Mulai | Tanggal | Lampiran | Keterangan | Target Hari (SLA)
 ```
 
-- **Jenis Pengadaan** (Addendum 16 — 7 kategori, dibagi 2 tipe proses):
-  - **Proses order** (beli barang): `Material PSU` / `Material Unit Bangunan` / `Promo Unit`.
-  - **Proses pengerjaan** (jasa pemasangan di lapangan): `Kanopi` / `Tangga Darurat` / `Railing Tangga` / `Railing Balkon`.
-  - Data Validation di sheet disarankan berisi ke-7 nilai di atas persis
-    (huruf besar/kecil & spasi harus sama supaya cocok dengan filter
-    dashboard). Di halaman **Master Data Purchasing**, kategori ini
-    ditampilkan sebagai tab klik (Semua + 7 kategori); memilih satu tab
-    otomatis menyaring kolom tabel & field form Tambah Data supaya cuma
-    yang relevan yang tampil (order → Nama Barang/Item, Qty, Satuan,
-    Harga Satuan; pekerjaan → Nama Pekerjaan) — lihat kolom di bawah.
+- **Jenis Pengadaan** (Addendum 16/18 — 3 kategori): `Material PSU` /
+  `Material Unit Bangunan` / `Promo Unit`. Di halaman **Master Data
+  Purchasing**, kategori ini jadi **sub-menu di sidebar** (menempel di
+  bawah item nav "Master Data Purchasing" — klik untuk buka/tutup,
+  Addendum 17).
+- **Kategori** (kolom baru, Addendum 18) — sub-klasifikasi KHUSUS untuk
+  Jenis Pengadaan `Material Unit Bangunan`: `Kanopi` / `Tangga Darurat` /
+  `Railing Tangga` / `Railing Balkon` / `Doorbell` / `Home Number` /
+  `Taman Unit`. **Wajib diisi** di form Tambah Data saat Jenis Pengadaan =
+  Material Unit Bangunan (field-nya baru muncul saat kategori itu
+  dipilih); **kosongkan** untuk Material PSU & Promo Unit. Ditampilkan
+  sebagai kolom tabel + filter dropdown terpisah ("Semua Kategori") di
+  toolbar Master Data Purchasing, pola sama seperti filter Kategori Home
+  With AI (Bagian 2a).
 - **Blok/No. Unit**: isi untuk semua kategori KECUALI Material PSU (proyek-level, bukan per-unit); **kosongkan** untuk Material PSU.
-- **Nama Pekerjaan**: teks bebas — diisi untuk kategori "proses pengerjaan" (Kanopi/Tangga Darurat/Railing Tangga/Railing Balkon), deskripsi pekerjaan/aktivitas terkait (beda dari **Nama Barang/Item** yang berarti nama barang/materialnya sendiri untuk kategori "proses order"); boleh dikosongkan.
-- **Qty**: angka — jumlah/kuantitas barang untuk kategori "proses order", dipasangkan dengan **Satuan**; boleh dikosongkan (tidak relevan utk kategori pengerjaan).
+- **Nama Pekerjaan**: teks bebas, deskripsi pekerjaan/aktivitas terkait (beda dari **Nama Barang/Item** yang berarti nama barang/materialnya sendiri); boleh dikosongkan.
+- **Qty**: angka — jumlah/kuantitas barang, dipasangkan dengan **Satuan**; boleh dikosongkan.
 - **Harga Satuan (Rp)** / **Harga Total (Rp)**: sama seperti Home With AI di atas — kalau cuma ada satu angka lump-sum, isi **Harga Total (Rp)** saja.
 - **Status Pekerjaan**: untuk Material → `Belum Order`/`On Proses`/`Sudah Order`; untuk Promo Unit → `Belum Terpasang`/`On Proses`/`Terpasang`.
 - **Tanggal Order/Mulai**: tanggal mulai proses, titik awal hitung SLA
@@ -526,21 +530,20 @@ sendiri), cara update:
     di spreadsheet), + kartu ringkasan (**Total SPK** & Total Nilai) di
     atas tabel, + filter Proyek & Jenis SPK.
   - **Master Data Purchasing** — seluruh kolom tab Purchasing apa adanya
-    (termasuk Nama Pekerjaan, Nama Vendor, Qty, Satuan, Harga Satuan,
-    Harga Total, Lampiran) + kartu ringkasan (**Total PO** & Total Nilai)
-    + filter Proyek, + **sub-menu Jenis Pengadaan di sidebar** (Addendum
-    16/17): klik item nav "Master Data Purchasing" untuk membuka daftar
-    7 kategori (Semua / Material PSU / Material Unit Bangunan / Kanopi /
-    Tangga Darurat / Railing Tangga / Railing Balkon / Promo Unit) yang
-    muncul menempel di bawahnya di sidebar (klik lagi item induknya untuk
-    lipat/buka sub-menu). Klik satu kategori menyaring baris DAN kolom
-    tabel yang ditampilkan (kategori "proses order" menampilkan Nama
-    Barang/Qty/Satuan/Harga Satuan, kategori "proses pengerjaan"
-    menampilkan Nama Pekerjaan) — form "+ Tambah Data" ikut menyesuaikan
-    field yang relevan begitu Jenis Pengadaan dipilih. Sub-menu otomatis
-    disembunyikan saat sidebar dilipat jadi mode ikon-saja di desktop
-    (tetap tampil normal di mode off-canvas HP/tablet). Kategori "Semua"
-    tetap menampilkan seluruh kolom & baris seperti sebelumnya.
+    (termasuk Kategori, Nama Pekerjaan, Nama Vendor, Qty, Satuan, Harga
+    Satuan, Harga Total, Lampiran) + kartu ringkasan (**Total PO** &
+    Total Nilai) + filter Proyek & Kategori, + **sub-menu Jenis Pengadaan
+    di sidebar** (Addendum 17/18): klik item nav "Master Data Purchasing"
+    untuk membuka daftar 3 kategori (Semua / Material PSU / Material Unit
+    Bangunan / Promo Unit) yang muncul menempel di bawahnya di sidebar
+    (klik lagi item induknya untuk lipat/buka sub-menu). Klik satu
+    kategori menyaring baris tabel. Sub-menu otomatis disembunyikan saat
+    sidebar dilipat jadi mode ikon-saja di desktop (tetap tampil normal
+    di mode off-canvas HP/tablet). Kategori "Semua" tetap menampilkan
+    seluruh baris seperti sebelumnya. Kolom "Kategori" (Kanopi/Tangga
+    Darurat/Railing Tangga/Railing Balkon/Doorbell/Home Number/Taman
+    Unit) punya filter dropdown terpisah di toolbar, khusus relevan/wajib
+    diisi saat Jenis Pengadaan = Material Unit Bangunan (Addendum 18).
   - **Master Data Home With AI** — seluruh kolom tab Home With AI apa
     adanya (termasuk Nama Vendor, Satuan, Harga Satuan, Harga Total, Tgl
     Mulai, Tgl Selesai, Kategori, List Device, SPV, Status Device, Masa

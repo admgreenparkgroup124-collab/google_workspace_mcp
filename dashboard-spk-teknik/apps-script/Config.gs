@@ -128,6 +128,10 @@ var PURCHASING_FIELD_DEFS = [
   { key: 'namaProyek', candidates: ['nama proyek'] },
   { key: 'blokUnit', candidates: ['blok no unit area kerja', 'blok no unit', 'blok unit', 'no unit'] },
   { key: 'jenisPengadaan', candidates: ['jenis pengadaan'] },
+  // Sub-klasifikasi khusus Jenis Pengadaan "Material Unit Bangunan"
+  // (Addendum 18) -- Kanopi/Tangga Darurat/Railing Tangga/Railing Balkon/
+  // Doorbell/Home Number/Taman Unit. Kosong utk Material PSU/Promo Unit.
+  { key: 'kategori', candidates: ['kategori'] },
   { key: 'namaBarang', candidates: ['nama barang item', 'nama barang'] },
   { key: 'namaPekerjaan', candidates: ['nama pekerjaan'] },
   { key: 'namaVendor', candidates: ['nama vendor', 'vendor'] },
