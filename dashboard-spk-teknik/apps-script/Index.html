@@ -126,6 +126,20 @@
               <div class="chart-canvas-wrap"><canvas id="chartSemuaSpkStatus"></canvas></div>
               <div class="chart-rincian" id="semuaSpkStatusRincian" hidden></div>
             </div>
+            <div class="chart-card">
+              <h3>Peringkat Kontraktor
+                <span class="chart-toggle" data-toggle-group="spkRanking">
+                  <button data-granularity="count" class="active" type="button">Jumlah</button>
+                  <button data-granularity="nilai" type="button">Nilai</button>
+                </span>
+              </h3>
+              <div class="chart-card-table-wrap">
+                <table>
+                  <thead><tr><th>No</th><th>Kontraktor</th><th>Jumlah SPK</th><th>Total Nilai (Rp)</th></tr></thead>
+                  <tbody id="semuaSpkRankingBody"></tbody>
+                </table>
+              </div>
+            </div>
           </section>
         </section>
 
@@ -147,6 +161,20 @@
               <div class="chart-canvas-wrap"><canvas id="chartSemuaPurStatus"></canvas></div>
               <div class="chart-rincian" id="semuaPurStatusRincian" hidden></div>
             </div>
+            <div class="chart-card">
+              <h3>Peringkat Vendor
+                <span class="chart-toggle" data-toggle-group="purRanking">
+                  <button data-granularity="count" class="active" type="button">Jumlah</button>
+                  <button data-granularity="nilai" type="button">Nilai</button>
+                </span>
+              </h3>
+              <div class="chart-card-table-wrap">
+                <table>
+                  <thead><tr><th>No</th><th>Nama Vendor</th><th>Jumlah PO</th><th>Total Nilai (Rp)</th></tr></thead>
+                  <tbody id="semuaPurRankingBody"></tbody>
+                </table>
+              </div>
+            </div>
           </section>
         </section>
 
@@ -167,6 +195,20 @@
               <h3>Status Progres</h3>
               <div class="chart-canvas-wrap"><canvas id="chartSemuaHwaStatus"></canvas></div>
               <div class="chart-rincian" id="semuaHwaStatusRincian" hidden></div>
+            </div>
+            <div class="chart-card">
+              <h3>Peringkat Vendor
+                <span class="chart-toggle" data-toggle-group="hwaRanking">
+                  <button data-granularity="count" class="active" type="button">Jumlah</button>
+                  <button data-granularity="nilai" type="button">Nilai</button>
+                </span>
+              </h3>
+              <div class="chart-card-table-wrap">
+                <table>
+                  <thead><tr><th>No</th><th>Nama Vendor</th><th>Jumlah PO</th><th>Total Nilai (Rp)</th></tr></thead>
+                  <tbody id="semuaHwaRankingBody"></tbody>
+                </table>
+              </div>
             </div>
           </section>
         </section>
@@ -209,6 +251,20 @@
             <div class="chart-canvas-wrap"><canvas id="chartSpkStatusProgres"></canvas></div>
             <div class="chart-rincian" id="spkStatusRincian" hidden></div>
           </div>
+          <div class="chart-card">
+            <h3>Peringkat Kontraktor
+              <span class="chart-toggle" data-toggle-group="spkRanking">
+                <button data-granularity="count" class="active" type="button">Jumlah</button>
+                <button data-granularity="nilai" type="button">Nilai</button>
+              </span>
+            </h3>
+            <div class="chart-card-table-wrap">
+              <table>
+                <thead><tr><th>No</th><th>Kontraktor</th><th>Jumlah SPK</th><th>Total Nilai (Rp)</th></tr></thead>
+                <tbody id="spkRankingBody"></tbody>
+              </table>
+            </div>
+          </div>
         </section>
       </div>
       <!-- /dashboardSubview-spk -->
@@ -231,6 +287,20 @@
             <div class="chart-canvas-wrap"><canvas id="chartPurStatus"></canvas></div>
             <div class="chart-rincian" id="purStatusRincian" hidden></div>
           </div>
+          <div class="chart-card">
+            <h3>Peringkat Vendor
+              <span class="chart-toggle" data-toggle-group="purRanking">
+                <button data-granularity="count" class="active" type="button">Jumlah</button>
+                <button data-granularity="nilai" type="button">Nilai</button>
+              </span>
+            </h3>
+            <div class="chart-card-table-wrap">
+              <table>
+                <thead><tr><th>No</th><th>Nama Vendor</th><th>Jumlah PO</th><th>Total Nilai (Rp)</th></tr></thead>
+                <tbody id="purRankingBody"></tbody>
+              </table>
+            </div>
+          </div>
         </section>
       </div>
       <!-- /dashboardSubview-purchasing -->
@@ -252,6 +322,20 @@
             <h3>Status Progres</h3>
             <div class="chart-canvas-wrap"><canvas id="chartHwaStatusProgres"></canvas></div>
             <div class="chart-rincian" id="hwaStatusRincian" hidden></div>
+          </div>
+          <div class="chart-card">
+            <h3>Peringkat Vendor
+              <span class="chart-toggle" data-toggle-group="hwaRanking">
+                <button data-granularity="count" class="active" type="button">Jumlah</button>
+                <button data-granularity="nilai" type="button">Nilai</button>
+              </span>
+            </h3>
+            <div class="chart-card-table-wrap">
+              <table>
+                <thead><tr><th>No</th><th>Nama Vendor</th><th>Jumlah PO</th><th>Total Nilai (Rp)</th></tr></thead>
+                <tbody id="hwaRankingBody"></tbody>
+              </table>
+            </div>
           </div>
         </section>
       </div>

@@ -372,6 +372,11 @@
   }
   .chart-card-wide { grid-column: span 2; }
   .chart-canvas-wrap { position: relative; height: 240px; }
+  /* Tabel Peringkat Kontraktor/Vendor (Addendum 21) di dalam .chart-card --
+     reuse styling table generik (thead th/tbody td) yang sudah ada, tinggal
+     dibungkus supaya tidak melar kalau daftar kontraktor/vendor panjang. */
+  .chart-card-table-wrap { max-height: 260px; overflow: auto; }
+  .chart-card-table-wrap table { font-size: 12px; }
 
   /* ---------- Toggle Bulan/Tahun di header chart-card (trend SPK/Purchasing/HWA) ---------- */
   .chart-toggle { display: inline-flex; gap: 2px; text-transform: none; letter-spacing: normal; }
@@ -548,6 +553,7 @@
     white-space: nowrap;
   }
   tbody td { padding: 9px 12px; border-bottom: 1px solid #eef1f4; white-space: nowrap; }
+  tbody td.num { text-align: right; font-variant-numeric: tabular-nums; }
   tbody tr { cursor: pointer; }
   tbody tr.row-overdue { background: var(--red-bg); }
   .empty-row td { text-align: center; color: var(--ink-soft); padding: 24px; cursor: default; }

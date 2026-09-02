@@ -497,18 +497,26 @@ sendiri), cara update:
     sekaligus. Filter Tahun/Bulan/GP/Proyek + kotak pencarian tetap
     berlaku untuk seluruh sub-tab Semua. Isi tiap kategorinya:
     - **SPK**: card Total Proyek, Total SPK (rincian PSU/Unit Rumah),
-      Total Nilai Transaksi (rincian PSU/Unit Rumah), Unit Tertinggal
-      Jadwal Konstruksi (Bagian 2g/2h); grafik **garis** Trend Penerbitan
-      SPK dengan toggle **Bulan/Tahun**, dan chart Status Progres (Sesuai
-      Jadwal vs Overdue).
+      **Total SPK PSU**, **Total SPK Unit Rumah**, Total Nilai Transaksi
+      (rincian PSU/Unit Rumah), **Total Nilai Transaksi PSU**, **Total
+      Nilai Transaksi Unit Rumah**, Unit Tertinggal Jadwal Konstruksi
+      (Bagian 2g/2h — Addendum 21 memecah 2 card lama jadi tambahan 4
+      card breakdown per Jenis SPK); grafik **garis** Trend Penerbitan
+      SPK dengan toggle **Bulan/Tahun** (area di bawah garis diberi isian
+      warna lembut, murni kosmetik), chart Status Progres (Sesuai Jadwal
+      vs Overdue), dan tabel **Peringkat Kontraktor** (jumlah SPK & total
+      nilai per kontraktor, urutan bisa ditoggle Jumlah/Nilai).
     - **Purchasing**: card Total PO Purchasing (rincian Jenis Pengadaan),
       Total Nilai PO Purchasing; grafik garis Trend PO Purchasing (toggle
-      Bulan/Tahun), chart Status Progres (proporsi status pekerjaan).
+      Bulan/Tahun), chart Status Progres (proporsi status pekerjaan), dan
+      tabel **Peringkat Vendor** (dari kolom Nama Vendor, toggle
+      Jumlah/Nilai — Addendum 21).
     - **Home With AI**: card Total PO Home With AI (rincian Status), Total
       per Kategori (rincian Home With AI/Smarthome — Addendum 9), Total
       Nilai Transaksi Home With AI; grafik garis Trend PO Home With
       AI (toggle Bulan/Tahun), chart Status Progres (proporsi Belum
-      Order/On Proses/Terpasang).
+      Order/On Proses/Terpasang), dan tabel **Peringkat Vendor** (dari
+      kolom Nama Vendor, toggle Jumlah/Nilai — Addendum 21).
     Filter Tahun/Bulan/GP/Proyek/Cari tetap berlaku di semua sub-tab.
     **Semua card & chart Status Progres bisa diklik untuk rincian**: card
     dengan tanda panah (▸) — Total SPK, Total Nilai Transaksi, Total per
