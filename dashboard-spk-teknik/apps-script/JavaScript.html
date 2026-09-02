@@ -1278,13 +1278,6 @@
     sel.value = current;
     sel.onchange = function () { masterPurProyek = sel.value; renderMasterPurchasing(); };
   }
-  document.getElementById('masterPurJenisTabs').addEventListener('click', function (e) {
-    var btn = e.target.closest('button[data-jenis]');
-    if (!btn) return;
-    masterPurJenis = btn.getAttribute('data-jenis');
-    document.querySelectorAll('#masterPurJenisTabs button').forEach(function (b) { b.classList.toggle('active', b === btn); });
-    renderMasterPurchasing();
-  });
   document.getElementById('masterPurSearch').addEventListener('input', function (e) {
     masterPurSearch = e.target.value;
     renderMasterPurchasing();
@@ -1935,11 +1928,30 @@
     else if (currentView === 'progres-input') renderProgresInput();
   }
 
+  // Sub-menu "Master Data Purchasing" -> 7 kategori Jenis Pengadaan
+  // (Addendum 17) -- dipindah dari tab dalam halaman ke sub-menu di
+  // sidebar, nempel di bawah item nav "Master Data Purchasing".
   document.getElementById('appNav').addEventListener('click', function (e) {
     var btn = e.target.closest('button[data-view]');
     if (!btn) return;
-    currentView = btn.getAttribute('data-view');
-    document.querySelectorAll('#appNav button').forEach(function (b) { b.classList.toggle('active', b === btn); });
+    var view = btn.getAttribute('data-view');
+    var isSubItem = btn.classList.contains('nav-sub-item');
+
+    if (view === 'master-purchasing' && !isSubItem) {
+      var sub = document.getElementById('navPurchasingSub');
+      // Sudah di halaman ini -> klik ulang item induk toggle buka/tutup
+      // sub-menu. Baru masuk halaman ini -> otomatis dibuka.
+      sub.hidden = (currentView === 'master-purchasing') ? !sub.hidden : false;
+    }
+    if (isSubItem) {
+      masterPurJenis = btn.getAttribute('data-jenis') || '';
+      document.querySelectorAll('#navPurchasingSub button').forEach(function (b) { b.classList.toggle('active', b === btn); });
+    }
+
+    currentView = view;
+    document.querySelectorAll('#appNav > button[data-view]').forEach(function (b) {
+      b.classList.toggle('active', b.getAttribute('data-view') === view);
+    });
     document.querySelectorAll('.view').forEach(function (el) { el.hidden = (el.id !== 'view-' + currentView); });
     renderCurrentView();
     closeMobileSidebar();

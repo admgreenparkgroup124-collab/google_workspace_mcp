@@ -528,15 +528,19 @@ sendiri), cara update:
   - **Master Data Purchasing** — seluruh kolom tab Purchasing apa adanya
     (termasuk Nama Pekerjaan, Nama Vendor, Qty, Satuan, Harga Satuan,
     Harga Total, Lampiran) + kartu ringkasan (**Total PO** & Total Nilai)
-    + filter Proyek, + **sub-menu tab Jenis Pengadaan** (Addendum 16):
-    Semua / Material PSU / Material Unit Bangunan / Kanopi / Tangga
-    Darurat / Railing Tangga / Railing Balkon / Promo Unit. Klik satu
-    kategori menyaring baris DAN kolom tabel yang ditampilkan (kategori
-    "proses order" menampilkan Nama Barang/Qty/Satuan/Harga Satuan,
-    kategori "proses pengerjaan" menampilkan Nama Pekerjaan) — form
-    "+ Tambah Data" ikut menyesuaikan field yang relevan begitu Jenis
-    Pengadaan dipilih. Tab "Semua" tetap menampilkan seluruh kolom &
-    baris seperti sebelumnya.
+    + filter Proyek, + **sub-menu Jenis Pengadaan di sidebar** (Addendum
+    16/17): klik item nav "Master Data Purchasing" untuk membuka daftar
+    7 kategori (Semua / Material PSU / Material Unit Bangunan / Kanopi /
+    Tangga Darurat / Railing Tangga / Railing Balkon / Promo Unit) yang
+    muncul menempel di bawahnya di sidebar (klik lagi item induknya untuk
+    lipat/buka sub-menu). Klik satu kategori menyaring baris DAN kolom
+    tabel yang ditampilkan (kategori "proses order" menampilkan Nama
+    Barang/Qty/Satuan/Harga Satuan, kategori "proses pengerjaan"
+    menampilkan Nama Pekerjaan) — form "+ Tambah Data" ikut menyesuaikan
+    field yang relevan begitu Jenis Pengadaan dipilih. Sub-menu otomatis
+    disembunyikan saat sidebar dilipat jadi mode ikon-saja di desktop
+    (tetap tampil normal di mode off-canvas HP/tablet). Kategori "Semua"
+    tetap menampilkan seluruh kolom & baris seperti sebelumnya.
   - **Master Data Home With AI** — seluruh kolom tab Home With AI apa
     adanya (termasuk Nama Vendor, Satuan, Harga Satuan, Harga Total, Tgl
     Mulai, Tgl Selesai, Kategori, List Device, SPV, Status Device, Masa
