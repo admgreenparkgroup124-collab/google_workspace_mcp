@@ -496,36 +496,41 @@ sendiri), cara update:
     tidak perlu buka tiap sub-tab satu per satu untuk melihat semuanya
     sekaligus. Filter Tahun/Bulan/GP/Proyek + kotak pencarian tetap
     berlaku untuk seluruh sub-tab Semua. Isi tiap kategorinya:
-    - **SPK**: card Total Proyek, Total SPK (rincian PSU/Unit Rumah),
-      **Total SPK PSU**, **Total SPK Unit Rumah**, Total Nilai Transaksi
-      (rincian PSU/Unit Rumah), **Total Nilai Transaksi PSU**, **Total
-      Nilai Transaksi Unit Rumah**, Unit Tertinggal Jadwal Konstruksi
-      (Bagian 2g/2h — Addendum 21 memecah 2 card lama jadi tambahan 4
-      card breakdown per Jenis SPK); grafik **garis** Trend Penerbitan
+    - **SPK**: card Total Proyek (rincian nama proyek saja), Total SPK
+      (tidak bisa diklik, cukup keterangan jumlah PSU/Unit Rumah), **Total
+      SPK PSU** & **Total SPK Unit Rumah** (bisa diklik, rincian per baris
+      Item SPK/Nama Kontraktor/Status), Total Nilai Transaksi (tidak bisa
+      diklik, keterangan nilai PSU/Unit Rumah), **Total Nilai Transaksi
+      PSU** & **Total Nilai Transaksi Unit Rumah** (bisa diklik, rincian
+      sama + nilai transaksinya), Unit Tertinggal Jadwal Konstruksi
+      (Bagian 2g/2h — Addendum 21/22); grafik **garis** Trend Penerbitan
       SPK dengan toggle **Bulan/Tahun** (area di bawah garis diberi isian
       warna lembut, murni kosmetik), chart Status Progres (Sesuai Jadwal
       vs Overdue), dan tabel **Peringkat Kontraktor** (jumlah SPK & total
-      nilai per kontraktor, urutan bisa ditoggle Jumlah/Nilai).
+      nilai per kontraktor, urutan bisa ditoggle Jumlah/Nilai, seluruh
+      baris langsung terlihat tanpa scroll — Addendum 22).
     - **Purchasing**: card Total PO Purchasing (rincian Jenis Pengadaan),
       Total Nilai PO Purchasing; grafik garis Trend PO Purchasing (toggle
       Bulan/Tahun), chart Status Progres (proporsi status pekerjaan), dan
       tabel **Peringkat Vendor** (dari kolom Nama Vendor, toggle
-      Jumlah/Nilai — Addendum 21).
+      Jumlah/Nilai, tanpa scroll — Addendum 21/22).
     - **Home With AI**: card Total PO Home With AI (rincian Status), Total
       per Kategori (rincian Home With AI/Smarthome — Addendum 9), Total
       Nilai Transaksi Home With AI; grafik garis Trend PO Home With
       AI (toggle Bulan/Tahun), chart Status Progres (proporsi Belum
       Order/On Proses/Terpasang), dan tabel **Peringkat Vendor** (dari
-      kolom Nama Vendor, toggle Jumlah/Nilai — Addendum 21).
+      kolom Nama Vendor, toggle Jumlah/Nilai, tanpa scroll — Addendum 21/22).
     Filter Tahun/Bulan/GP/Proyek/Cari tetap berlaku di semua sub-tab.
-    **Semua card & chart Status Progres bisa diklik untuk rincian**: card
-    dengan tanda panah (▸) — Total SPK, Total Nilai Transaksi, Total per
-    Jenis/Status, Total Proyek, Unit Tertinggal Jadwal Konstruksi — kalau
-    diklik memperluas daftar rincian di bawahnya (nama proyek/unit atau
-    breakdown per jenis/status) tanpa pindah halaman; klik lagi untuk
-    menutup. Chart donut **Status Progres** juga interaktif: klik salah
-    satu potongan atau legend-nya menampilkan daftar proyek/unit/PO
-    untuk status itu di bawah chart.
+    **Card dengan tanda panah (▸) bisa diklik untuk rincian** (Total
+    Proyek, Total per Jenis/Status, Total SPK PSU/Unit Rumah, Total Nilai
+    Transaksi PSU/Unit Rumah, Total Nilai per Jenis/Status, Unit
+    Tertinggal Jadwal Konstruksi) — kalau diklik memperluas daftar rincian
+    di bawahnya tanpa pindah halaman; klik lagi untuk menutup. Card Total
+    SPK dan Total Nilai Transaksi (gabungan) sengaja **tidak** bisa diklik
+    — rinciannya cukup ditampilkan sebagai keterangan ringkas PSU/Unit
+    Rumah di bawah nilainya (Addendum 22). Chart donut **Status Progres**
+    juga interaktif: klik salah satu potongan atau legend-nya menampilkan
+    daftar proyek/unit/PO untuk status itu di bawah chart.
     **Alert keterlambatan progres** — muncul otomatis di atas (di sub-tab
     Semua maupun tiap sub-tab kategori sendiri) kalau ada baris yang
     ditandai terlambat: SPK Unit Rumah yang lewat target Tanggal Selesai,
