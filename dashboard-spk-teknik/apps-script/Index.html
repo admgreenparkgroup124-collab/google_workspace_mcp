@@ -27,12 +27,6 @@
         <button data-view="master-purchasing" type="button" title="Master Data Purchasing">
           <span class="nav-icon">🛒</span><span class="nav-label">Master Data Purchasing</span>
         </button>
-        <div class="nav-sub" id="navPurchasingSub" hidden>
-          <button data-view="master-purchasing" data-jenis="" class="nav-sub-item active" type="button">Semua</button>
-          <button data-view="master-purchasing" data-jenis="Material PSU" class="nav-sub-item" type="button">Material PSU</button>
-          <button data-view="master-purchasing" data-jenis="Material Unit Bangunan" class="nav-sub-item" type="button">Material Unit Bangunan</button>
-          <button data-view="master-purchasing" data-jenis="Promo Unit" class="nav-sub-item" type="button">Promo Unit</button>
-        </div>
         <button data-view="master-hwa" type="button" title="Master Data Home With AI">
           <span class="nav-icon">🏠</span><span class="nav-label">Master Data Home With AI</span>
         </button>
@@ -305,7 +299,7 @@
         </div>
         <div class="table-toolbar">
           <select id="masterPurProyekFilter"><option value="">Semua Proyek</option></select>
-          <select id="masterPurKategoriFilter"><option value="">Semua Kategori</option></select>
+          <select id="masterPurJenisFilter"><option value="">Semua Jenis Pengadaan</option></select>
           <input type="text" id="masterPurSearch" placeholder="Cari GP, proyek, unit, nama barang…">
           <button id="addPurBtn" class="btn-add" type="button" hidden>+ Tambah Data</button>
           <span id="masterPurCount" class="toolbar-count"></span>
@@ -316,7 +310,7 @@
             <tbody></tbody>
           </table>
         </div>
-        <p class="master-hint">Menampilkan seluruh kolom tab Purchasing di spreadsheet sumber (baca-saja). Baris Material PSU tidak terikat unit tertentu. Kolom "Kategori" hanya relevan/wajib diisi utk Jenis Pengadaan Material Unit Bangunan (Kanopi/Tangga Darurat/Railing Tangga/Railing Balkon/Doorbell/Home Number/Taman Unit).</p>
+        <p class="master-hint">Menampilkan seluruh kolom tab Purchasing di spreadsheet sumber (baca-saja). Baris Material PSU tidak terikat unit tertentu.</p>
       </section>
     </div>
 

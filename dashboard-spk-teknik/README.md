@@ -103,23 +103,22 @@ kapan saja Anda sempat mengisi datanya.
 Baris header:
 
 ```
-Grup Proyek | Nama Proyek | Blok/No. Unit | Jenis Pengadaan | Kategori | Nama Barang/Item | Nama Pekerjaan | Nama Vendor | Qty | Satuan | Harga Satuan (Rp) | Harga Total (Rp) | Status Pekerjaan | Tanggal Order/Mulai | Tanggal | Lampiran | Keterangan | Target Hari (SLA)
+Grup Proyek | Nama Proyek | Blok/No. Unit | Jenis Pengadaan | Nama Barang/Item | Nama Pekerjaan | Nama Vendor | Qty | Satuan | Harga Satuan (Rp) | Harga Total (Rp) | Status Pekerjaan | Tanggal Order/Mulai | Tanggal | Lampiran | Keterangan | Target Hari (SLA)
 ```
 
-- **Jenis Pengadaan** (Addendum 16/18 — 3 kategori): `Material PSU` /
+- **Jenis Pengadaan** (Addendum 16/18/20 — 3 kategori): `Material PSU` /
   `Material Unit Bangunan` / `Promo Unit`. Di halaman **Master Data
-  Purchasing**, kategori ini jadi **sub-menu di sidebar** (menempel di
-  bawah item nav "Master Data Purchasing" — klik untuk buka/tutup,
-  Addendum 17).
-- **Kategori** (kolom baru, Addendum 18) — sub-klasifikasi KHUSUS untuk
-  Jenis Pengadaan `Material Unit Bangunan`: `Kanopi` / `Tangga Darurat` /
-  `Railing Tangga` / `Railing Balkon` / `Doorbell` / `Home Number` /
-  `Taman Unit`. **Wajib diisi** di form Tambah Data saat Jenis Pengadaan =
-  Material Unit Bangunan (field-nya baru muncul saat kategori itu
-  dipilih); **kosongkan** untuk Material PSU & Promo Unit. Ditampilkan
-  sebagai kolom tabel + filter dropdown terpisah ("Semua Kategori") di
-  toolbar Master Data Purchasing, pola sama seperti filter Kategori Home
-  With AI (Bagian 2a).
+  Purchasing**, kategori ini adalah **filter dropdown biasa** di toolbar
+  ("Semua Jenis Pengadaan") — Addendum 20 menghapus sub-menu sidebar
+  yang sempat dipakai (Addendum 17) supaya tidak jadi item navigasi
+  bertingkat, balik jadi filter/kategori biasa saja seperti filter
+  lainnya.
+- **Material Unit Bangunan tidak lagi punya field "Kategori" terpisah**
+  (Addendum 18 membuatnya, Addendum 20 menghapusnya lagi) — nilai-nilai
+  seperti Kanopi/Tangga Darurat/Railing Tangga/Railing Balkon/Doorbell/
+  Home Number/Taman Unit sekarang cukup diketik manual sebagai teks
+  bebas di kolom **Nama Barang/Item** yang sudah ada, tidak perlu kolom
+  atau dropdown tambahan di sheet.
 - **Blok/No. Unit**: isi untuk semua kategori KECUALI Material PSU (proyek-level, bukan per-unit); **kosongkan** untuk Material PSU.
 - **Nama Pekerjaan**: teks bebas, deskripsi pekerjaan/aktivitas terkait (beda dari **Nama Barang/Item** yang berarti nama barang/materialnya sendiri); boleh dikosongkan.
 - **Qty**: angka — jumlah/kuantitas barang, dipasangkan dengan **Satuan**; boleh dikosongkan.
@@ -538,28 +537,21 @@ sendiri), cara update:
     di spreadsheet), + kartu ringkasan (**Total SPK** & Total Nilai) di
     atas tabel, + filter Proyek & Jenis SPK.
   - **Master Data Purchasing** — kartu ringkasan (**Total PO** & Total
-    Nilai) + filter Proyek & Kategori, + **sub-menu Jenis Pengadaan di
-    sidebar** (Addendum 17/18): klik item nav "Master Data Purchasing"
-    untuk membuka daftar 3 kategori (Semua / Material PSU / Material Unit
-    Bangunan / Promo Unit) yang muncul menempel di bawahnya di sidebar
-    (klik lagi item induknya untuk lipat/buka sub-menu). Klik satu
-    kategori menyaring baris **DAN kolom tabel** yang ditampilkan
-    (Addendum 19 — supaya tabel tidak terlalu lebar): kolom umum yang
-    selalu tampil (Grup Proyek, Nama Proyek, Blok/Unit, Nama Vendor,
-    Harga Total, Status Pekerjaan, Tanggal Order/Mulai, Keterangan) +
-    kolom tambahan sesuai kategori — Material PSU/Material Unit Bangunan
-    dapat Nama Barang/Item+Qty+Satuan+Harga Satuan (Unit Bangunan
-    tambah Kategori juga), Promo Unit cuma Nama Barang/Item. Kolom Jenis
-    Pengadaan/Nama Pekerjaan/Tanggal/Lampiran disembunyikan dari tabel
-    ringkas ini (tetap ada di data — klik baris untuk lihat lengkap di
-    modal Detail per Unit). Kategori **"Semua"** tetap menampilkan
-    SEMUA kolom & baris seperti biasa (baris tercampur 3 jenis). Sub-menu
-    otomatis disembunyikan saat sidebar dilipat jadi mode ikon-saja di
-    desktop (tetap tampil normal di mode off-canvas HP/tablet). Kolom
-    "Kategori" (Kanopi/Tangga Darurat/Railing Tangga/Railing Balkon/
-    Doorbell/Home Number/Taman Unit) punya filter dropdown terpisah di
-    toolbar, khusus relevan/wajib
-    diisi saat Jenis Pengadaan = Material Unit Bangunan (Addendum 18).
+    Nilai) + filter Proyek & filter dropdown **Jenis Pengadaan**
+    ("Semua Jenis Pengadaan" / Material PSU / Material Unit Bangunan /
+    Promo Unit) di toolbar (Addendum 20 — bukan lagi sub-menu di
+    sidebar seperti sempat dipakai di Addendum 17, dikembalikan jadi
+    filter biasa). Memilih satu kategori menyaring baris **DAN kolom
+    tabel** yang ditampilkan (Addendum 19 — supaya tabel tidak terlalu
+    lebar): kolom umum yang selalu tampil (Grup Proyek, Nama Proyek,
+    Blok/Unit, Nama Vendor, Harga Total, Status Pekerjaan, Tanggal
+    Order/Mulai, Keterangan) + kolom tambahan sesuai kategori — Material
+    PSU/Material Unit Bangunan dapat Nama Barang/Item+Qty+Satuan+Harga
+    Satuan, Promo Unit cuma Nama Barang/Item. Kolom Jenis Pengadaan/Nama
+    Pekerjaan/Tanggal/Lampiran disembunyikan dari tabel ringkas ini
+    (tetap ada di data — klik baris untuk lihat lengkap di modal Detail
+    per Unit). Filter **"Semua Jenis Pengadaan"** tetap menampilkan
+    SEMUA kolom & baris seperti biasa (baris tercampur 3 jenis).
   - **Master Data Home With AI** — seluruh kolom tab Home With AI apa
     adanya (termasuk Nama Vendor, Satuan, Harga Satuan, Harga Total, Tgl
     Mulai, Tgl Selesai, Kategori, List Device, SPV, Status Device, Masa

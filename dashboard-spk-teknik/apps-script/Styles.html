@@ -93,13 +93,6 @@
   .sidebar .app-nav button .nav-icon { font-size: 15px; width: 18px; text-align: center; flex-shrink: 0; }
   .sidebar .app-nav button .nav-label { overflow: hidden; text-overflow: ellipsis; }
 
-  /* Sub-menu 7 kategori Jenis Pengadaan, nempel di bawah item nav "Master
-     Data Purchasing" (Addendum 17) -- expand/collapse via atribut native
-     [hidden], toggle diatur JS saat item induk diklik. */
-  .nav-sub { display: flex; flex-direction: column; gap: 1px; margin: 1px 0 4px; }
-  .nav-sub[hidden] { display: none; }
-  .nav-sub .nav-sub-item { padding-left: 30px; font-size: 11.5px; font-weight: 500; color: #9fc7b3; }
-
   .sidebar-collapse-btn {
     margin: 8px 10px 14px;
     background: rgba(255,255,255,.08);
@@ -118,7 +111,6 @@
   .sidebar.collapsed .app-nav button .nav-label { display: none; }
   .sidebar.collapsed .app-nav button { justify-content: center; padding: 9px 0; }
   .sidebar.collapsed .sidebar-collapse-btn { transform: rotate(180deg); }
-  .sidebar.collapsed .nav-sub { display: none; }
 
   .app-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 
@@ -754,8 +746,6 @@
     .sidebar.collapsed .sidebar-brand .brand-text,
     .sidebar.collapsed .app-nav button .nav-label { display: block; }
     .sidebar.collapsed .app-nav button { justify-content: flex-start; padding: 9px 10px; }
-    .sidebar.collapsed .nav-sub { display: flex; }
-    .sidebar.collapsed .nav-sub[hidden] { display: none; }
     .sidebar-collapse-btn { display: none; }
     .sidebar-backdrop.open { display: block; }
     .mobile-nav-toggle { display: inline-flex; }

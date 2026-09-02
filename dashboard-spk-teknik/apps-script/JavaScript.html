@@ -35,7 +35,6 @@
   var masterPurGp = '';
   var masterPurProyek = '';
   var masterPurJenis = '';       // '' | 'Material PSU' | 'Material Unit Bangunan' | 'Promo Unit'
-  var masterPurKategori = '';    // '' | Kanopi/Tangga Darurat/Railing Tangga/Railing Balkon/Doorbell/Home Number/Taman Unit (Addendum 18, khusus Material Unit Bangunan)
   var masterPurSearch = '';
   var masterHwaGp = '';
   var masterHwaProyek = '';
@@ -75,10 +74,6 @@
   var GP_OPTIONS = ['GP1', 'GP2', 'GP3', 'GP4'];
   var SPK_JENIS_OPTIONS = ['PSU', 'UNIT RUMAH'];
   var JENIS_PENGADAAN_OPTIONS = ['Material PSU', 'Material Unit Bangunan', 'Promo Unit'];
-  // Sub-klasifikasi khusus Jenis Pengadaan "Material Unit Bangunan"
-  // (Addendum 18) -- field terpisah `kategori`, BUKAN kategori Jenis
-  // Pengadaan tersendiri (itu keliru di Addendum 16/17, sudah dikoreksi).
-  var PUR_KATEGORI_OPTIONS = ['Kanopi', 'Tangga Darurat', 'Railing Tangga', 'Railing Balkon', 'Doorbell', 'Home Number', 'Taman Unit'];
   var HOME_WITH_AI_STATUS_OPTIONS = ['Belum Order', 'On Proses', 'Terpasang'];
   var HOME_WITH_AI_KATEGORI_OPTIONS = ['HOME WITH AI', 'SMARTHOME'];
   // Status Pekerjaan pakai kosakata berbeda per kategori Jenis Pengadaan
@@ -105,7 +100,7 @@
       });
     }
     fill('masterSpkJenisFilter', SPK_JENIS_OPTIONS);
-    fill('masterPurKategoriFilter', PUR_KATEGORI_OPTIONS);
+    fill('masterPurJenisFilter', JENIS_PENGADAAN_OPTIONS);
     fill('masterHwaStatusFilter', HOME_WITH_AI_STATUS_OPTIONS);
   }
   populateOptionLists();
@@ -147,7 +142,6 @@
       { key: 'proyek', label: 'Proyek' },
       { key: 'unit', label: 'Unit' },
       { key: 'jenisPengadaan', label: 'Jenis Pengadaan' },
-      { key: 'kategori', label: 'Kategori' },
       { key: 'namaBarang', label: 'Nama Barang' },
       { key: 'namaPekerjaan', label: 'Nama Pekerjaan' },
       { key: 'namaVendor', label: 'Vendor' },
@@ -194,7 +188,6 @@
     { key: 'proyek', label: 'Nama Proyek' },
     { key: 'unit', label: 'Blok/Unit' },
     { key: 'jenisPengadaan', label: 'Jenis Pengadaan' },
-    { key: 'kategori', label: 'Kategori' },
     { key: 'namaBarang', label: 'Nama Barang/Item' },
     { key: 'namaPekerjaan', label: 'Nama Pekerjaan' },
     { key: 'namaVendor', label: 'Nama Vendor' },
@@ -211,13 +204,13 @@
 
   // Kolom yang cuma relevan utk satu kategori Jenis Pengadaan tertentu
   // (Addendum 19) -- dipakai masterPurColumnsFor() supaya tabel tidak
-  // terlalu lebar saat satu kategori spesifik aktif di sidebar. Tab
-  // "Semua" (masterPurJenis kosong) tetap tampilkan MASTER_PUR_COLUMNS
-  // penuh, krn barisnya campuran 3 jenis.
+  // terlalu lebar saat satu kategori spesifik dipilih di filter dropdown
+  // Jenis Pengadaan. Tab "Semua" (masterPurJenis kosong) tetap tampilkan
+  // MASTER_PUR_COLUMNS penuh, krn barisnya campuran 3 jenis.
   var PUR_HIDDEN_COLS_WHEN_FILTERED = ['jenisPengadaan', 'namaPekerjaan', 'tanggal', 'lampiran'];
   var PUR_EXTRA_COLS_BY_JENIS = {
     'Material PSU': ['namaBarang', 'qty', 'satuan', 'hargaSatuan'],
-    'Material Unit Bangunan': ['kategori', 'namaBarang', 'qty', 'satuan', 'hargaSatuan'],
+    'Material Unit Bangunan': ['namaBarang', 'qty', 'satuan', 'hargaSatuan'],
     'Promo Unit': ['namaBarang']
   };
   function masterPurColumnsFor(jenis) {
@@ -225,7 +218,7 @@
     var extraKeys = PUR_EXTRA_COLS_BY_JENIS[jenis] || [];
     return MASTER_PUR_COLUMNS.filter(function (c) {
       if (PUR_HIDDEN_COLS_WHEN_FILTERED.indexOf(c.key) !== -1) return false;
-      if (['kategori', 'namaBarang', 'qty', 'satuan', 'hargaSatuan'].indexOf(c.key) !== -1) {
+      if (['namaBarang', 'qty', 'satuan', 'hargaSatuan'].indexOf(c.key) !== -1) {
         return extraKeys.indexOf(c.key) !== -1;
       }
       return true;
@@ -1252,13 +1245,12 @@
     renderMasterSpk();
   });
 
-  // ---- Master Data Purchasing (semua kolom; filter GP + Proyek + Jenis Pengadaan + Kategori) ----
+  // ---- Master Data Purchasing (semua kolom; filter GP + Proyek + Jenis Pengadaan) ----
   function renderMasterPurchasing() {
     var rows = rawData.purchasing;
     if (masterPurGp) rows = rows.filter(function (r) { return normKey(r.gp) === normKey(masterPurGp); });
     if (masterPurProyek) rows = rows.filter(function (r) { return normKey(r.proyek) === normKey(masterPurProyek); });
     if (masterPurJenis) rows = rows.filter(function (r) { return r.jenisPengadaan === masterPurJenis; });
-    if (masterPurKategori) rows = rows.filter(function (r) { return r.kategori === masterPurKategori; });
     renderMasterSummary('masterPurSummary', rows, 'nilai', 'Total PO');
     buildDataTable({
       theadEl: document.querySelector('#masterPurTable thead'),
@@ -1300,8 +1292,8 @@
     sel.value = current;
     sel.onchange = function () { masterPurProyek = sel.value; renderMasterPurchasing(); };
   }
-  document.getElementById('masterPurKategoriFilter').addEventListener('change', function (e) {
-    masterPurKategori = e.target.value;
+  document.getElementById('masterPurJenisFilter').addEventListener('change', function (e) {
+    masterPurJenis = e.target.value;
     renderMasterPurchasing();
   });
   document.getElementById('masterPurSearch').addEventListener('input', function (e) {
@@ -1954,30 +1946,11 @@
     else if (currentView === 'progres-input') renderProgresInput();
   }
 
-  // Sub-menu "Master Data Purchasing" -> 7 kategori Jenis Pengadaan
-  // (Addendum 17) -- dipindah dari tab dalam halaman ke sub-menu di
-  // sidebar, nempel di bawah item nav "Master Data Purchasing".
   document.getElementById('appNav').addEventListener('click', function (e) {
     var btn = e.target.closest('button[data-view]');
     if (!btn) return;
-    var view = btn.getAttribute('data-view');
-    var isSubItem = btn.classList.contains('nav-sub-item');
-
-    if (view === 'master-purchasing' && !isSubItem) {
-      var sub = document.getElementById('navPurchasingSub');
-      // Sudah di halaman ini -> klik ulang item induk toggle buka/tutup
-      // sub-menu. Baru masuk halaman ini -> otomatis dibuka.
-      sub.hidden = (currentView === 'master-purchasing') ? !sub.hidden : false;
-    }
-    if (isSubItem) {
-      masterPurJenis = btn.getAttribute('data-jenis') || '';
-      document.querySelectorAll('#navPurchasingSub button').forEach(function (b) { b.classList.toggle('active', b === btn); });
-    }
-
-    currentView = view;
-    document.querySelectorAll('#appNav > button[data-view]').forEach(function (b) {
-      b.classList.toggle('active', b.getAttribute('data-view') === view);
-    });
+    currentView = btn.getAttribute('data-view');
+    document.querySelectorAll('#appNav button').forEach(function (b) { b.classList.toggle('active', b === btn); });
     document.querySelectorAll('.view').forEach(function (el) { el.hidden = (el.id !== 'view-' + currentView); });
     renderCurrentView();
     closeMobileSidebar();
@@ -2444,7 +2417,6 @@
       { key: 'namaProyek', label: 'Nama Proyek', type: 'text', datalist: true, required: true },
       { key: 'blokUnit', label: 'Blok/No. Unit (kosongkan utk Material PSU)', type: 'text' },
       { key: 'jenisPengadaan', label: 'Jenis Pengadaan', type: 'select', options: JENIS_PENGADAAN_OPTIONS, required: true },
-      { key: 'kategori', label: 'Kategori (khusus Material Unit Bangunan)', type: 'select', options: PUR_KATEGORI_OPTIONS },
       { key: 'namaBarang', label: 'Nama Barang/Item', type: 'text', required: true },
       { key: 'namaPekerjaan', label: 'Nama Pekerjaan', type: 'text', wide: true },
       { key: 'namaVendor', label: 'Nama Vendor', type: 'text' },
@@ -2637,15 +2609,11 @@
     if (inputs.__gp && !opts.lockedGp) inputs.__gp.addEventListener('change', refreshProyekDatalist);
     if (inputs.grupProyek) inputs.grupProyek.addEventListener('change', refreshProyekDatalist);
 
-    // Form Purchasing: field Kategori (Kanopi/Tangga Darurat/Railing
-    // Tangga/Railing Balkon/Doorbell/Home Number/Taman Unit) cuma relevan
-    // & ditampilkan saat Jenis Pengadaan = Material Unit Bangunan
-    // (Addendum 18); pilihan Status Pekerjaan juga diganti sesuai
-    // kosakata per kategori (Addendum 19).
+    // Form Purchasing: pilihan Status Pekerjaan diganti sesuai kosakata
+    // per kategori Jenis Pengadaan (Addendum 19).
     if (recordType === 'purchasing' && inputs.jenisPengadaan) {
       var syncPurFieldVisibility = function () {
         var jenis = inputs.jenisPengadaan.value;
-        if (fieldWraps.kategori) fieldWraps.kategori.hidden = jenis !== 'Material Unit Bangunan';
         if (inputs.statusPekerjaan) {
           var opts = PUR_STATUS_OPTIONS_BY_JENIS[jenis] || PURCHASING_STATUS_OPTIONS;
           var currentVal = inputs.statusPekerjaan.value;
@@ -2693,12 +2661,6 @@
       });
       var gpValue = inputs.__gp ? inputs.__gp.value : fields.grupProyek;
       if (recordType === 'spk' && !gpValue) missing.push('Grup Proyek');
-      // Kategori wajib diisi khusus saat Jenis Pengadaan = Material Unit
-      // Bangunan (Addendum 18) -- tidak bisa jadi required statis di
-      // ADD_RECORD_FIELD_DEFS krn kondisional per kategori.
-      if (recordType === 'purchasing' && fields.jenisPengadaan === 'Material Unit Bangunan' && !fields.kategori) {
-        missing.push('Kategori');
-      }
 
       if (missing.length) {
         errorEl.textContent = 'Wajib diisi: ' + missing.join(', ') + '.';

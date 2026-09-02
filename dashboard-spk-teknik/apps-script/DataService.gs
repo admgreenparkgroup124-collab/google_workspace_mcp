@@ -456,7 +456,6 @@ function getPurchasingRows_(today, scopes) {
       unitKey: unit ? makeUnitKey(gp, proyek, unit) : '',
       projectKey: makeProjectKey(gp, proyek),
       jenisPengadaan: jenisPengadaan,
-      kategori: safeText(cellValue(row, headerMap, 'kategori')),
       namaBarang: namaBarang,
       namaPekerjaan: safeText(cellValue(row, headerMap, 'namaPekerjaan')),
       namaVendor: safeText(cellValue(row, headerMap, 'namaVendor')),
