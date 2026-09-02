@@ -124,7 +124,15 @@ Grup Proyek | Nama Proyek | Blok/No. Unit | Jenis Pengadaan | Kategori | Nama Ba
 - **Nama Pekerjaan**: teks bebas, deskripsi pekerjaan/aktivitas terkait (beda dari **Nama Barang/Item** yang berarti nama barang/materialnya sendiri); boleh dikosongkan.
 - **Qty**: angka — jumlah/kuantitas barang, dipasangkan dengan **Satuan**; boleh dikosongkan.
 - **Harga Satuan (Rp)** / **Harga Total (Rp)**: sama seperti Home With AI di atas — kalau cuma ada satu angka lump-sum, isi **Harga Total (Rp)** saja.
-- **Status Pekerjaan**: untuk Material → `Belum Order`/`On Proses`/`Sudah Order`; untuk Promo Unit → `Belum Terpasang`/`On Proses`/`Terpasang`.
+- **Status Pekerjaan** (Addendum 19 — beda kosakata per kategori Jenis
+  Pengadaan, pilihan di form Tambah Data otomatis mengikuti kategori yang
+  dipilih):
+  - `Material PSU` → `Belum Order` / `On Proses` / `Sudah Order`.
+  - `Material Unit Bangunan` & `Promo Unit` → `Belum Terpasang` /
+    `On Proses` / `Terpasang`.
+  - Dipakai juga oleh `isPurchasingDone_()` (DataService.gs) utk
+    menentukan status "selesai" perhitungan SLA: Material PSU dianggap
+    selesai saat `Sudah Order`, dua kategori lain saat `Terpasang`.
 - **Tanggal Order/Mulai**: tanggal mulai proses, titik awal hitung SLA
   (Bagian 2c) — **beda** dari kolom **Tanggal** yang sudah ada (yang tetap
   berarti tanggal transaksi/terakhir seperti sebelumnya).
@@ -529,20 +537,28 @@ sendiri), cara update:
   - **Master Data SPK** — seluruh kolom SPK apa adanya (persis tab GP1–GP4
     di spreadsheet), + kartu ringkasan (**Total SPK** & Total Nilai) di
     atas tabel, + filter Proyek & Jenis SPK.
-  - **Master Data Purchasing** — seluruh kolom tab Purchasing apa adanya
-    (termasuk Kategori, Nama Pekerjaan, Nama Vendor, Qty, Satuan, Harga
-    Satuan, Harga Total, Lampiran) + kartu ringkasan (**Total PO** &
-    Total Nilai) + filter Proyek & Kategori, + **sub-menu Jenis Pengadaan
-    di sidebar** (Addendum 17/18): klik item nav "Master Data Purchasing"
+  - **Master Data Purchasing** — kartu ringkasan (**Total PO** & Total
+    Nilai) + filter Proyek & Kategori, + **sub-menu Jenis Pengadaan di
+    sidebar** (Addendum 17/18): klik item nav "Master Data Purchasing"
     untuk membuka daftar 3 kategori (Semua / Material PSU / Material Unit
     Bangunan / Promo Unit) yang muncul menempel di bawahnya di sidebar
     (klik lagi item induknya untuk lipat/buka sub-menu). Klik satu
-    kategori menyaring baris tabel. Sub-menu otomatis disembunyikan saat
-    sidebar dilipat jadi mode ikon-saja di desktop (tetap tampil normal
-    di mode off-canvas HP/tablet). Kategori "Semua" tetap menampilkan
-    seluruh baris seperti sebelumnya. Kolom "Kategori" (Kanopi/Tangga
-    Darurat/Railing Tangga/Railing Balkon/Doorbell/Home Number/Taman
-    Unit) punya filter dropdown terpisah di toolbar, khusus relevan/wajib
+    kategori menyaring baris **DAN kolom tabel** yang ditampilkan
+    (Addendum 19 — supaya tabel tidak terlalu lebar): kolom umum yang
+    selalu tampil (Grup Proyek, Nama Proyek, Blok/Unit, Nama Vendor,
+    Harga Total, Status Pekerjaan, Tanggal Order/Mulai, Keterangan) +
+    kolom tambahan sesuai kategori — Material PSU/Material Unit Bangunan
+    dapat Nama Barang/Item+Qty+Satuan+Harga Satuan (Unit Bangunan
+    tambah Kategori juga), Promo Unit cuma Nama Barang/Item. Kolom Jenis
+    Pengadaan/Nama Pekerjaan/Tanggal/Lampiran disembunyikan dari tabel
+    ringkas ini (tetap ada di data — klik baris untuk lihat lengkap di
+    modal Detail per Unit). Kategori **"Semua"** tetap menampilkan
+    SEMUA kolom & baris seperti biasa (baris tercampur 3 jenis). Sub-menu
+    otomatis disembunyikan saat sidebar dilipat jadi mode ikon-saja di
+    desktop (tetap tampil normal di mode off-canvas HP/tablet). Kolom
+    "Kategori" (Kanopi/Tangga Darurat/Railing Tangga/Railing Balkon/
+    Doorbell/Home Number/Taman Unit) punya filter dropdown terpisah di
+    toolbar, khusus relevan/wajib
     diisi saat Jenis Pengadaan = Material Unit Bangunan (Addendum 18).
   - **Master Data Home With AI** — seluruh kolom tab Home With AI apa
     adanya (termasuk Nama Vendor, Satuan, Harga Satuan, Harga Total, Tgl

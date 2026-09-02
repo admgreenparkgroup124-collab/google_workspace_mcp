@@ -81,6 +81,14 @@
   var PUR_KATEGORI_OPTIONS = ['Kanopi', 'Tangga Darurat', 'Railing Tangga', 'Railing Balkon', 'Doorbell', 'Home Number', 'Taman Unit'];
   var HOME_WITH_AI_STATUS_OPTIONS = ['Belum Order', 'On Proses', 'Terpasang'];
   var HOME_WITH_AI_KATEGORI_OPTIONS = ['HOME WITH AI', 'SMARTHOME'];
+  // Status Pekerjaan pakai kosakata berbeda per kategori Jenis Pengadaan
+  // (Addendum 19) -- konsisten dgn isPurchasingDone_() di DataService.gs.
+  var PUR_STATUS_OPTIONS_BY_JENIS = {
+    'Material PSU': ['Belum Order', 'On Proses', 'Sudah Order'],
+    'Material Unit Bangunan': ['Belum Terpasang', 'On Proses', 'Terpasang'],
+    'Promo Unit': ['Belum Terpasang', 'On Proses', 'Terpasang']
+  };
+  // Union semua nilai unik -- default sebelum Jenis Pengadaan dipilih.
   var PURCHASING_STATUS_OPTIONS = ['Belum Order', 'On Proses', 'Sudah Order', 'Belum Terpasang', 'Terpasang'];
   // Sinkron dengan CONFIG.WIFI_DUE_SOON_DAYS di Config.gs (Apps Script) --
   // dipakai murni utk teks banner alert Pembelian WiFi di client.
@@ -200,6 +208,29 @@
     { key: 'lampiran', label: 'Lampiran' },
     { key: 'keterangan', label: 'Keterangan' }
   ];
+
+  // Kolom yang cuma relevan utk satu kategori Jenis Pengadaan tertentu
+  // (Addendum 19) -- dipakai masterPurColumnsFor() supaya tabel tidak
+  // terlalu lebar saat satu kategori spesifik aktif di sidebar. Tab
+  // "Semua" (masterPurJenis kosong) tetap tampilkan MASTER_PUR_COLUMNS
+  // penuh, krn barisnya campuran 3 jenis.
+  var PUR_HIDDEN_COLS_WHEN_FILTERED = ['jenisPengadaan', 'namaPekerjaan', 'tanggal', 'lampiran'];
+  var PUR_EXTRA_COLS_BY_JENIS = {
+    'Material PSU': ['namaBarang', 'qty', 'satuan', 'hargaSatuan'],
+    'Material Unit Bangunan': ['kategori', 'namaBarang', 'qty', 'satuan', 'hargaSatuan'],
+    'Promo Unit': ['namaBarang']
+  };
+  function masterPurColumnsFor(jenis) {
+    if (!jenis) return MASTER_PUR_COLUMNS;
+    var extraKeys = PUR_EXTRA_COLS_BY_JENIS[jenis] || [];
+    return MASTER_PUR_COLUMNS.filter(function (c) {
+      if (PUR_HIDDEN_COLS_WHEN_FILTERED.indexOf(c.key) !== -1) return false;
+      if (['kategori', 'namaBarang', 'qty', 'satuan', 'hargaSatuan'].indexOf(c.key) !== -1) {
+        return extraKeys.indexOf(c.key) !== -1;
+      }
+      return true;
+    });
+  }
 
   var MASTER_HWA_COLUMNS = [
     { key: 'gp', label: 'Grup Proyek' },
@@ -1234,7 +1265,7 @@
       tbodyEl: document.querySelector('#masterPurTable tbody'),
       countEl: document.getElementById('masterPurCount'),
       rows: rows,
-      columns: MASTER_PUR_COLUMNS,
+      columns: masterPurColumnsFor(masterPurJenis),
       sortState: masterPurSort,
       search: masterPurSearch,
       onHeaderClick: renderMasterPurchasing,
@@ -2609,10 +2640,22 @@
     // Form Purchasing: field Kategori (Kanopi/Tangga Darurat/Railing
     // Tangga/Railing Balkon/Doorbell/Home Number/Taman Unit) cuma relevan
     // & ditampilkan saat Jenis Pengadaan = Material Unit Bangunan
-    // (Addendum 18).
-    if (recordType === 'purchasing' && inputs.jenisPengadaan && fieldWraps.kategori) {
+    // (Addendum 18); pilihan Status Pekerjaan juga diganti sesuai
+    // kosakata per kategori (Addendum 19).
+    if (recordType === 'purchasing' && inputs.jenisPengadaan) {
       var syncPurFieldVisibility = function () {
-        fieldWraps.kategori.hidden = inputs.jenisPengadaan.value !== 'Material Unit Bangunan';
+        var jenis = inputs.jenisPengadaan.value;
+        if (fieldWraps.kategori) fieldWraps.kategori.hidden = jenis !== 'Material Unit Bangunan';
+        if (inputs.statusPekerjaan) {
+          var opts = PUR_STATUS_OPTIONS_BY_JENIS[jenis] || PURCHASING_STATUS_OPTIONS;
+          var currentVal = inputs.statusPekerjaan.value;
+          inputs.statusPekerjaan.innerHTML = '<option value="">– Pilih –</option>';
+          opts.forEach(function (v) {
+            var o = document.createElement('option'); o.value = v; o.textContent = v;
+            inputs.statusPekerjaan.appendChild(o);
+          });
+          inputs.statusPekerjaan.value = opts.indexOf(currentVal) !== -1 ? currentVal : '';
+        }
       };
       inputs.jenisPengadaan.addEventListener('change', syncPurFieldVisibility);
       syncPurFieldVisibility();

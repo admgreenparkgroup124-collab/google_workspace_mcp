@@ -413,8 +413,11 @@ function getPembelianWifiRows_(today, scopes) {
 // Unit Bangunan dianggap selesai kalau "Sudah Order" (lihat PRD 6C untuk
 // dua set status yang berbeda per Jenis Pengadaan).
 function isPurchasingDone_(jenisPengadaan, statusPekerjaan) {
-  if (jenisPengadaan === 'Promo Unit') return statusPekerjaan === 'Terpasang';
-  return statusPekerjaan === 'Sudah Order';
+  // Status Pekerjaan berbeda kosakata per kategori (Addendum 19): Material
+  // PSU pakai "Sudah Order", Material Unit Bangunan & Promo Unit pakai
+  // "Terpasang" -- lihat PUR_STATUS_OPTIONS_BY_JENIS di JavaScript.html.
+  if (jenisPengadaan === 'Material PSU') return statusPekerjaan === 'Sudah Order';
+  return statusPekerjaan === 'Terpasang';
 }
 
 function getPurchasingRows_(today, scopes) {
