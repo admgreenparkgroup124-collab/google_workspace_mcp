@@ -106,10 +106,19 @@ Baris header:
 Grup Proyek | Nama Proyek | Blok/No. Unit | Jenis Pengadaan | Nama Barang/Item | Nama Pekerjaan | Nama Vendor | Qty | Satuan | Harga Satuan (Rp) | Harga Total (Rp) | Status Pekerjaan | Tanggal Order/Mulai | Tanggal | Lampiran | Keterangan | Target Hari (SLA)
 ```
 
-- **Jenis Pengadaan**: `Promo Unit` / `Material PSU` / `Material Unit Bangunan` (Data Validation disarankan).
-- **Blok/No. Unit**: isi untuk Promo Unit & Material Unit Bangunan; **kosongkan** untuk Material PSU.
-- **Nama Pekerjaan**: kolom baru, teks bebas — deskripsi pekerjaan/aktivitas terkait pengadaan itu (beda dari **Nama Barang/Item** yang berarti nama barang/materialnya sendiri); boleh dikosongkan.
-- **Qty**: kolom baru, angka — jumlah/kuantitas barang, dipasangkan dengan **Satuan**; boleh dikosongkan.
+- **Jenis Pengadaan** (Addendum 16 — 7 kategori, dibagi 2 tipe proses):
+  - **Proses order** (beli barang): `Material PSU` / `Material Unit Bangunan` / `Promo Unit`.
+  - **Proses pengerjaan** (jasa pemasangan di lapangan): `Kanopi` / `Tangga Darurat` / `Railing Tangga` / `Railing Balkon`.
+  - Data Validation di sheet disarankan berisi ke-7 nilai di atas persis
+    (huruf besar/kecil & spasi harus sama supaya cocok dengan filter
+    dashboard). Di halaman **Master Data Purchasing**, kategori ini
+    ditampilkan sebagai tab klik (Semua + 7 kategori); memilih satu tab
+    otomatis menyaring kolom tabel & field form Tambah Data supaya cuma
+    yang relevan yang tampil (order → Nama Barang/Item, Qty, Satuan,
+    Harga Satuan; pekerjaan → Nama Pekerjaan) — lihat kolom di bawah.
+- **Blok/No. Unit**: isi untuk semua kategori KECUALI Material PSU (proyek-level, bukan per-unit); **kosongkan** untuk Material PSU.
+- **Nama Pekerjaan**: teks bebas — diisi untuk kategori "proses pengerjaan" (Kanopi/Tangga Darurat/Railing Tangga/Railing Balkon), deskripsi pekerjaan/aktivitas terkait (beda dari **Nama Barang/Item** yang berarti nama barang/materialnya sendiri untuk kategori "proses order"); boleh dikosongkan.
+- **Qty**: angka — jumlah/kuantitas barang untuk kategori "proses order", dipasangkan dengan **Satuan**; boleh dikosongkan (tidak relevan utk kategori pengerjaan).
 - **Harga Satuan (Rp)** / **Harga Total (Rp)**: sama seperti Home With AI di atas — kalau cuma ada satu angka lump-sum, isi **Harga Total (Rp)** saja.
 - **Status Pekerjaan**: untuk Material → `Belum Order`/`On Proses`/`Sudah Order`; untuk Promo Unit → `Belum Terpasang`/`On Proses`/`Terpasang`.
 - **Tanggal Order/Mulai**: tanggal mulai proses, titik awal hitung SLA
@@ -519,7 +528,15 @@ sendiri), cara update:
   - **Master Data Purchasing** — seluruh kolom tab Purchasing apa adanya
     (termasuk Nama Pekerjaan, Nama Vendor, Qty, Satuan, Harga Satuan,
     Harga Total, Lampiran) + kartu ringkasan (**Total PO** & Total Nilai)
-    + filter Proyek/Jenis Pengadaan.
+    + filter Proyek, + **sub-menu tab Jenis Pengadaan** (Addendum 16):
+    Semua / Material PSU / Material Unit Bangunan / Kanopi / Tangga
+    Darurat / Railing Tangga / Railing Balkon / Promo Unit. Klik satu
+    kategori menyaring baris DAN kolom tabel yang ditampilkan (kategori
+    "proses order" menampilkan Nama Barang/Qty/Satuan/Harga Satuan,
+    kategori "proses pengerjaan" menampilkan Nama Pekerjaan) — form
+    "+ Tambah Data" ikut menyesuaikan field yang relevan begitu Jenis
+    Pengadaan dipilih. Tab "Semua" tetap menampilkan seluruh kolom &
+    baris seperti sebelumnya.
   - **Master Data Home With AI** — seluruh kolom tab Home With AI apa
     adanya (termasuk Nama Vendor, Satuan, Harga Satuan, Harga Total, Tgl
     Mulai, Tgl Selesai, Kategori, List Device, SPV, Status Device, Masa
