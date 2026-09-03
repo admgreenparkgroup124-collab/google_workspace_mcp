@@ -187,6 +187,60 @@ function addProgressRealisasi(payload) {
   return buildDashboardPayload_(access.email);
 }
 
+// Master Opsi (Addendum 26, menu "Master Opsi" di sidebar) -- daftar
+// nilai dropdown yang dipakai bersama di form Tambah Data & filter
+// (Jenis SPK, Item SPK, Kategori Home With AI, Jenis Pengadaan, Status
+// Home With AI, Status Pekerjaan Purchasing). Beda dari Target Hari
+// SLA/Tambah Data lainnya: TIDAK dibatasi scope Role -- siapapun yang
+// login boleh menambah/menghapus (ini pengaturan bersama, bukan data
+// transaksi per-PIC). payload: { tipe, nilai }.
+function addMasterOpsi(payload) {
+  var access = checkAccess();
+  if (!access.allowed) {
+    throw new Error('Akses ditolak. Email ' + (access.email || '(tidak terdeteksi)') + ' belum terdaftar di tab Akses.');
+  }
+
+  payload = payload || {};
+  var tipe = safeText(payload.tipe);
+  var nilai = safeText(payload.nilai);
+
+  if (MASTER_OPSI_TIPE_LIST.indexOf(tipe) === -1) {
+    throw new Error('Tipe opsi tidak dikenal: ' + tipe);
+  }
+  if (!nilai) {
+    throw new Error('Nilai tidak boleh kosong.');
+  }
+
+  var existing = getMasterOpsiRows_();
+  var duplicate = existing.some(function (r) {
+    return r.tipe === tipe && r.nilai.trim().toLowerCase() === nilai.trim().toLowerCase();
+  });
+  if (duplicate) {
+    throw new Error('Nilai "' + nilai + '" sudah ada di daftar ini.');
+  }
+
+  writeNewRecord_('masterOpsi', null, { tipe: tipe, nilai: nilai });
+  return buildDashboardPayload_(access.email);
+}
+
+// Dipanggil dari halaman Master Opsi saat menghapus satu baris nilai.
+// payload: { id } -- id mengkodekan nomor baris fisik di tab "Master
+// Opsi" (lihat getMasterOpsiRows_/deleteMasterOpsiRow_).
+function deleteMasterOpsi(payload) {
+  var access = checkAccess();
+  if (!access.allowed) {
+    throw new Error('Akses ditolak. Email ' + (access.email || '(tidak terdeteksi)') + ' belum terdaftar di tab Akses.');
+  }
+
+  payload = payload || {};
+  if (!payload.id) {
+    throw new Error('id tidak boleh kosong.');
+  }
+
+  deleteMasterOpsiRow_(payload.id);
+  return buildDashboardPayload_(access.email);
+}
+
 function renderAccessDeniedHtml_(email) {
   var safeEmail = email ? String(email).replace(/[<>&]/g, '') : '(tidak terdeteksi)';
   return '<!DOCTYPE html><html><head><meta charset="utf-8">' +

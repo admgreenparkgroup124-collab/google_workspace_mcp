@@ -5,7 +5,7 @@
   // ---------------------------------------------------------------------
   // State
   // ---------------------------------------------------------------------
-  var rawData = { spk: [], homeWithAi: [], purchasing: [], pembelianWifi: [], meta: { years: [], gpList: [], projectsByGp: {} }, generatedAt: null };
+  var rawData = { spk: [], homeWithAi: [], purchasing: [], pembelianWifi: [], masterOpsi: [], meta: { years: [], gpList: [], projectsByGp: {} }, generatedAt: null };
 
   var filters = {
     tahun: '',
@@ -23,7 +23,7 @@
   var isLoading = false;
   var hasLoadedOnce = false; // false pada load pertama -- supaya notifikasi "data baru" tidak muncul saat halaman baru dibuka
 
-  var currentView = 'dashboard'; // 'dashboard' | 'master-spk' | 'master-purchasing' | 'master-hwa' | 'master-wifi' | 'master-sla' | 'progres-input'
+  var currentView = 'dashboard'; // 'dashboard' | 'master-spk' | 'master-purchasing' | 'master-hwa' | 'master-wifi' | 'master-sla' | 'master-opsi' | 'progres-input'
   var dashboardSubTab = 'semua'; // 'semua' | 'spk' | 'purchasing' | 'hwa' -- sub-tab di dalam menu Dashboard
   var spkTrendGranularity = 'month';   // 'month' | 'year' -- toggle chart Trend Penerbitan SPK
   var purTrendGranularity = 'month';   // toggle chart Trend PO Purchasing
@@ -52,6 +52,7 @@
   var masterSlaProyek = '';
   var masterSlaStatus = '';      // '' | 'overdue' | 'ontrack' | 'done'
   var masterSlaSearch = '';
+  var masterOpsiTipe = 'Jenis SPK'; // Addendum 26 -- lihat MASTER_OPSI_TIPE_LIST
   var masterSpkSort = { key: null, dir: 1 };
   var masterPurSort = { key: null, dir: 1 };
   var masterHwaSort = { key: null, dir: 1 };
@@ -76,6 +77,10 @@
   // Data" (ADD_RECORD_FIELD_DEFS), supaya tidak didefinisikan dua kali.
   var GP_OPTIONS = ['GP1', 'GP2', 'GP3', 'GP4'];
   var SPK_JENIS_OPTIONS = ['PSU', 'UNIT RUMAH'];
+  // Item SPK tidak punya daftar tetap (bebas per proyek) -- array ini
+  // cuma sumber SARAN datalist (Addendum 26), diisi dari Master Opsi,
+  // kosong sampai PIC menambahkan sendiri.
+  var SPK_ITEM_OPTIONS = [];
   var JENIS_PENGADAAN_OPTIONS = ['Material PSU', 'Material Unit Bangunan', 'Promo Unit'];
   var HOME_WITH_AI_STATUS_OPTIONS = ['Belum Order', 'On Proses', 'Terpasang'];
   var HOME_WITH_AI_KATEGORI_OPTIONS = ['HOME WITH AI', 'SMARTHOME'];
@@ -92,9 +97,37 @@
   // dipakai murni utk teks banner alert Pembelian WiFi di client.
   var WIFI_DUE_SOON_DAYS = 14;
 
+  // Timpa isi array opsi default di atas (in-place, bukan reassign --
+  // supaya semua tempat yang sudah menyimpan referensi array ini, mis.
+  // ADD_RECORD_FIELD_DEFS.options, otomatis ikut ter-update) begitu PIC
+  // sudah mengisi Master Opsi untuk tipe terkait. Tipe yang belum diisi
+  // (rawData.meta.masterOpsi kosong/tidak ada) TETAP pakai default
+  // hardcode di atas -- non-breaking selama Master Opsi belum diisi.
+  function replaceArrayContents_(arr, items) {
+    arr.length = 0;
+    items.forEach(function (v) { arr.push(v); });
+  }
+  function syncMasterOpsiOptions() {
+    var mo = (rawData.meta && rawData.meta.masterOpsi) || {};
+    if (mo['Jenis SPK'] && mo['Jenis SPK'].length) replaceArrayContents_(SPK_JENIS_OPTIONS, mo['Jenis SPK']);
+    if (mo['Item SPK'] && mo['Item SPK'].length) replaceArrayContents_(SPK_ITEM_OPTIONS, mo['Item SPK']);
+    if (mo['Kategori Home With AI'] && mo['Kategori Home With AI'].length) replaceArrayContents_(HOME_WITH_AI_KATEGORI_OPTIONS, mo['Kategori Home With AI']);
+    if (mo['Jenis Pengadaan'] && mo['Jenis Pengadaan'].length) replaceArrayContents_(JENIS_PENGADAAN_OPTIONS, mo['Jenis Pengadaan']);
+    if (mo['Status Home With AI'] && mo['Status Home With AI'].length) replaceArrayContents_(HOME_WITH_AI_STATUS_OPTIONS, mo['Status Home With AI']);
+    if (mo['Status Pekerjaan Material PSU'] && mo['Status Pekerjaan Material PSU'].length) {
+      replaceArrayContents_(PUR_STATUS_OPTIONS_BY_JENIS['Material PSU'], mo['Status Pekerjaan Material PSU']);
+    }
+    var unitPromo = mo['Status Pekerjaan Material Unit Bangunan & Promo Unit'];
+    if (unitPromo && unitPromo.length) {
+      replaceArrayContents_(PUR_STATUS_OPTIONS_BY_JENIS['Material Unit Bangunan'], unitPromo);
+      replaceArrayContents_(PUR_STATUS_OPTIONS_BY_JENIS['Promo Unit'], unitPromo);
+    }
+  }
+
   function populateOptionLists() {
     function fill(selId, options) {
       var sel = document.getElementById(selId);
+      while (sel.options.length > 1) sel.remove(1); // sisakan placeholder "Semua ..." (option pertama)
       options.forEach(function (v) {
         var opt = document.createElement('option');
         opt.value = v;
@@ -451,6 +484,14 @@
   // Filter options
   // ---------------------------------------------------------------------
   function populateFilterOptions() {
+    // Sinkronkan opsi dropdown yang bisa ditimpa Master Opsi (Addendum
+    // 26) sebelum apapun lain di-render ulang -- dipanggil dari sini
+    // krn populateFilterOptions() sudah rutin dipanggil di semua jalur
+    // refresh (load awal, refresh manual/otomatis, dan tiap kali server
+    // mengembalikan payload baru setelah menulis data apapun).
+    syncMasterOpsiOptions();
+    populateOptionLists();
+
     // Tahun
     var tahunSel = document.getElementById('filterTahun');
     var currentTahun = tahunSel.value;
@@ -1646,6 +1687,80 @@
     renderMasterSla();
   });
 
+  // ---------------------------------------------------------------------
+  // Master Opsi (Addendum 26) -- daftar nilai dropdown yang dipakai
+  // bersama di form Tambah Data & filter, bisa ditambah/dihapus siapa
+  // saja yang login (lihat Code.gs addMasterOpsi/deleteMasterOpsi, TIDAK
+  // dibatasi scope Role spt fitur SLA/Tambah Data lainnya).
+  // ---------------------------------------------------------------------
+  function renderMasterOpsi() {
+    var rows = (rawData.masterOpsi || []).filter(function (r) { return r.tipe === masterOpsiTipe; });
+    document.getElementById('masterOpsiCount').textContent = rows.length + ' nilai';
+    var tbody = document.querySelector('#masterOpsiTable tbody');
+    if (!rows.length) {
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="3">Belum ada nilai untuk tipe ini.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = rows.map(function (r, i) {
+      return '<tr><td>' + (i + 1) + '</td><td>' + escapeHtml(r.nilai) + '</td>' +
+        '<td><button type="button" class="btn-remove" data-id="' + escapeHtml(r.id) + '">Hapus</button></td></tr>';
+    }).join('');
+  }
+
+  document.getElementById('masterOpsiTipeTabs').addEventListener('click', function (e) {
+    var btn = e.target.closest('button[data-tipe]');
+    if (!btn) return;
+    masterOpsiTipe = btn.getAttribute('data-tipe');
+    document.querySelectorAll('#masterOpsiTipeTabs button').forEach(function (b) { b.classList.toggle('active', b === btn); });
+    renderMasterOpsi();
+  });
+
+  document.getElementById('masterOpsiAddForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var input = document.getElementById('masterOpsiAddInput');
+    var nilai = input.value.trim();
+    if (!nilai) return;
+    var submitBtn = e.target.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    google.script.run
+      .withSuccessHandler(function (payload) {
+        submitBtn.disabled = false;
+        input.value = '';
+        rawData = payload;
+        updateSyncStatus();
+        populateFilterOptions();
+        populateMasterFilterOptions();
+        renderMasterOpsi();
+        showToast('success', 'Nilai ditambahkan.');
+      })
+      .withFailureHandler(function (err) {
+        submitBtn.disabled = false;
+        showToast('error', 'Gagal menambah: ' + (err && err.message ? err.message : err));
+      })
+      .addMasterOpsi({ tipe: masterOpsiTipe, nilai: nilai });
+  });
+
+  document.getElementById('masterOpsiTable').addEventListener('click', function (e) {
+    var btn = e.target.closest('button[data-id]');
+    if (!btn) return;
+    if (!confirm('Hapus nilai ini dari daftar pilihan? Data lama yang sudah memakai nilai ini tidak berubah.')) return;
+    btn.disabled = true;
+    google.script.run
+      .withSuccessHandler(function (payload) {
+        rawData = payload;
+        updateSyncStatus();
+        populateFilterOptions();
+        populateMasterFilterOptions();
+        renderMasterOpsi();
+        showToast('success', 'Nilai dihapus.');
+      })
+      .withFailureHandler(function (err) {
+        btn.disabled = false;
+        showToast('error', 'Gagal menghapus: ' + (err && err.message ? err.message : err));
+      })
+      .deleteMasterOpsi({ id: btn.getAttribute('data-id') });
+  });
+
   function populateMasterFilterOptions() {
     populateMasterSpkProyekSelect();
     populateMasterPurProyekSelect();
@@ -2001,6 +2116,7 @@
     else if (currentView === 'master-hwa') renderMasterHwa();
     else if (currentView === 'master-wifi') renderMasterPembelianWifi();
     else if (currentView === 'master-sla') renderMasterSla();
+    else if (currentView === 'master-opsi') renderMasterOpsi();
     else if (currentView === 'progres-input') renderProgresInput();
   }
 
@@ -2443,7 +2559,7 @@
     spk: [
       { key: 'noSpk', label: 'No. SPK', type: 'text', required: true },
       { key: 'jenisSpk', label: 'Jenis SPK', type: 'select', options: SPK_JENIS_OPTIONS, required: true },
-      { key: 'itemSpk', label: 'Item SPK', type: 'text' },
+      { key: 'itemSpk', label: 'Item SPK', type: 'text', datalist: 'itemSpk' },
       { key: 'namaProyek', label: 'Nama Proyek', type: 'text', datalist: true, required: true },
       { key: 'blokUnit', label: 'Blok/No. Unit', type: 'text' },
       { key: 'kontraktor', label: 'Kontraktor/Vendor', type: 'text' },
@@ -2548,6 +2664,7 @@
     }
 
     var namaProyekDatalist = null;
+    var itemSpkDatalist = null;
     // Wrapper div tiap field, dipetakan per key -- dipakai purchasing utk
     // sembunyikan/tampilkan field sesuai kategori Jenis Pengadaan yang
     // dipilih (lihat syncPurFieldVisibility di bawah, Addendum 16).
@@ -2621,10 +2738,20 @@
         input = document.createElement('input');
         input.type = def.type === 'number' ? 'number' : (def.type === 'date' ? 'date' : 'text');
         if (def.type === 'number') input.step = 'any';
-        if (def.datalist) {
+        if (def.datalist === true) {
           input.setAttribute('list', 'addRecordProyekList');
           namaProyekDatalist = namaProyekDatalist || document.createElement('datalist');
           namaProyekDatalist.id = 'addRecordProyekList';
+        } else if (def.datalist === 'itemSpk') {
+          // Saran Item SPK dari Master Opsi (Addendum 26) -- field TETAP
+          // teks bebas (list HTML5 cuma memberi saran, tidak mengunci
+          // input), supaya kombinasi item unik per SPK tetap bisa diketik.
+          input.setAttribute('list', 'addRecordItemSpkList');
+          itemSpkDatalist = itemSpkDatalist || document.createElement('datalist');
+          itemSpkDatalist.id = 'addRecordItemSpkList';
+          SPK_ITEM_OPTIONS.forEach(function (v) {
+            var o = document.createElement('option'); o.value = v; itemSpkDatalist.appendChild(o);
+          });
         }
       }
       field.appendChild(input);
@@ -2633,6 +2760,7 @@
     });
 
     if (namaProyekDatalist) form.appendChild(namaProyekDatalist);
+    if (itemSpkDatalist) form.appendChild(itemSpkDatalist);
 
     // Datalist Nama Proyek menyesuaikan GP yang dipilih (proyekOptionsForGp
     // sudah ada, dipakai juga oleh filter Master Data) -- bantu cegah typo

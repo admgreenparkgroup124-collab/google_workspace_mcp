@@ -455,6 +455,18 @@
     cursor: pointer;
   }
   .btn-add[hidden] { display: none; }
+  /* Tombol hapus satu baris (Master Opsi, Addendum 26) -- outline merah
+     ringan, konsisten dgn .btn-secondary tapi warna peringatan. */
+  .btn-remove {
+    border: 1px solid var(--line);
+    background: var(--white);
+    color: var(--red);
+    padding: 5px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .btn-remove:disabled { opacity: .6; cursor: default; }
 
   /* ---------- Form "Tambah Data" (dalam unit-modal) ---------- */
   .unit-modal-form { max-width: 660px; padding: 32px 36px 36px; }
@@ -724,6 +736,7 @@
     .btn-add:hover { background: var(--navy-700); border-color: var(--navy-700); }
     .btn-primary:hover { background: var(--navy-900); }
     .multitext-remove:hover { border-color: var(--red); color: var(--red); }
+    .btn-remove:hover { background: #fde2e2; border-color: var(--red); }
     .multitext-add:hover { border-color: var(--navy-500); background: #eaf5ef; }
     thead th:hover { background: var(--hover-bg); }
     tbody tr:hover { background: var(--hover-bg); }

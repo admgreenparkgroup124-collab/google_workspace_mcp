@@ -25,12 +25,18 @@ function buildDashboardPayload_(requestingEmail) {
   var pembelianWifi = getPembelianWifiRows_(today, scopes);
   var progressRencana = getProgressRencanaRows_();
   var progressRealisasi = getProgressRealisasiRows_(scopes);
+  var masterOpsi = getMasterOpsiRows_();
 
   var meta = buildMeta_(spk, homeWithAi, purchasing, pembelianWifi);
   // Scope mentah viewer sendiri (mis. ['SPK:GP1','SPK:GP2','SPK:GP4']) --
   // dipakai client utk memutuskan tombol "+ Tambah Data" mana yang
   // ditampilkan, tanpa perlu endpoint terpisah.
   meta.viewerScopes = scopes;
+  // Dikelompokkan per tipe { 'Jenis SPK': [...], ... } -- dipakai client
+  // utk menimpa daftar opsi dropdown default begitu PIC menambahkan
+  // master-nya sendiri (Addendum 26); kalau kosong, client tetap pakai
+  // default hardcode di JavaScript.html (non-breaking).
+  meta.masterOpsi = groupMasterOpsi_(masterOpsi);
 
   return {
     generatedAt: new Date().toISOString(),
@@ -40,6 +46,7 @@ function buildDashboardPayload_(requestingEmail) {
     pembelianWifi: pembelianWifi,
     progressRencana: progressRencana,
     progressRealisasi: progressRealisasi,
+    masterOpsi: masterOpsi,
     meta: meta
   };
 }
@@ -146,6 +153,9 @@ function writeNewRecord_(recordType, gp, fields) {
   } else if (recordType === 'progresRealisasi') {
     tabName = CONFIG.PROGRESS_REALISASI_TAB;
     fieldDefs = PROGRESS_REALISASI_FIELD_DEFS;
+  } else if (recordType === 'masterOpsi') {
+    tabName = CONFIG.MASTER_OPSI_TAB;
+    fieldDefs = MASTER_OPSI_FIELD_DEFS;
   } else {
     throw new Error('recordType tidak dikenal: ' + recordType);
   }
@@ -190,6 +200,66 @@ function writeNewRecord_(recordType, gp, fields) {
   } finally {
     lock.releaseLock();
   }
+}
+
+// Hapus satu baris nilai master opsi. `id` mengkodekan nomor baris fisik
+// di tab "Master Opsi" (lihat getMasterOpsiRows_), sama pola dgn
+// writeTargetHariSla_. Ini fitur hapus pertama di app ini -- sengaja
+// dibatasi hanya utk tab Master Opsi (bukan data transaksi SPK/
+// Purchasing/dst, supaya tidak ada risiko kehilangan histori data).
+function deleteMasterOpsiRow_(id) {
+  var rowNumber = Number(String(id).substring(String(id).lastIndexOf('-') + 1));
+  if (!rowNumber || rowNumber < 2) throw new Error('id baris tidak valid: ' + id);
+
+  var sheet = getSpreadsheet().getSheetByName(CONFIG.MASTER_OPSI_TAB);
+  if (!sheet) throw new Error('Tab tidak ditemukan: ' + CONFIG.MASTER_OPSI_TAB);
+
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    if (rowNumber > sheet.getLastRow()) {
+      throw new Error('Baris sudah tidak ada (mungkin sudah dihapus PIC lain).');
+    }
+    sheet.deleteRow(rowNumber);
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+// Master Opsi (Addendum 26) -- lihat komentar MASTER_OPSI_FIELD_DEFS di
+// Config.gs. Sheet-nya opsional (belum tentu sudah dibuat PIC): kalau
+// belum ada, kembalikan array kosong -- non-breaking, form/filter tetap
+// pakai default hardcode di JavaScript.html.
+function getMasterOpsiRows_() {
+  var sheet = getSpreadsheet().getSheetByName(CONFIG.MASTER_OPSI_TAB);
+  if (!sheet) return [];
+
+  var values = sheet.getDataRange().getValues();
+  if (values.length < 2) return [];
+
+  var headerMap = buildHeaderMap(values[0], MASTER_OPSI_FIELD_DEFS);
+  var rows = [];
+  for (var r = 1; r < values.length; r++) {
+    var row = values[r];
+    var tipe = safeText(cellValue(row, headerMap, 'tipe'));
+    var nilai = safeText(cellValue(row, headerMap, 'nilai'));
+    if (!tipe && !nilai) continue;
+    rows.push({ id: 'OPSI-' + (r + 1), tipe: tipe, nilai: nilai });
+  }
+  return rows;
+}
+
+// Kelompokkan baris master opsi jadi { tipe: [nilai, ...] }, urutan
+// kemunculan pertama & tanpa duplikat -- dipakai client menimpa array
+// opsi dropdown default begitu ada isinya.
+function groupMasterOpsi_(rows) {
+  var grouped = {};
+  rows.forEach(function (r) {
+    if (!r.tipe || !r.nilai) return;
+    if (!grouped[r.tipe]) grouped[r.tipe] = [];
+    if (grouped[r.tipe].indexOf(r.nilai) === -1) grouped[r.tipe].push(r.nilai);
+  });
+  return grouped;
 }
 
 function getSpkRows_(today, scopes) {

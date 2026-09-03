@@ -36,6 +36,9 @@
         <button data-view="master-sla" type="button" title="Master Data SLA">
           <span class="nav-icon">⏱</span><span class="nav-label">Master Data SLA</span>
         </button>
+        <button data-view="master-opsi" type="button" title="Master Opsi">
+          <span class="nav-icon">🏷️</span><span class="nav-label">Master Opsi</span>
+        </button>
         <button data-view="progres-input" type="button" title="Input Progres">
           <span class="nav-icon">📷</span><span class="nav-label">Input Progres</span>
         </button>
@@ -488,6 +491,33 @@
           </table>
         </div>
         <p class="master-hint">Pilih sub-tab SPK/Purchasing/Home With AI di atas untuk melihat SLA per kategori. Kolom "Target (Hari)" diisi manual langsung di sini per baris oleh PIC terkait (Haris/Ajis untuk SPK sesuai GP, Kahfi untuk Purchasing, Naufal untuk Home With AI) — dibandingkan ke hari berjalan sejak Tanggal Mulai baris itu untuk menentukan status Overdue/On Track. Pengguna lain melihat kolom ini sebagai angka biasa (baca-saja).</p>
+      </section>
+    </div>
+
+    <!-- ============================== VIEW: Master Opsi ============================== -->
+    <div id="view-master-opsi" class="view" hidden>
+      <section class="table-section">
+        <div class="table-tabs" id="masterOpsiTipeTabs">
+          <button data-tipe="Jenis SPK" class="active" type="button">Jenis SPK</button>
+          <button data-tipe="Item SPK" type="button">Item SPK</button>
+          <button data-tipe="Kategori Home With AI" type="button">Kategori Home With AI</button>
+          <button data-tipe="Jenis Pengadaan" type="button">Jenis Pengadaan</button>
+          <button data-tipe="Status Home With AI" type="button">Status Home With AI</button>
+          <button data-tipe="Status Pekerjaan Material PSU" type="button">Status Pekerjaan (Material PSU)</button>
+          <button data-tipe="Status Pekerjaan Material Unit Bangunan &amp; Promo Unit" type="button">Status Pekerjaan (Unit Bangunan &amp; Promo)</button>
+        </div>
+        <form class="table-toolbar" id="masterOpsiAddForm">
+          <input type="text" id="masterOpsiAddInput" placeholder="Tambah nilai baru untuk tipe ini…" required>
+          <button class="btn-add" type="submit">+ Tambah</button>
+          <span id="masterOpsiCount" class="toolbar-count"></span>
+        </form>
+        <div class="table-wrap">
+          <table id="masterOpsiTable">
+            <thead><tr><th>No</th><th>Nilai</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <p class="master-hint">Nilai di sini dipakai sebagai pilihan dropdown di form Tambah Data & filter terkait di seluruh dashboard (Item SPK cuma jadi saran, field-nya tetap teks bebas). Siapapun yang login boleh menambah/menghapus — perubahan langsung berlaku untuk semua pengguna setelah data disinkronkan ulang. Menghapus nilai di sini TIDAK mengubah data lama yang sudah memakainya.</p>
       </section>
     </div>
 

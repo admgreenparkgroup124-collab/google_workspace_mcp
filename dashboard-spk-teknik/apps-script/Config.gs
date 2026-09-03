@@ -17,6 +17,7 @@ var CONFIG = {
   ACCESS_TAB: 'Akses',
   PROGRESS_RENCANA_TAB: 'Rencana Progres',
   PROGRESS_REALISASI_TAB: 'Realisasi Progres',
+  MASTER_OPSI_TAB: 'Master Opsi',
 
   // Batas "mendekati jadwal pembayaran WiFi selanjutnya" (Addendum 9) --
   // dipakai getPembelianWifiRows_ (DataService.gs) menandai wifiDueSoon,
@@ -177,6 +178,25 @@ var PROGRESS_REALISASI_FIELD_DEFS = [
   { key: 'realisasiProgres', candidates: ['realisasi progres mingguan', 'realisasi progres', 'realisasi'] },
   { key: 'keterangan', candidates: ['keterangan'] },
   { key: 'lampiranFoto', candidates: ['lampiran foto', 'foto'] }
+];
+
+// Master Opsi (Addendum 26) -- daftar nilai dropdown yang dipakai bersama
+// di form Tambah Data & filter (Jenis SPK, Item SPK, Kategori Home With
+// AI, Jenis Pengadaan, Status Home With AI, Status Pekerjaan Purchasing),
+// bisa ditambah/dihapus langsung dari dashboard oleh siapa saja yang
+// login (bukan data transaksi per-PIC, jadi tidak dibatasi scope Role
+// spt SLA/Tambah Data lainnya). Tab baru "Master Opsi": Tipe | Nilai.
+var MASTER_OPSI_FIELD_DEFS = [
+  { key: 'tipe', candidates: ['tipe'] },
+  { key: 'nilai', candidates: ['nilai'] }
+];
+// Status Pekerjaan Purchasing dipecah 2 tipe (bukan 1) supaya kosakata
+// berbeda per kategori Jenis Pengadaan (Addendum 19) tetap bisa dikelola
+// terpisah tanpa mengubah perilaku isPurchasingDone_() yang sudah ada.
+var MASTER_OPSI_TIPE_LIST = [
+  'Jenis SPK', 'Item SPK', 'Kategori Home With AI', 'Jenis Pengadaan',
+  'Status Home With AI', 'Status Pekerjaan Material PSU',
+  'Status Pekerjaan Material Unit Bangunan & Promo Unit'
 ];
 
 // Status yang valid, dipakai untuk validasi ringan & urutan tampilan di UI

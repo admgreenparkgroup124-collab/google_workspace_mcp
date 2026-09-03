@@ -2,15 +2,18 @@
 
 Dashboard untuk memantau SPK, Home With AI, dan Purchasing Departemen
 Teknik GPG, dibangun sesuai `PRD_Dashboard_SPK_Teknik_GPG.md` (v1.3,
-final). Pada dasarnya read-only, kecuali empat fitur tulis-balik yang
+final). Pada dasarnya read-only, kecuali lima fitur tulis-balik yang
 disengaja: PIC terkait bisa mengisi **Target Hari SLA** per baris
 langsung dari halaman Master Data SLA, bisa **menambah data baru**
-(SPK/Purchasing/Home With AI) langsung dari dashboard lewat tombol
-"+ Tambah Data", dan **SPV Lapangan** bisa mengisi **Progres Konstruksi
-Mingguan** (Kurva S Rencana vs Realisasi, lengkap dengan minimal 4 foto
-lapangan) lewat halaman tersendiri **"Input Progres"** — keempatnya
-tertulis langsung ke Google Sheets (foto ke Google Drive), tidak perlu
-diketik/upload dua kali. Backend berupa Google Apps Script
+(SPK/Purchasing/Home With AI/Pembelian WiFi) langsung dari dashboard
+lewat tombol "+ Tambah Data", **siapapun yang login** bisa mengelola
+**Master Opsi** (nilai dropdown Jenis SPK/Item SPK/Kategori/Jenis
+Pengadaan/Status yang dipakai bersama, Addendum 26), dan **SPV Lapangan**
+bisa mengisi **Progres Konstruksi Mingguan** (Kurva S Rencana vs
+Realisasi, lengkap dengan minimal 4 foto lapangan) lewat halaman
+tersendiri **"Input Progres"** — kelimanya tertulis langsung ke Google
+Sheets (foto ke Google Drive), tidak perlu diketik/upload dua kali.
+Backend berupa Google Apps Script
 **container-bound** (dibuat langsung dari dalam Google Sheets sumber
 data), disajikan sebagai Web App.
 
@@ -407,6 +410,53 @@ untuk semua GP, bukan per-GP seperti SPK). Kalau tab ini belum dibuat sama
 sekali, dashboard tetap berjalan normal untuk kategori lain — halaman
 Pembelian WiFi cuma tampil kosong.
 
+### 2j. Tambah tab **"Master Opsi"** (Addendum 26) — kelola pilihan dropdown dari dashboard
+
+Tab baru, opsional (dashboard tetap jalan normal kalau belum dibuat —
+form/filter terkait cuma pakai daftar default bawaan kode). Kalau dibuat,
+baris header:
+
+```
+Tipe | Nilai
+```
+
+Diisi/dikelola langsung dari menu **Master Opsi** di sidebar dashboard
+(lihat Bagian 4) — TIDAK perlu diketik manual di sini kecuali mau isi
+awal lewat bulk paste. Kolom **Tipe** harus persis salah satu dari 7 nilai
+berikut (case-sensitive):
+
+- `Jenis SPK`
+- `Item SPK`
+- `Kategori Home With AI`
+- `Jenis Pengadaan`
+- `Status Home With AI`
+- `Status Pekerjaan Material PSU`
+- `Status Pekerjaan Material Unit Bangunan & Promo Unit`
+
+Kolom **Nilai** boleh apa saja (teks bebas) — ini nilai yang muncul
+sebagai pilihan dropdown. Baris dengan Tipe di luar daftar di atas
+diabaikan (tidak error, cuma tidak dipakai).
+
+**Cara kerja:** begitu ada isinya untuk satu Tipe, dashboard **menimpa**
+daftar dropdown default (mis. Jenis SPK bawaan `PSU`/`UNIT RUMAH`) dengan
+isi Master Opsi untuk Tipe itu — berlaku di filter Master Data DAN form
+"+ Tambah Data" terkait secara bersamaan. **Item SPK** beda sendiri: field
+di form Tambah SPK tetap **teks bebas**, Master Opsi cuma jadi daftar
+saran (autocomplete) — supaya kombinasi item unik per SPK tetap bisa
+diketik bebas. **Status Pekerjaan Purchasing** sengaja dipecah jadi 2
+Tipe terpisah (bukan 1) krn kosakatanya memang beda per kategori Jenis
+Pengadaan (Belum Order/On Proses/Sudah Order untuk Material PSU vs Belum
+Terpasang/On Proses/Terpasang untuk Material Unit Bangunan & Promo Unit —
+lihat Bagian 2b), supaya tetap bisa dikelola terpisah tanpa mengubah
+perilaku SLA yang sudah ada.
+
+**Siapa boleh edit:** SEMUA yang terdaftar di tab Akses (Bagian 2d) boleh
+menambah/menghapus nilai lewat menu Master Opsi — TIDAK dibatasi scope
+Role seperti Target Hari SLA/Tambah Data lainnya, karena ini pengaturan
+bersama (bukan data transaksi per-PIC). Menghapus satu nilai TIDAK
+mengubah data lama yang sudah memakainya — cuma menghilangkannya dari
+daftar pilihan untuk input baru berikutnya.
+
 ---
 
 ## 3. Deploy Apps Script (sekali di awal)
@@ -584,16 +634,25 @@ sendiri), cara update:
     alert otomatis kalau ada yang **Overdue** (lewat target). Filter
     GP/Proyek/Status SLA tetap berlaku di tiap sub-tab (kolom "Kategori"
     di tabel dihapus karena sudah tersirat dari sub-tab yang dipilih).
+  - **Master Opsi** (Addendum 26) — kelola nilai dropdown yang dipakai
+    bersama di seluruh dashboard (Jenis SPK, Item SPK, Kategori Home
+    With AI, Jenis Pengadaan, Status Home With AI, Status Pekerjaan
+    Purchasing — lihat Bagian 2j), lewat **7 sub-tab** per tipe: tabel
+    daftar nilai + tombol **Hapus** per baris, dan kotak "+ Tambah" di
+    toolbar. **Siapapun yang login boleh menambah/menghapus** (beda dari
+    fitur SLA/Tambah Data lain yang dibatasi scope Role) — perubahan
+    langsung berlaku di form Tambah Data & filter terkait untuk semua
+    pengguna.
   - **Input Progres** — khusus **SPV Lapangan** (scope `SPV:GP...`, Bagian
     2d): daftar unit yang sudah punya SPK (kolom GP, Proyek, Blok/Unit,
     Jenis SPK, Minggu Terakhir Diisi, % Realisasi Terakhir, Status), filter
     GP/Proyek + kotak pencari. Klik satu unit untuk buka Kurva S & riwayat
     progresnya, plus form input progres minggu ini (lihat detail alurnya
     di bawah).
-  Keenam menu Master Data/Input Progres ini punya kotak pencari sendiri
-  dan **tidak** ikut filter Tahun/Bulan/Kategori di menu Dashboard —
-  sengaja dibuat sebagai tampilan "apa adanya" dari data mentah per
-  tab/proses.
+  Menu Master Data/Master Opsi/Input Progres ini punya kotak pencari
+  sendiri (kecuali Master Opsi, yang cukup 7 sub-tab tanpa pencarian) dan
+  **tidak** ikut filter Tahun/Bulan/Kategori di menu Dashboard — sengaja
+  dibuat sebagai tampilan "apa adanya" dari data mentah per tab/proses.
 - **Tombol "+ Tambah Data"** — muncul di toolbar Master Data SPK/
   Purchasing/Home With AI/Pembelian WiFi, **hanya untuk PIC yang punya
   scope Role** terkait (Bagian 2d; Haris/Ajis untuk SPK sesuai GP yang
