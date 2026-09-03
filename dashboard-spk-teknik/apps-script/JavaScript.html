@@ -1017,8 +1017,8 @@
     renderCardGrid(ids.cards, [
       { label: 'Total Proyek', value: Object.keys(totalProyek).length, breakdown: buildNamePills(proyekNames) },
       { label: 'Total SPK', value: fSpk.length, sub: overdueCount + ' overdue (Unit Rumah) · ' + (jenis.count['PSU'] || 0) + ' PSU · ' + (jenis.count['UNIT RUMAH'] || 0) + ' Unit Rumah' },
-      { label: 'Total SPK PSU', value: jenis.count['PSU'] || 0, breakdown: buildNamePills(psuRows.map(spkRowLabel)) },
-      { label: 'Total SPK Unit Rumah', value: jenis.count['UNIT RUMAH'] || 0, breakdown: buildNamePills(unitRumahRows.map(spkRowLabel)) },
+      { label: 'Total SPK PSU', value: jenis.count['PSU'] || 0, breakdown: buildNamePills(psuRows.map(spkRowLabelNilai)) },
+      { label: 'Total SPK Unit Rumah', value: jenis.count['UNIT RUMAH'] || 0, breakdown: buildNamePills(unitRumahRows.map(spkRowLabelNilai)) },
       { label: 'Total Nilai Transaksi', value: formatRupiah(totalNilai), sub: 'PSU: ' + formatRupiah(jenis.nilai['PSU'] || 0) + ' · Unit Rumah: ' + formatRupiah(jenis.nilai['UNIT RUMAH'] || 0) },
       { label: 'Total Nilai Transaksi PSU', value: formatRupiah(jenis.nilai['PSU'] || 0), breakdown: buildNamePills(psuRows.map(spkRowLabelNilai)) },
       { label: 'Total Nilai Transaksi Unit Rumah', value: formatRupiah(jenis.nilai['UNIT RUMAH'] || 0), breakdown: buildNamePills(unitRumahRows.map(spkRowLabelNilai)) },
