@@ -54,7 +54,7 @@ function updateSlaTargetHari(payload) {
   var gp = payload.gp;
   var targetHari = Number(payload.targetHari);
 
-  if (['spk', 'purchasing', 'homeWithAi'].indexOf(recordType) === -1) {
+  if (['spk', 'purchasing', 'homeWithAi', 'pembelianWifi'].indexOf(recordType) === -1) {
     throw new Error('recordType tidak valid.');
   }
   if (!id) {

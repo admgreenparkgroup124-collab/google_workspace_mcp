@@ -46,56 +46,41 @@ Buka spreadsheet-nya, lalu:
 
 ### 2a. Tambah tab **"Home With AI"**
 
-Baris header (baris 1), persis urutan ini:
+Baris header (baris 1), persis urutan ini (skema disederhanakan Addendum
+25 — 9 kolom lama dari Addendum 9 dihapus: Satuan, Harga Satuan (Rp),
+Tanggal Terpasang, List Device, SPV, Status Device, Masa Garansi,
+Pemasangan WiFi, Pemasangan Extender; diganti satu kolom **Nama Item**):
 
 ```
-Grup Proyek | Nama Proyek | Blok/No. Unit | Status | Nama Vendor | Satuan | Harga Satuan (Rp) | Harga Total (Rp) | Tanggal Order/Mulai | Tanggal Terpasang | Tanggal Selesai | Lampiran | Keterangan | Target Hari (SLA) | Kategori | List Device | SPV | Status Device | Masa Garansi | Pemasangan WiFi | Pemasangan Extender
+Grup Proyek | Nama Proyek | Blok/No. Unit | Status | Nama Item | Biaya (Rp) | Tanggal Order/Mulai | Tanggal Selesai | Lampiran | Keterangan | Target Hari (SLA) | Kategori
 ```
 
-- **Kategori** (kolom baru, Addendum 9): salah satu dari `HOME WITH AI` atau
+- **Kategori** (Addendum 9): salah satu dari `HOME WITH AI` atau
   `SMARTHOME` — membedakan dua jenis paket instalasi (disarankan Data
   Validation di kolom ini). **Boleh dikosongkan** — baris lama tanpa kolom
   ini otomatis dianggap `HOME WITH AI`, tidak ada data lama yang jadi salah
   kategori.
-- **List Device** (kolom baru): daftar device yang dipasang untuk unit itu,
-  teks bebas (mis. dipisah `;` — "Smart Lock; CCTV Indoor; Smart Speaker").
-- **SPV** (kolom baru): nama SPV/teknisi yang menangani instalasi unit itu.
-- **Status Device** (kolom baru): status kesehatan device setelah terpasang
-  (mis. "SELESAI", "KENDALA") — terpisah dari kolom **Status** utama (yang
-  tetap `Belum Order`/`On Proses`/`Terpasang` seperti sebelumnya, TIDAK
-  berubah) supaya alur overdue/badge yang sudah ada tidak terpengaruh.
-- **Masa Garansi** (kolom baru): tanggal berakhir garansi device.
-- **Pemasangan WiFi** / **Pemasangan Extender** (kolom baru): teks bebas
-  penanda apakah WiFi/extender ikut dipasang bersamaan paket ini (mis.
-  "SELESAI") — beda dari tab **Pembelian WiFi** (Bagian 2i) yang melacak
-  *langganan* internet-nya sendiri, bukan pemasangan perangkatnya.
-
-Ketujuh kolom baru ini semuanya **opsional** — tab yang sudah ada sebelum
-Addendum 9 tetap berfungsi penuh tanpa kolom-kolom ini, tinggal ditambahkan
-kapan saja Anda sempat mengisi datanya.
-
+- **Nama Item** (Addendum 25): nama barang/paket yang dipasang untuk unit
+  itu, teks bebas.
 - Kolom **Status** hanya boleh salah satu dari: `Belum Order`, `On Proses`,
   `Terpasang` (disarankan pasang Data Validation di kolom ini supaya Naufal
   tidak salah ketik — salah ketik akan membuat baris tsb tidak masuk hitungan
   kartu ringkasan status).
-- **Harga Satuan (Rp)** / **Harga Total (Rp)**: sama pola dengan SPK (Harga
-  per satuan vs nilai total paket). Kalau cuma ada satu angka lump-sum,
-  isi di **Harga Total (Rp)** saja, **Harga Satuan (Rp)** & **Satuan** boleh
-  dikosongkan.
+- **Biaya (Rp)** (Addendum 25, label lama "Harga Total (Rp)"/"Nilai (Rp)"
+  masih dibaca dashboard kalau sheet belum di-rename): satu angka
+  lump-sum untuk paket/item tsb.
 - **Tanggal Order/Mulai**: tanggal mulai proses (titik awal hitung SLA —
   lihat Bagian 2c). Kalau kosong, unit tsb tidak akan muncul di halaman
   Master Data SLA sampai diisi.
-- **Target Hari (SLA)**: kolom baru, **boleh dikosongkan** — diisi
-  otomatis oleh dashboard saat Naufal (atau PIC terkait) menginput Target
-  Hari langsung di halaman Master Data SLA (lihat Bagian 2c). Tidak perlu
-  diisi manual di spreadsheet, tapi kalau mau isi manual di sini juga
-  boleh, dashboard membacanya sama saja.
-- **Tanggal Terpasang**: tanggal instalasi (kosongkan kalau belum).
-- **Tanggal Selesai**: milestone terpisah dari Tanggal Terpasang — dipakai
-  dashboard untuk tahu proses ini sudah benar-benar selesai (SLA berhenti
-  dihitung). Kalau proses Anda tidak membedakan "terpasang" dan "selesai",
-  cukup isi salah satu saja (status `Terpasang` sudah cukup dianggap selesai
-  walau Tanggal Selesai kosong).
+- **Target Hari (SLA)**: **boleh dikosongkan** — diisi otomatis oleh
+  dashboard saat Naufal (atau PIC terkait) menginput Target Hari langsung
+  di halaman Master Data SLA (lihat Bagian 2c). Tidak perlu diisi manual
+  di spreadsheet, tapi kalau mau isi manual di sini juga boleh, dashboard
+  membacanya sama saja.
+- **Tanggal Selesai**: dipakai dashboard untuk tahu proses ini sudah
+  benar-benar selesai (SLA berhenti dihitung). Kalau proses Anda tidak
+  membedakan, status `Terpasang` saja sudah cukup dianggap selesai walau
+  Tanggal Selesai kosong.
 - **Lampiran**: link/nama file bukti (foto, invoice, dll), teks bebas.
 
 ### 2b. Tambah tab **"Purchasing"**
@@ -122,7 +107,7 @@ Grup Proyek | Nama Proyek | Blok/No. Unit | Jenis Pengadaan | Nama Barang/Item |
 - **Blok/No. Unit**: isi untuk semua kategori KECUALI Material PSU (proyek-level, bukan per-unit); **kosongkan** untuk Material PSU.
 - **Nama Pekerjaan**: teks bebas, deskripsi pekerjaan/aktivitas terkait (beda dari **Nama Barang/Item** yang berarti nama barang/materialnya sendiri); boleh dikosongkan.
 - **Qty**: angka — jumlah/kuantitas barang, dipasangkan dengan **Satuan**; boleh dikosongkan.
-- **Harga Satuan (Rp)** / **Harga Total (Rp)**: sama seperti Home With AI di atas — kalau cuma ada satu angka lump-sum, isi **Harga Total (Rp)** saja.
+- **Harga Satuan (Rp)** / **Harga Total (Rp)**: kalau cuma ada satu angka lump-sum, isi **Harga Total (Rp)** saja, **Harga Satuan (Rp)** & **Satuan** boleh dikosongkan.
 - **Status Pekerjaan** (Addendum 19 — beda kosakata per kategori Jenis
   Pengadaan, pilihan di form Tambah Data otomatis mengikuti kategori yang
   dipilih):
@@ -163,8 +148,9 @@ tersimpan tetap bisa Anda lihat/ubah manual di sini juga kalau perlu,
 dashboard membacanya sama saja.
 
 **Cara kerja di dashboard:** di halaman **Master Data SLA**, tiap baris
-proses (SPK/Purchasing/Home With AI yang sudah punya Tanggal
-Terbit/Tanggal Order-Mulai) menampilkan kolom "Target (Hari)". PIC yang
+proses (SPK/Purchasing/Home With AI/Pembelian WiFi yang sudah punya
+Tanggal Terbit/Tanggal Order-Mulai/Tanggal Aktivasi) menampilkan kolom
+"Target (Hari)". PIC yang
 berwenang untuk baris itu (lihat kolom Role di Bagian 2d di bawah) melihat
 kolom ini sebagai kotak input angka — isi jumlah hari targetnya, tekan
 Tab/Enter atau klik keluar dari kotaknya, otomatis tersimpan ke sel yang
@@ -387,14 +373,15 @@ Tab baru, terpisah dari "Home With AI" — tracker langganan internet per
 unit (provider, biaya, masa aktif, jadwal pembayaran). Baris header:
 
 ```
-Grup Proyek | Nama Proyek | Blok/No. Unit | Provider | Biaya Bundling (Rp) | Masa Aktif | No. VA | ID Pelanggan | Tanggal Aktivasi | Tanggal Berakhir | Jadwal Pembayaran Selanjutnya | Keterangan
+Grup Proyek | Nama Proyek | Blok/No. Unit | Provider | Biaya Bundling (Rp) | Masa Aktif | No. VA | ID Pelanggan | Tanggal Aktivasi | Tanggal Berakhir | Jadwal Pembayaran Selanjutnya | Tanggal Pembayaran | Keterangan | Target Hari (SLA)
 ```
 
 - **Provider**: nama penyedia layanan (mis. Biznet, MyRepublic), teks bebas.
 - **Masa Aktif**: durasi paket, teks bebas (mis. "6 Bulan").
 - **No. VA** / **ID Pelanggan**: nomor virtual account & ID pelanggan dari
   provider, buat referensi saat menagih/membayar ulang.
-- **Tanggal Aktivasi**: tanggal langganan mulai aktif.
+- **Tanggal Aktivasi**: tanggal langganan mulai aktif — juga jadi titik
+  awal hitung SLA kategori ini (Addendum 25, lihat Bagian 2c).
 - **Tanggal Berakhir**: tanggal masa aktif paket berakhir sepenuhnya.
 - **Jadwal Pembayaran Selanjutnya**: tanggal jatuh tempo pembayaran
   berikutnya — dashboard membandingkan ini terhadap hari ini untuk
@@ -402,7 +389,16 @@ Grup Proyek | Nama Proyek | Blok/No. Unit | Provider | Biaya Bundling (Rp) | Mas
   (sudah lewat), ditampilkan sebagai banner alert + baris merah di halaman
   Master Data Pembelian WiFi. Murni penanda tanggal, terpisah total dari
   mekanisme Target Hari SLA tab lain.
+- **Tanggal Pembayaran** (kolom baru, Addendum 25): pengingat pembayaran
+  bulanan selama promo WiFi gratis 6 bulan (GPG sebagai developer yang
+  membayarkan ke provider). Murni field tampilan/catatan manual — tidak
+  ada alert atau logic otomatis terkait kolom ini, beda dari **Jadwal
+  Pembayaran Selanjutnya** di atas.
 - **Keterangan**: catatan bebas (mis. status perpanjangan).
+- **Target Hari (SLA)** (kolom baru, Addendum 25): **boleh dikosongkan** —
+  diisi otomatis oleh dashboard saat PIC terkait menginput Target Hari di
+  halaman Master Data SLA (Bagian 2c), titik awal hitungnya **Tanggal
+  Aktivasi**.
 
 Tambahkan juga scope **`PembelianWifi`** di kolom Role tab Akses (Bagian
 2d) untuk PIC yang boleh menambah data di tab ini lewat tombol "+ Tambah
@@ -518,8 +514,9 @@ sendiri), cara update:
       per Kategori (rincian Home With AI/Smarthome — Addendum 9), Total
       Nilai Transaksi Home With AI; grafik garis Trend PO Home With
       AI (toggle Bulan/Tahun), chart Status Progres (proporsi Belum
-      Order/On Proses/Terpasang), dan tabel **Peringkat Vendor** (dari
-      kolom Nama Vendor, toggle Jumlah/Nilai, tanpa scroll — Addendum 21/22).
+      Order/On Proses/Terpasang), dan tabel **Peringkat Item** (dari
+      kolom Nama Item, toggle Jumlah/Nilai, tanpa scroll — Addendum
+      21/22, diganti dari Nama Vendor karena field itu dihapus Addendum 25).
     Filter Tahun/Bulan/GP/Proyek/Cari tetap berlaku di semua sub-tab.
     **Card dengan tanda panah (▸) bisa diklik untuk rincian** (Total
     Proyek, Total per Jenis/Status, Total SPK PSU/Unit Rumah, Total Nilai
@@ -566,24 +563,25 @@ sendiri), cara update:
     per Unit). Filter **"Semua Jenis Pengadaan"** tetap menampilkan
     SEMUA kolom & baris seperti biasa (baris tercampur 3 jenis).
   - **Master Data Home With AI** — seluruh kolom tab Home With AI apa
-    adanya (termasuk Nama Vendor, Satuan, Harga Satuan, Harga Total, Tgl
-    Mulai, Tgl Selesai, Kategori, List Device, SPV, Status Device, Masa
-    Garansi, Pemasangan WiFi/Extender, Lampiran — Addendum 9) + kartu
-    ringkasan (**Total PO** & Total Nilai) + filter Proyek/Status/Kategori
-    (Home With AI/Smarthome).
+    adanya (Kategori, Status, Nama Item, Biaya, Tgl Mulai, Tgl Selesai,
+    Lampiran — skema disederhanakan Addendum 25) + kartu ringkasan
+    (**Total PO** & Total Nilai) + filter Proyek/Status/Kategori (Home
+    With AI/Smarthome).
   - **Master Data Pembelian WiFi** (Addendum 9) — seluruh kolom tab Pembelian WiFi apa
     adanya (Provider, Biaya Bundling, Masa Aktif, No. VA, ID Pelanggan,
-    Tanggal Aktivasi/Berakhir, Jadwal Pembayaran Selanjutnya, Keterangan)
+    Tanggal Aktivasi/Berakhir, Jadwal Pembayaran Selanjutnya, Tanggal
+    Pembayaran, Keterangan — Addendum 25 menambah 2 kolom terakhir)
     + kartu ringkasan (**Total Langganan** & Total Biaya) + filter GP
     (tab Semua/GP1–GP4)/Proyek + alert banner kalau ada langganan yang
     mendekati/lewat jadwal pembayaran selanjutnya (baris terkait ditandai
     merah di tabel juga).
-  - **Master Data SLA** — dipisah jadi **3 sub-tab** (SPK/Purchasing/Home
-    With AI, Addendum 24), masing-masing menampilkan proses kategorinya
-    sendiri yang sudah punya Tanggal Terbit/Tanggal Order-Mulai, dengan
-    kolom Target Hari (**diisi manual langsung di kolom ini** oleh PIC
-    terkait — lihat Bagian 2c), Elapsed Hari, dan Status SLA, plus alert
-    otomatis kalau ada yang **Overdue** (lewat target). Filter
+  - **Master Data SLA** — dipisah jadi **4 sub-tab** (SPK/Purchasing/Home
+    With AI/Pembelian WiFi — Addendum 24, Pembelian WiFi ditambah
+    Addendum 25), masing-masing menampilkan proses kategorinya sendiri
+    yang sudah punya Tanggal Terbit/Tanggal Order-Mulai/Tanggal Aktivasi,
+    dengan kolom Target Hari (**diisi manual langsung di kolom ini** oleh
+    PIC terkait — lihat Bagian 2c), Elapsed Hari, dan Status SLA, plus
+    alert otomatis kalau ada yang **Overdue** (lewat target). Filter
     GP/Proyek/Status SLA tetap berlaku di tiap sub-tab (kolom "Kategori"
     di tabel dihapus karena sudah tersirat dari sub-tab yang dipilih).
   - **Input Progres** — khusus **SPV Lapangan** (scope `SPV:GP...`, Bagian

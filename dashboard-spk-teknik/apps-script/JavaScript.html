@@ -47,7 +47,7 @@
   var masterWifiGp = '';         // Master Data Pembelian WiFi (Addendum 9)
   var masterWifiProyek = '';
   var masterWifiSearch = '';
-  var masterSlaKategori = 'SPK'; // 'SPK' | 'Purchasing' | 'Home With AI' -- sub-tab, tidak ada "Semua" lagi (Addendum 24)
+  var masterSlaKategori = 'SPK'; // 'SPK' | 'Purchasing' | 'Home With AI' | 'Pembelian WiFi' -- sub-tab, tidak ada "Semua" lagi (Addendum 24)
   var masterSlaGp = '';
   var masterSlaProyek = '';
   var masterSlaStatus = '';      // '' | 'overdue' | 'ontrack' | 'done'
@@ -129,15 +129,10 @@
       { key: 'unit', label: 'Unit' },
       { key: 'kategori', label: 'Kategori' },
       { key: 'status', label: 'Status', format: 'hwaStatus' },
-      { key: 'namaVendor', label: 'Vendor' },
-      { key: 'satuan', label: 'Satuan' },
-      { key: 'hargaSatuan', label: 'Harga Satuan (Rp)', format: 'currency' },
-      { key: 'nilai', label: 'Harga Total (Rp)', format: 'currency' },
+      { key: 'namaItem', label: 'Nama Item' },
+      { key: 'nilai', label: 'Biaya (Rp)', format: 'currency' },
       { key: 'tanggalMulai', label: 'Tgl Mulai' },
-      { key: 'tanggalTerpasang', label: 'Tgl Pasang' },
       { key: 'tanggalSelesai', label: 'Tgl Selesai' },
-      { key: 'spv', label: 'SPV' },
-      { key: 'masaGaransi', label: 'Masa Garansi', format: 'date' },
       { key: 'keterangan', label: 'Keterangan' }
     ],
     purchasing: [
@@ -234,19 +229,10 @@
     { key: 'unit', label: 'Blok/Unit' },
     { key: 'kategori', label: 'Kategori' },
     { key: 'status', label: 'Status', format: 'hwaStatus' },
-    { key: 'namaVendor', label: 'Nama Vendor' },
-    { key: 'satuan', label: 'Satuan' },
-    { key: 'hargaSatuan', label: 'Harga Satuan (Rp)', format: 'currency' },
-    { key: 'nilai', label: 'Harga Total (Rp)', format: 'currency' },
+    { key: 'namaItem', label: 'Nama Item' },
+    { key: 'nilai', label: 'Biaya (Rp)', format: 'currency' },
     { key: 'tanggalMulai', label: 'Tanggal Order/Mulai' },
-    { key: 'tanggalTerpasang', label: 'Tanggal Pasang' },
     { key: 'tanggalSelesai', label: 'Tanggal Selesai' },
-    { key: 'listDevice', label: 'List Device' },
-    { key: 'spv', label: 'SPV' },
-    { key: 'statusDevice', label: 'Status Device' },
-    { key: 'masaGaransi', label: 'Masa Garansi', format: 'date' },
-    { key: 'pemasanganWifi', label: 'Pemasangan WiFi' },
-    { key: 'pemasanganExtender', label: 'Pemasangan Extender' },
     { key: 'lampiran', label: 'Lampiran' },
     { key: 'keterangan', label: 'Keterangan' }
   ];
@@ -265,6 +251,7 @@
     { key: 'tanggalAktivasi', label: 'Tanggal Aktivasi' },
     { key: 'tanggalBerakhir', label: 'Tanggal Berakhir' },
     { key: 'jadwalBayarSelanjutnya', label: 'Jadwal Bayar Selanjutnya', format: 'date' },
+    { key: 'tanggalPembayaran', label: 'Tanggal Pembayaran', format: 'date' },
     { key: 'keterangan', label: 'Keterangan' }
   ];
 
@@ -724,10 +711,11 @@
   }
 
   // ---------------------------------------------------------------------
-  // Tabel "Peringkat Kontraktor/Vendor" (Addendum 21) -- dipakai di 3
-  // sub-tab kategori Dashboard (SPK pakai field kontraktor, Purchasing &
-  // Home With AI pakai namaVendor). Agregasi jumlah baris & total nilai per
-  // nama, diurutkan turun berdasar `sortBy` ('count' atau 'nilai').
+  // Tabel "Peringkat Kontraktor/Vendor/Item" (Addendum 21) -- dipakai di 3
+  // sub-tab kategori Dashboard (SPK pakai field kontraktor, Purchasing
+  // pakai namaVendor, Home With AI pakai namaItem sejak Addendum 25).
+  // Agregasi jumlah baris & total nilai per nama, diurutkan turun
+  // berdasar `sortBy` ('count' atau 'nilai').
   // ---------------------------------------------------------------------
   function buildRankingRows_(rows, keyFn, valueFn) {
     var map = {}; var order = [];
@@ -1073,7 +1061,7 @@
       status.order.map(function (k) { return STATUS_COLORS[k] || '#94b0a3'; }),
       status.items, ids.statusDetails);
     renderTrendCountChart(ids.tren, ids.trenKey, fHwa, 'tanggalMulai', 'Jumlah PO', '#40916c', hwaTrendGranularity);
-    renderRankingTable_(ids.ranking, fHwa, function (r) { return r.namaVendor; }, function (r) { return r.nilai; }, hwaRankingSort);
+    renderRankingTable_(ids.ranking, fHwa, function (r) { return r.namaItem; }, function (r) { return r.nilai; }, hwaRankingSort);
   }
 
   function baseBarOptions(axisLabel, isCurrency, horizontal) {
@@ -1527,6 +1515,17 @@
         id: 'sla-hwa-' + r.id, recordType: 'homeWithAi', underlyingId: r.id,
         kategori: 'Home With AI', jenis: '-',
         gp: r.gp, proyek: r.proyek, unit: r.unit, unitKey: r.unitKey, ref: '-',
+        slaStartDate: r.slaStartDate, slaTargetHari: r.slaTargetHari,
+        slaElapsedHari: r.slaElapsedHari, slaOverdue: r.slaOverdue, slaDone: r.slaDone,
+        canEditSla: r.canEditSla
+      });
+    });
+    rawData.pembelianWifi.forEach(function (r) {
+      if (!r.slaStartDate) return; // tanpa Tanggal Aktivasi, tidak ada titik awal SLA
+      rows.push({
+        id: 'sla-wifi-' + r.id, recordType: 'pembelianWifi', underlyingId: r.id,
+        kategori: 'Pembelian WiFi', jenis: '-',
+        gp: r.gp, proyek: r.proyek, unit: r.unit, unitKey: r.unitKey, ref: r.provider,
         slaStartDate: r.slaStartDate, slaTargetHari: r.slaTargetHari,
         slaElapsedHari: r.slaElapsedHari, slaOverdue: r.slaOverdue, slaDone: r.slaDone,
         canEditSla: r.canEditSla
@@ -2315,28 +2314,17 @@
     html += '<div class="unit-section"><h4>Home With AI</h4>';
     html += hwaList.length ? hwaList.map(function (r) {
       var lines = [];
-      if (r.listDevice) lines.push('Device: ' + escapeHtml(r.listDevice));
-      var vendorLine = joinMeta([
-        r.namaVendor ? 'Vendor: ' + escapeHtml(r.namaVendor) : '',
-        (r.satuan || r.hargaSatuan) ? 'Satuan: ' + escapeHtml(r.satuan || '-') + ' · Harga Satuan: ' + formatRupiah(r.hargaSatuan) : ''
-      ]);
-      if (vendorLine) lines.push(vendorLine);
       lines.push(joinMeta([
         r.tanggalMulai ? 'Mulai: ' + formatDate(r.tanggalMulai) : '',
-        r.tanggalTerpasang ? 'Terpasang: ' + formatDate(r.tanggalTerpasang) : 'Belum terpasang',
         r.tanggalSelesai ? 'Selesai: ' + formatDate(r.tanggalSelesai) : '',
         r.keterangan ? escapeHtml(r.keterangan) : ''
-      ]));
-      lines.push(joinMeta([
-        r.spv ? 'SPV: ' + escapeHtml(r.spv) : '',
-        r.statusDevice ? 'Status Device: ' + escapeHtml(r.statusDevice) : '',
-        r.masaGaransi ? 'Garansi s/d: ' + formatDate(r.masaGaransi) : ''
       ]));
       if (r.lampiran) lines.push('Lampiran: ' + escapeHtml(r.lampiran));
 
       return '<div class="unit-item">' +
         '<div class="unit-item-title"><span><span class="badge badge-gray">' + escapeHtml(r.kategori) + '</span> ' +
-        '<span class="badge ' + statusBadgeClass(r.status) + '">' + escapeHtml(r.status) + '</span></span>' +
+        '<span class="badge ' + statusBadgeClass(r.status) + '">' + escapeHtml(r.status) + '</span> ' +
+        escapeHtml(r.namaItem) + '</span>' +
         '<span>' + formatRupiah(r.nilai) + '</span></div>' +
         lines.map(function (l) { return '<div class="unit-item-meta">' + l + '</div>'; }).join('') +
         '</div>';
@@ -2355,6 +2343,7 @@
         r.jadwalBayarSelanjutnya ? 'Jadwal Bayar Selanjutnya: ' + formatDate(r.jadwalBayarSelanjutnya) : '',
         r.noVa ? 'No. VA: ' + escapeHtml(r.noVa) : ''
       ]) + (r.wifiOverdue ? ' <span class="badge badge-red">Lewat Jadwal</span>' : (r.wifiDueSoon ? ' <span class="badge badge-amber">Mendekati Jadwal</span>' : '')));
+      if (r.tanggalPembayaran) lines.push('Tanggal Pembayaran: ' + formatDate(r.tanggalPembayaran));
       if (r.keterangan) lines.push(escapeHtml(r.keterangan));
 
       return '<div class="unit-item">' +
@@ -2495,19 +2484,10 @@
       { key: 'blokUnit', label: 'Blok/No. Unit', type: 'text', required: true },
       { key: 'kategori', label: 'Kategori', type: 'select', options: HOME_WITH_AI_KATEGORI_OPTIONS, required: true },
       { key: 'status', label: 'Status', type: 'select', options: HOME_WITH_AI_STATUS_OPTIONS, required: true },
-      { key: 'namaVendor', label: 'Nama Vendor', type: 'text' },
-      { key: 'satuan', label: 'Satuan', type: 'text' },
-      { key: 'hargaSatuan', label: 'Harga Satuan (Rp)', type: 'number' },
-      { key: 'nilai', label: 'Harga Total (Rp)', type: 'number', required: true },
-      { key: 'listDevice', label: 'List Device', type: 'text', wide: true },
-      { key: 'spv', label: 'SPV', type: 'text' },
+      { key: 'namaItem', label: 'Nama Item', type: 'text', wide: true },
+      { key: 'nilai', label: 'Biaya (Rp)', type: 'number', required: true },
       { key: 'tanggalMulai', label: 'Tanggal Order/Mulai', type: 'date', required: true },
-      { key: 'tanggalTerpasang', label: 'Tanggal Pasang', type: 'date' },
       { key: 'tanggalSelesai', label: 'Tanggal Selesai', type: 'date' },
-      { key: 'statusDevice', label: 'Status Device', type: 'text' },
-      { key: 'masaGaransi', label: 'Masa Garansi', type: 'date' },
-      { key: 'pemasanganWifi', label: 'Pemasangan WiFi', type: 'text' },
-      { key: 'pemasanganExtender', label: 'Pemasangan Extender', type: 'text' },
       { key: 'lampiran', label: 'Lampiran', type: 'multitext', wide: true },
       { key: 'keterangan', label: 'Keterangan', type: 'textarea', wide: true }
     ],
@@ -2523,6 +2503,7 @@
       { key: 'tanggalAktivasi', label: 'Tanggal Aktivasi', type: 'date', required: true },
       { key: 'tanggalBerakhir', label: 'Tanggal Berakhir', type: 'date' },
       { key: 'jadwalBayarSelanjutnya', label: 'Jadwal Pembayaran Selanjutnya', type: 'date' },
+      { key: 'tanggalPembayaran', label: 'Tanggal Pembayaran', type: 'date' },
       { key: 'keterangan', label: 'Keterangan', type: 'textarea', wide: true }
     ]
   };

@@ -92,6 +92,9 @@ function writeTargetHariSla_(recordType, id, value) {
   } else if (recordType === 'homeWithAi') {
     tabName = CONFIG.HOME_WITH_AI_TAB;
     fieldDefs = HOME_WITH_AI_FIELD_DEFS;
+  } else if (recordType === 'pembelianWifi') {
+    tabName = CONFIG.PEMBELIAN_WIFI_TAB;
+    fieldDefs = PEMBELIAN_WIFI_FIELD_DEFS;
   } else {
     throw new Error('recordType tidak dikenal: ' + recordType);
   }
@@ -299,7 +302,6 @@ function getHomeWithAiRows_(today, scopes) {
     if (!gp && !proyek && !unit && !status) continue;
 
     var tanggalMulai = parseDateCell(cellValue(row, headerMap, 'tanggalMulai'));
-    var tanggalTerpasang = parseDateCell(cellValue(row, headerMap, 'tanggalTerpasang'));
     var tanggalSelesai = parseDateCell(cellValue(row, headerMap, 'tanggalSelesai'));
 
     var done = status === 'Terpasang' || !!tanggalSelesai;
@@ -315,25 +317,16 @@ function getHomeWithAiRows_(today, scopes) {
       unitKey: unit ? makeUnitKey(gp, proyek, unit) : '',
       projectKey: makeProjectKey(gp, proyek),
       status: status,
-      namaVendor: safeText(cellValue(row, headerMap, 'namaVendor')),
-      satuan: safeText(cellValue(row, headerMap, 'satuan')),
-      hargaSatuan: safeNumber(cellValue(row, headerMap, 'hargaSatuan')),
+      namaItem: safeText(cellValue(row, headerMap, 'namaItem')),
       nilai: safeNumber(cellValue(row, headerMap, 'nilai')),
       tanggalMulai: toIsoDateString(tanggalMulai),
-      tanggalTerpasang: toIsoDateString(tanggalTerpasang),
       tanggalSelesai: toIsoDateString(tanggalSelesai),
       lampiran: safeText(cellValue(row, headerMap, 'lampiran')),
       keterangan: safeText(cellValue(row, headerMap, 'keterangan')),
-      // Field baru Addendum 9 -- lihat komentar HOME_WITH_AI_FIELD_DEFS
-      // di Config.gs. Kategori kosong dianggap 'HOME WITH AI' (baris lama
+      // Field Addendum 9 -- lihat komentar HOME_WITH_AI_FIELD_DEFS di
+      // Config.gs. Kategori kosong dianggap 'HOME WITH AI' (baris lama
       // sebelum kolom ini ada tetap konsisten dgn nama tab-nya).
       kategori: safeText(cellValue(row, headerMap, 'kategori')) || 'HOME WITH AI',
-      listDevice: safeText(cellValue(row, headerMap, 'listDevice')),
-      spv: safeText(cellValue(row, headerMap, 'spv')),
-      statusDevice: safeText(cellValue(row, headerMap, 'statusDevice')),
-      masaGaransi: toIsoDateString(parseDateCell(cellValue(row, headerMap, 'masaGaransi'))),
-      pemasanganWifi: safeText(cellValue(row, headerMap, 'pemasanganWifi')),
-      pemasanganExtender: safeText(cellValue(row, headerMap, 'pemasanganExtender')),
       slaTargetHari: sla.slaTargetHari,
       slaStartDate: sla.slaStartDate,
       slaTargetDate: sla.slaTargetDate,
@@ -341,8 +334,8 @@ function getHomeWithAiRows_(today, scopes) {
       slaOverdue: sla.slaOverdue,
       slaElapsedHari: sla.slaElapsedHari,
       canEditSla: hasScope_(scopes, 'homeWithAi'),
-      tahun: tanggalTerpasang ? tanggalTerpasang.getFullYear() : null,
-      bulan: tanggalTerpasang ? tanggalTerpasang.getMonth() + 1 : null
+      tahun: tanggalMulai ? tanggalMulai.getFullYear() : null,
+      bulan: tanggalMulai ? tanggalMulai.getMonth() + 1 : null
     });
   }
 
@@ -383,6 +376,13 @@ function getPembelianWifiRows_(today, scopes) {
     var wifiDueSoon = !!(jadwalBayarSelanjutnya && !wifiOverdue && dueSoonCutoff &&
       jadwalBayarSelanjutnya.getTime() <= dueSoonCutoff.getTime());
 
+    // SLA (Addendum 25) -- titik awal Tanggal Aktivasi, sama pola dgn
+    // SPK/Purchasing/Home With AI. "done" selalu false (kategori ini
+    // tidak punya konsep status akhir eksplisit spt HWA/Purchasing).
+    var targetHariRaw = safeNumber(cellValue(row, headerMap, 'targetHariSla'));
+    var targetHariManual = targetHariRaw > 0 ? targetHariRaw : null;
+    var sla = computeSla_(tanggalAktivasi, targetHariManual, false, today, null);
+
     rows.push({
       id: 'WIFI-' + (r + 1),
       gp: gp,
@@ -398,9 +398,19 @@ function getPembelianWifiRows_(today, scopes) {
       tanggalAktivasi: toIsoDateString(tanggalAktivasi),
       tanggalBerakhir: toIsoDateString(tanggalBerakhir),
       jadwalBayarSelanjutnya: toIsoDateString(jadwalBayarSelanjutnya),
+      // Pengingat pembayaran bulanan selama promo WiFi gratis 6 bulan --
+      // murni field tampilan, tidak ada logic derived terkait ini.
+      tanggalPembayaran: toIsoDateString(parseDateCell(cellValue(row, headerMap, 'tanggalPembayaran'))),
       wifiOverdue: wifiOverdue,
       wifiDueSoon: wifiDueSoon,
       keterangan: safeText(cellValue(row, headerMap, 'keterangan')),
+      slaTargetHari: sla.slaTargetHari,
+      slaStartDate: sla.slaStartDate,
+      slaTargetDate: sla.slaTargetDate,
+      slaDone: sla.slaDone,
+      slaOverdue: sla.slaOverdue,
+      slaElapsedHari: sla.slaElapsedHari,
+      canEditSla: hasScope_(scopes, 'pembelianWifi'),
       tahun: tanggalAktivasi ? tanggalAktivasi.getFullYear() : null,
       bulan: tanggalAktivasi ? tanggalAktivasi.getMonth() + 1 : null
     });

@@ -78,30 +78,17 @@ var HOME_WITH_AI_FIELD_DEFS = [
   { key: 'namaProyek', candidates: ['nama proyek'] },
   { key: 'blokUnit', candidates: ['blok no unit area kerja', 'blok no unit', 'blok unit', 'no unit'] },
   { key: 'status', candidates: ['status'] },
-  { key: 'namaVendor', candidates: ['nama vendor', 'vendor'] },
-  { key: 'satuan', candidates: ['satuan'] },
-  { key: 'hargaSatuan', candidates: ['harga satuan rp', 'harga satuan'] },
-  // "nilai" tetap nama field internal-nya; header sheet sekarang "Harga
-  // Total (Rp)" -- kandidat lama "Nilai (Rp)" dipertahankan di belakang
-  // supaya tetap kompatibel kalau sheet belum di-rename.
-  { key: 'nilai', candidates: ['harga total rp', 'harga total', 'nilai rp', 'nilai'] },
+  { key: 'namaItem', candidates: ['nama item'] },
+  // "nilai" tetap nama field internal-nya; header sheet sekarang "Biaya
+  // (Rp)" -- kandidat lama "Harga Total (Rp)"/"Nilai (Rp)" dipertahankan
+  // di belakang supaya tetap kompatibel kalau sheet belum di-rename.
+  { key: 'nilai', candidates: ['biaya rp', 'biaya', 'harga total rp', 'harga total', 'nilai rp', 'nilai'] },
   { key: 'tanggalMulai', candidates: ['tanggal order mulai', 'tanggal mulai', 'tanggal order'] },
-  { key: 'tanggalTerpasang', candidates: ['tanggal terpasang'] },
   { key: 'tanggalSelesai', candidates: ['tanggal selesai'] },
   { key: 'lampiran', candidates: ['lampiran'] },
   { key: 'keterangan', candidates: ['keterangan'] },
   { key: 'targetHariSla', candidates: ['target hari sla', 'target hari'] },
-  // Field baru (Addendum 9, terinspirasi struktur sheet "DASHBOARD HOME
-  // WITH AI" milik tim CSO/SPV -- diadaptasi ke pola field def kita
-  // sendiri, BUKAN diimpor langsung). Semua boleh dikosongkan (baris lama
-  // tanpa kolom ini tetap valid, non-breaking).
-  { key: 'kategori', candidates: ['kategori'] }, // 'HOME WITH AI' | 'SMARTHOME'
-  { key: 'listDevice', candidates: ['list device', 'device'] },
-  { key: 'spv', candidates: ['spv'] },
-  { key: 'statusDevice', candidates: ['status device'] },
-  { key: 'masaGaransi', candidates: ['masa garansi'] },
-  { key: 'pemasanganWifi', candidates: ['pemasangan wifi'] },
-  { key: 'pemasanganExtender', candidates: ['pemasangan extender'] }
+  { key: 'kategori', candidates: ['kategori'] } // 'HOME WITH AI' | 'SMARTHOME'
 ];
 
 // Pembelian WiFi (Addendum 9) -- tracker langganan internet per unit,
@@ -120,7 +107,12 @@ var PEMBELIAN_WIFI_FIELD_DEFS = [
   { key: 'tanggalAktivasi', candidates: ['tanggal aktivasi', 'tanggal pembayaran va 1'] },
   { key: 'tanggalBerakhir', candidates: ['tanggal berakhir'] },
   { key: 'jadwalBayarSelanjutnya', candidates: ['jadwal pembayaran selanjutnya', 'jadwal pembayaran'] },
-  { key: 'keterangan', candidates: ['keterangan'] }
+  // Pengingat pembayaran bulanan selama promo WiFi gratis 6 bulan
+  // (GPG sbg developer yang membayar) -- Addendum 25, murni field
+  // tampilan, tidak ada logic alert otomatis terkait ini.
+  { key: 'tanggalPembayaran', candidates: ['tanggal pembayaran'] },
+  { key: 'keterangan', candidates: ['keterangan'] },
+  { key: 'targetHariSla', candidates: ['target hari sla', 'target hari'] }
 ];
 
 var PURCHASING_FIELD_DEFS = [
@@ -137,7 +129,7 @@ var PURCHASING_FIELD_DEFS = [
   { key: 'nilai', candidates: ['harga total rp', 'harga total', 'nilai rp', 'nilai'] },
   { key: 'statusPekerjaan', candidates: ['status pekerjaan'] },
   { key: 'tanggalMulai', candidates: ['tanggal order mulai', 'tanggal mulai', 'tanggal order'] },
-  { key: 'tanggal', candidates: ['tanggal'] },
+  { key: 'tanggal', candidates: ['tanggal selesai', 'tanggal'] },
   { key: 'lampiran', candidates: ['lampiran'] },
   { key: 'keterangan', candidates: ['keterangan'] },
   { key: 'targetHariSla', candidates: ['target hari sla', 'target hari'] }
