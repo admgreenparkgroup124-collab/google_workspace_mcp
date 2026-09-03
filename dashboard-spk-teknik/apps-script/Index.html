@@ -463,13 +463,12 @@
     <div id="view-master-sla" class="view" hidden>
       <section class="alert-row" id="slaAlertZone"></section>
       <section class="table-section">
+        <div class="table-tabs" id="masterSlaKategoriTabs">
+          <button data-kategori="SPK" class="active" type="button">SPK</button>
+          <button data-kategori="Purchasing" type="button">Purchasing</button>
+          <button data-kategori="Home With AI" type="button">Home With AI</button>
+        </div>
         <div class="table-toolbar">
-          <select id="masterSlaKategoriFilter">
-            <option value="">Semua Kategori</option>
-            <option value="SPK">SPK</option>
-            <option value="Purchasing">Purchasing</option>
-            <option value="Home With AI">Home With AI</option>
-          </select>
           <select id="masterSlaGpFilter"><option value="">Semua GP</option></select>
           <select id="masterSlaProyekFilter"><option value="">Semua Proyek</option></select>
           <select id="masterSlaStatusFilter">
@@ -487,7 +486,7 @@
             <tbody></tbody>
           </table>
         </div>
-        <p class="master-hint">Gabungan lintas SPK/Purchasing/Home With AI. Kolom "Target (Hari)" diisi manual langsung di sini per baris oleh PIC terkait (Haris/Ajis untuk SPK sesuai GP, Kahfi untuk Purchasing, Naufal untuk Home With AI) — dibandingkan ke hari berjalan sejak Tanggal Mulai baris itu untuk menentukan status Overdue/On Track. Pengguna lain melihat kolom ini sebagai angka biasa (baca-saja).</p>
+        <p class="master-hint">Pilih sub-tab SPK/Purchasing/Home With AI di atas untuk melihat SLA per kategori. Kolom "Target (Hari)" diisi manual langsung di sini per baris oleh PIC terkait (Haris/Ajis untuk SPK sesuai GP, Kahfi untuk Purchasing, Naufal untuk Home With AI) — dibandingkan ke hari berjalan sejak Tanggal Mulai baris itu untuk menentukan status Overdue/On Track. Pengguna lain melihat kolom ini sebagai angka biasa (baca-saja).</p>
       </section>
     </div>
 

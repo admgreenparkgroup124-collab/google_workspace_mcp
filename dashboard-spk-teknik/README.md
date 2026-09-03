@@ -578,11 +578,14 @@ sendiri), cara update:
     (tab Semua/GP1–GP4)/Proyek + alert banner kalau ada langganan yang
     mendekati/lewat jadwal pembayaran selanjutnya (baris terkait ditandai
     merah di tabel juga).
-  - **Master Data SLA** — gabungan proses SPK/Purchasing/Home With AI yang
-    sudah punya Tanggal Terbit/Tanggal Order-Mulai, dengan kolom Target
-    Hari (**diisi manual langsung di kolom ini** oleh PIC terkait — lihat
-    Bagian 2c), Elapsed Hari, dan Status SLA, plus alert otomatis kalau ada
-    yang **Overdue** (lewat target). Filter GP/Proyek/Kategori/Status SLA.
+  - **Master Data SLA** — dipisah jadi **3 sub-tab** (SPK/Purchasing/Home
+    With AI, Addendum 24), masing-masing menampilkan proses kategorinya
+    sendiri yang sudah punya Tanggal Terbit/Tanggal Order-Mulai, dengan
+    kolom Target Hari (**diisi manual langsung di kolom ini** oleh PIC
+    terkait — lihat Bagian 2c), Elapsed Hari, dan Status SLA, plus alert
+    otomatis kalau ada yang **Overdue** (lewat target). Filter
+    GP/Proyek/Status SLA tetap berlaku di tiap sub-tab (kolom "Kategori"
+    di tabel dihapus karena sudah tersirat dari sub-tab yang dipilih).
   - **Input Progres** — khusus **SPV Lapangan** (scope `SPV:GP...`, Bagian
     2d): daftar unit yang sudah punya SPK (kolom GP, Proyek, Blok/Unit,
     Jenis SPK, Minggu Terakhir Diisi, % Realisasi Terakhir, Status), filter

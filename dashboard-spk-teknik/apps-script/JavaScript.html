@@ -47,7 +47,7 @@
   var masterWifiGp = '';         // Master Data Pembelian WiFi (Addendum 9)
   var masterWifiProyek = '';
   var masterWifiSearch = '';
-  var masterSlaKategori = '';    // '' | 'SPK' | 'Purchasing' | 'Home With AI'
+  var masterSlaKategori = 'SPK'; // 'SPK' | 'Purchasing' | 'Home With AI' -- sub-tab, tidak ada "Semua" lagi (Addendum 24)
   var masterSlaGp = '';
   var masterSlaProyek = '';
   var masterSlaStatus = '';      // '' | 'overdue' | 'ontrack' | 'done'
@@ -271,7 +271,6 @@
   // Baris gabungan lintas kategori dibangun di buildSlaRows() -- lihat
   // bagian "Master Data SLA" di bawah -- bukan langsung dari payload.
   var MASTER_SLA_COLUMNS = [
-    { key: 'kategori', label: 'Kategori' },
     { key: 'jenis', label: 'Jenis' },
     { key: 'gp', label: 'GP' },
     { key: 'proyek', label: 'Proyek' },
@@ -1631,8 +1630,12 @@
     sel.value = current;
     sel.onchange = function () { masterSlaProyek = sel.value; renderMasterSla(); };
   }
-  document.getElementById('masterSlaKategoriFilter').addEventListener('change', function (e) {
-    masterSlaKategori = e.target.value;
+  document.getElementById('masterSlaKategoriTabs').addEventListener('click', function (e) {
+    var btn = e.target.closest('button[data-kategori]');
+    if (!btn) return;
+    masterSlaKategori = btn.getAttribute('data-kategori');
+    document.querySelectorAll('#masterSlaKategoriTabs button').forEach(function (b) { b.classList.toggle('active', b === btn); });
+    masterSlaSort = { key: null, dir: 1 };
     renderMasterSla();
   });
   document.getElementById('masterSlaStatusFilter').addEventListener('change', function (e) {
