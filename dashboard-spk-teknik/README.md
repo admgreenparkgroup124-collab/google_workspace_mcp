@@ -244,9 +244,23 @@ terhadap realisasinya, per unit (referensinya **Blok/No. Unit unit itu
 sendiri**, bukan "Tipe Unit" — jadi tidak perlu tabel master tipe rumah
 terpisah).
 
-**Tab "Rencana Progres"** (diisi **manual di Sheets**, bulk paste dari
-dokumen Time Schedule & Kurva S yang sudah biasa Anda buat per unit).
-Baris header:
+**Tab "Rencana Progres"** — sejak **Addendum 31**, baris untuk SPK Unit
+Rumah **terisi otomatis** begitu SPK-nya dibuat lewat "+ Tambah Data"
+(pakai Rencana Kerja standar/Time Schedule baku GPG, lihat
+`UNIT_RUMAH_RENCANA_TEMPLATE` di `Config.gs`) — **tidak perlu lagi
+di-paste manual satu-satu per unit**. Sistem tidak pernah menimpa unit
+yang sudah ada isian Rencana-nya (manual maupun otomatis). Untuk unit
+Unit Rumah yang SPK-nya sudah dibuat **sebelum** Addendum 31 dan belum
+punya baris Rencana sama sekali, jalankan fungsi
+`backfillUnitRumahRencanaTemplate()` **sekali** dari editor Apps Script
+(Extensions > Apps Script → pilih fungsi itu di dropdown "Run" toolbar →
+klik Run) untuk mengisikannya sekaligus; hasilnya bisa dicek di
+View > Logs (Executions).
+
+Kalau Rencana Kerja standar ini tidak cocok untuk sebuah unit tertentu
+(mis. desain rumahnya beda), tetap boleh diedit/ditimpa manual langsung
+di sheet seperti biasa — format barisnya persis dokumen Time Schedule &
+Kurva S yang sudah dipakai. Baris header:
 
 ```
 Grup Proyek | Nama Proyek | Blok/No. Unit | Minggu Ke- | Uraian Pekerjaan | Bobot (%)

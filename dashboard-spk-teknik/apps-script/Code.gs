@@ -241,6 +241,53 @@ function deleteMasterOpsi(payload) {
   return buildDashboardPayload_(access.email);
 }
 
+// ---------------------------------------------------------------------
+// Backfill Rencana Kerja Template Unit Rumah (Addendum 31) -- JALANKAN
+// SEKALI SECARA MANUAL dari editor Apps Script (pilih fungsi ini di
+// dropdown "Run" toolbar, klik Run) untuk mengisi Rencana Progres bagi
+// unit UNIT RUMAH yang SPK-nya sudah ada SEBELUM Addendum 31 tapi belum
+// punya baris Rencana sama sekali (mis. diinput manual langsung ke sheet
+// GP1-4, bukan lewat "+ Tambah Data"). Unit yang SUDAH punya Rencana
+// (manual atau otomatis) TIDAK disentuh/ditimpa. Setelah dijalankan, cek
+// ringkasannya di View > Logs (Executions) pada editor Apps Script.
+// ---------------------------------------------------------------------
+function backfillUnitRumahRencanaTemplate() {
+  var seen = {};
+  var filled = [];
+  var skipped = 0;
+
+  CONFIG.SPK_TABS.forEach(function (tabName) {
+    var sheet = getSpreadsheet().getSheetByName(tabName);
+    if (!sheet) return;
+    var values = sheet.getDataRange().getValues();
+    if (values.length < 2) return;
+    var headerMap = buildHeaderMap(values[0], SPK_FIELD_DEFS);
+
+    for (var r = 1; r < values.length; r++) {
+      var row = values[r];
+      var gp = safeText(cellValue(row, headerMap, 'grupProyek'));
+      var proyek = safeText(cellValue(row, headerMap, 'namaProyek'));
+      var unit = safeText(cellValue(row, headerMap, 'blokUnit'));
+      var jenisSpk = safeText(cellValue(row, headerMap, 'jenisSpk'));
+      if (!unit || jenisSpk.toUpperCase() !== CONFIG.UNIT_RUMAH_JENIS_SPK) continue;
+
+      var unitKey = makeUnitKey(gp, proyek, unit);
+      if (seen[unitKey]) continue;
+      seen[unitKey] = true;
+
+      if (hasRencanaForUnit_(unitKey)) { skipped++; continue; }
+
+      writeRencanaTemplateForUnit_(gp, proyek, unit);
+      filled.push(gp + ' | ' + proyek + ' | ' + unit);
+    }
+  });
+
+  Logger.log('Rencana Kerja template ditulis untuk ' + filled.length + ' unit:');
+  filled.forEach(function (u) { Logger.log('  - ' + u); });
+  Logger.log(skipped + ' unit dilewati (sudah punya Rencana).');
+  return filled.length + ' unit diisi, ' + skipped + ' dilewati (sudah ada Rencana).';
+}
+
 function renderAccessDeniedHtml_(email) {
   var safeEmail = email ? String(email).replace(/[<>&]/g, '') : '(tidak terdeteksi)';
   return '<!DOCTYPE html><html><head><meta charset="utf-8">' +

@@ -41,6 +41,33 @@ var CONFIG = {
   UNIT_RUMAH_DEFAULT_SLA_DAYS: 150
 };
 
+// Rencana Kerja standar (Addendum 31) -- Time Schedule & Kurva S baku GPG
+// utk SPK Unit Rumah, dipakai OTOMATIS mengisi tab "Rencana Progres"
+// begitu SPK Unit Rumah baru dibuat (lihat writeNewRecord_ di
+// DataService.gs) supaya Kurva S langsung punya patokan Rencana tanpa
+// perlu di-paste manual per unit. Satu baris = satu (minggu, item
+// pekerjaan); `bobot` = Bobot (%) mingguan item itu, dijumlahkan per
+// minggu saat dipakai (sama seperti data manual yang sudah ada).
+var UNIT_RUMAH_RENCANA_TEMPLATE = [
+  { mingguKe: 1, uraianPekerjaan: '1. Pekerjaan Persiapan', bobot: 5.0 },
+  { mingguKe: 2, uraianPekerjaan: '2. Pekerjaan Tanah & Pondasi', bobot: 4.2 },
+  { mingguKe: 3, uraianPekerjaan: '3. Pekerjaan Struktur Beton Bertulang', bobot: 8.7 },
+  { mingguKe: 4, uraianPekerjaan: '3. Pekerjaan Struktur Beton Bertulang', bobot: 4.4 },
+  { mingguKe: 5, uraianPekerjaan: '3. Pekerjaan Struktur Beton Bertulang', bobot: 4.4 },
+  { mingguKe: 6, uraianPekerjaan: '3. Pekerjaan Struktur Beton Bertulang', bobot: 4.4 },
+  { mingguKe: 7, uraianPekerjaan: '3. Pekerjaan Struktur Beton Bertulang', bobot: 4.4 },
+  { mingguKe: 7, uraianPekerjaan: '4. Pekerjaan Dinding (Pasang, Plester, Acian)', bobot: 2.8 },
+  { mingguKe: 8, uraianPekerjaan: '4. Pekerjaan Dinding (Pasang, Plester, Acian)', bobot: 9.4 },
+  { mingguKe: 9, uraianPekerjaan: '5. Pekerjaan Rangka & Penutup Atap', bobot: 7.0 },
+  { mingguKe: 10, uraianPekerjaan: '6. Pekerjaan Plafond', bobot: 10.6 },
+  { mingguKe: 11, uraianPekerjaan: '7. Pekerjaan Kusen, Pintu & Jendela', bobot: 8.0 },
+  { mingguKe: 12, uraianPekerjaan: '7. Pekerjaan Kusen, Pintu & Jendela', bobot: 8.2 },
+  { mingguKe: 13, uraianPekerjaan: '8. Pekerjaan Lantai & Dinding Keramik', bobot: 7.2 },
+  { mingguKe: 14, uraianPekerjaan: '10. Pekerjaan Pengecatan', bobot: 4.7 },
+  { mingguKe: 15, uraianPekerjaan: '10. Pekerjaan Pengecatan', bobot: 4.7 },
+  { mingguKe: 16, uraianPekerjaan: '12. Instalasi Listrik & Finishing Akhir + Serah Terima', bobot: 1.0 }
+];
+
 function getSpreadsheet() {
   return SpreadsheetApp.getActiveSpreadsheet();
 }

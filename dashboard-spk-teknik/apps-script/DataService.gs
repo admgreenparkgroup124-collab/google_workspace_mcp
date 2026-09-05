@@ -200,6 +200,77 @@ function writeNewRecord_(recordType, gp, fields) {
   } finally {
     lock.releaseLock();
   }
+
+  // Addendum 31: SPK Unit Rumah baru otomatis dapat Rencana Kerja standar
+  // (Time Schedule template) di tab Rencana Progres, supaya Kurva S
+  // langsung punya patokan Rencana tanpa perlu diisi manual satu-satu per
+  // unit. Hanya utk Unit Rumah (PSU tidak berbasis minggu konstruksi
+  // rumah), dan HANYA kalau unit itu belum pernah punya Rencana sama
+  // sekali -- tidak menimpa data manual yang sudah ada (unit lama diisi
+  // lewat backfillUnitRumahRencanaTemplate() di Code.gs, dijalankan
+  // sekali manual, bukan lewat jalur ini).
+  if (recordType === 'spk' && safeText(fields.blokUnit) &&
+      String(fields.jenisSpk || '').toUpperCase() === CONFIG.UNIT_RUMAH_JENIS_SPK) {
+    var newUnitKey = makeUnitKey(fields.grupProyek, fields.namaProyek, fields.blokUnit);
+    if (!hasRencanaForUnit_(newUnitKey)) {
+      writeRencanaTemplateForUnit_(fields.grupProyek, fields.namaProyek, fields.blokUnit);
+    }
+  }
+}
+
+// Cek apakah tab Rencana Progres SUDAH punya baris untuk unitKey tertentu
+// -- dipakai writeNewRecord_ (SPK Unit Rumah baru) dan
+// backfillUnitRumahRencanaTemplate_ (Code.gs) supaya template tidak
+// menimpa/dobel kalau unit itu sudah pernah diisi (manual atau otomatis).
+function hasRencanaForUnit_(unitKey) {
+  if (!unitKey) return false;
+  var sheet = getSpreadsheet().getSheetByName(CONFIG.PROGRESS_RENCANA_TAB);
+  if (!sheet) return false;
+
+  var values = sheet.getDataRange().getValues();
+  if (values.length < 2) return false;
+
+  var headerMap = buildHeaderMap(values[0], PROGRESS_RENCANA_FIELD_DEFS);
+  for (var r = 1; r < values.length; r++) {
+    var row = values[r];
+    var gp = safeText(cellValue(row, headerMap, 'grupProyek'));
+    var proyek = safeText(cellValue(row, headerMap, 'namaProyek'));
+    var unit = safeText(cellValue(row, headerMap, 'blokUnit'));
+    if (unit && makeUnitKey(gp, proyek, unit) === unitKey) return true;
+  }
+  return false;
+}
+
+// Tulis UNIT_RUMAH_RENCANA_TEMPLATE (Config.gs) ke tab Rencana Progres
+// untuk satu unit -- satu batch setValues (bukan per-baris), pola sama
+// writeNewRecord_. Dipakai writeNewRecord_ (otomatis, SPK baru) dan
+// backfillUnitRumahRencanaTemplate() di Code.gs (manual, unit lama).
+function writeRencanaTemplateForUnit_(grupProyek, namaProyek, blokUnit) {
+  var sheet = getSpreadsheet().getSheetByName(CONFIG.PROGRESS_RENCANA_TAB);
+  if (!sheet) throw new Error('Tab tidak ditemukan: ' + CONFIG.PROGRESS_RENCANA_TAB);
+
+  var width = sheet.getLastColumn();
+  var headerRow = sheet.getRange(1, 1, 1, width).getValues()[0];
+  var headerMap = buildHeaderMap(headerRow, PROGRESS_RENCANA_FIELD_DEFS);
+
+  var rows = UNIT_RUMAH_RENCANA_TEMPLATE.map(function (item) {
+    var row = new Array(width).fill('');
+    if (headerMap.grupProyek >= 0) row[headerMap.grupProyek] = grupProyek;
+    if (headerMap.namaProyek >= 0) row[headerMap.namaProyek] = namaProyek;
+    if (headerMap.blokUnit >= 0) row[headerMap.blokUnit] = blokUnit;
+    if (headerMap.mingguKe >= 0) row[headerMap.mingguKe] = item.mingguKe;
+    if (headerMap.uraianPekerjaan >= 0) row[headerMap.uraianPekerjaan] = item.uraianPekerjaan;
+    if (headerMap.rencanaProgres >= 0) row[headerMap.rencanaProgres] = item.bobot;
+    return row;
+  });
+
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    sheet.getRange(sheet.getLastRow() + 1, 1, rows.length, width).setValues(rows);
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 // Hapus satu baris nilai master opsi. `id` mengkodekan nomor baris fisik
