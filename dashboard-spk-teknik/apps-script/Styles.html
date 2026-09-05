@@ -400,6 +400,12 @@
   .chart-card-table-wrap table { font-size: 12px; }
   .chart-card-table-wrap th, .chart-card-table-wrap td { white-space: normal; }
 
+  /* ---------- Progress bar (Addendum 29, tabel Milestone Progres Konstruksi) ---------- */
+  .progress-bar { display: inline-block; width: 90px; height: 8px; border-radius: 999px; background: var(--gray-bg); overflow: hidden; vertical-align: middle; }
+  .progress-bar-fill { height: 100%; background: var(--green); }
+  .progress-bar-fill.behind { background: var(--red); }
+  .progress-bar-label { margin-left: 8px; font-size: 12px; color: var(--ink-soft); vertical-align: middle; }
+
   /* ---------- Toggle Bulan/Tahun di header chart-card (trend SPK/Purchasing/HWA) ---------- */
   .chart-toggle { display: inline-flex; gap: 2px; text-transform: none; letter-spacing: normal; }
   .chart-toggle button {

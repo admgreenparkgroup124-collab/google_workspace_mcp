@@ -104,6 +104,7 @@
         <button data-subtab="spk" type="button">SPK</button>
         <button data-subtab="purchasing" type="button">Purchasing</button>
         <button data-subtab="hwa" type="button">Home With AI</button>
+        <button data-subtab="progres" type="button">Progres Konstruksi</button>
       </div>
 
       <div id="dashboardSubview-semua" class="dashboard-subview">
@@ -346,6 +347,39 @@
         </section>
       </div>
       <!-- /dashboardSubview-hwa -->
+
+      <div id="dashboardSubview-progres" class="dashboard-subview" hidden>
+        <section class="summary-cards" id="progresSummaryCards"></section>
+        <section class="charts-grid">
+          <div class="chart-card chart-card-wide">
+            <h3>Kurva S (Rencana vs Realisasi)</h3>
+            <div class="chart-canvas-wrap"><canvas id="chartProgresSCurve"></canvas></div>
+          </div>
+          <div class="chart-card chart-card-wide">
+            <h3>Peringkat Ketepatan Waktu Kontraktor</h3>
+            <div class="chart-card-table-wrap">
+              <table>
+                <thead><tr><th>No</th><th>Kontraktor</th><th>Total SPK</th><th>Tepat Waktu</th><th>% Tepat Waktu</th></tr></thead>
+                <tbody id="progresVendorRankingBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+        <section class="table-section">
+          <div class="table-toolbar">
+            <input type="text" id="progresMilestoneSearch" placeholder="Cari GP, proyek, unit…">
+            <span id="progresMilestoneCount" class="toolbar-count"></span>
+          </div>
+          <div class="table-wrap table-wrap-full">
+            <table id="progresMilestoneTable">
+              <thead></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <p class="master-hint">Milestone per unit — Tahap ditebak otomatis dari % realisasi kumulatif (bukan input manual). Klik baris untuk lihat riwayat progres lengkap.</p>
+        </section>
+      </div>
+      <!-- /dashboardSubview-progres -->
     </div>
 
     <!-- ============================== VIEW: Master Data SPK ============================== -->
