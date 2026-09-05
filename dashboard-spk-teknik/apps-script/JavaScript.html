@@ -190,7 +190,6 @@
   // Kolom lengkap untuk halaman Master Data -- semua field dari payload
   // getDashboardData(), persis urutan kolom di spreadsheet sumber (PRD 6).
   var MASTER_SPK_COLUMNS = [
-    { key: 'sourceTab', label: 'Tab' },
     { key: 'noSpk', label: 'No. SPK' },
     { key: 'jenisSpk', label: 'Jenis SPK' },
     { key: 'itemSpk', label: 'Item SPK' },
@@ -198,7 +197,6 @@
     { key: 'proyek', label: 'Nama Proyek' },
     { key: 'unit', label: 'Blok/Unit' },
     { key: 'kontraktor', label: 'Kontraktor/Vendor' },
-    { key: 'subKontraktor', label: 'Sub Kontraktor' },
     { key: 'namaPekerjaan', label: 'Nama Pekerjaan' },
     { key: 'volume', label: 'Volume' },
     { key: 'satuan', label: 'Satuan' },
@@ -208,6 +206,7 @@
     { key: 'nilaiTotal', label: 'Nilai Total (Rp)', format: 'currency' },
     { key: 'tanggalTerbit', label: 'Tanggal Terbit' },
     { key: 'tanggalSelesaiEfektif', label: 'Tanggal Selesai' },
+    { key: 'slaTargetDate', label: 'Tanggal Target', format: 'date' },
     { key: 'isOverdue', label: 'Status', format: 'overdue' },
     { key: 'picAdminTeknik', label: 'PIC Admin Teknik' },
     { key: 'keterangan', label: 'Keterangan' },
@@ -719,7 +718,7 @@
   function buildCardDetail_(rows, opts) {
     opts = opts || {};
     if (!rows.length) return '<div class="unit-item"><div class="unit-item-title"><span>Tidak ada data</span></div></div>';
-    return rows.map(function (r) {
+    function itemHtml(r) {
       var title = opts.titleFn ? opts.titleFn(r) : String(r);
       var valueHtml = opts.valueFn ? '<span>' + formatRupiah(opts.valueFn(r)) + '</span>' : '';
       var metaLines = [];
@@ -731,6 +730,21 @@
         '<div class="unit-item-title"><span>' + escapeHtml(title) + '</span>' + valueHtml + '</div>' +
         metaLines.map(function (l) { return '<div class="unit-item-meta">' + escapeHtml(l) + '</div>'; }).join('') +
         '</div>';
+    }
+    // opts.keyFn opsional -- kelompokkan rows jadi blok .unit-section per
+    // key (mis. per Grup Proyek), tiap blok dapat header "<key> (N)". Tanpa
+    // keyFn, perilakunya sama persis versi lama (daftar flat).
+    if (!opts.keyFn) return rows.map(itemHtml).join('');
+    var order = []; var groups = {};
+    rows.forEach(function (r) {
+      var k = opts.keyFn(r) || '(Tidak diisi)';
+      if (!groups[k]) { groups[k] = []; order.push(k); }
+      groups[k].push(r);
+    });
+    return order.map(function (k) {
+      var groupRows = groups[k];
+      return '<div class="unit-section"><h4>' + escapeHtml(k) + ' (' + groupRows.length + ')</h4>' +
+        groupRows.map(itemHtml).join('') + '</div>';
     }).join('');
   }
 
@@ -1059,11 +1073,19 @@
     var totalNilai = fSpk.reduce(function (s, r) { return s + r.nilaiTotal; }, 0);
     var overdueCount = fSpk.filter(function (r) { return r.isOverdue; }).length;
     var jenis = buildBreakdown(fSpk, function (r) { return r.jenisSpk; }, function (r) { return r.nilaiTotal; });
-    var totalProyek = {}; var proyekNames = [];
+    // Total Proyek (Addendum 32) -- dikelompokkan per Grup Proyek supaya
+    // rincian klik menunjukkan jumlah proyek per GP, bukan cuma daftar
+    // datar. Dedup by GP+Proyek (bukan cuma Proyek) supaya nama proyek
+    // yang kebetulan sama di GP berbeda tetap dihitung terpisah.
+    var totalProyek = {}; var proyekRecords = [];
     fSpk.forEach(function (r) {
       if (!r.proyek) return;
-      var k = normKey(r.proyek);
-      if (!totalProyek[k]) { totalProyek[k] = true; proyekNames.push(r.proyek); }
+      var k = normKey(r.gp) + '|' + normKey(r.proyek);
+      if (!totalProyek[k]) { totalProyek[k] = true; proyekRecords.push({ gp: r.gp || '(Tanpa GP)', proyek: r.proyek }); }
+    });
+    var proyekDetail = buildCardDetail_(proyekRecords, {
+      keyFn: function (p) { return p.gp; },
+      titleFn: function (p) { return p.proyek; }
     });
 
     var behindRecords = computeBehindUnits_(fSpk);
@@ -1075,24 +1097,33 @@
       spkStatusItems[label].push((r.proyek || '-') + (r.unit ? ' – ' + r.unit : ''));
     });
 
-    // Rincian per baris SPK PSU/Unit Rumah (Addendum 22) -- dipakai card
-    // Total SPK PSU/Unit Rumah & Total Nilai Transaksi PSU/Unit Rumah.
+    // Rincian per baris SPK PSU/Unit Rumah (Addendum 22, diperluas
+    // Addendum 32) -- dipakai card Total SPK PSU/Unit Rumah & Total Nilai
+    // Transaksi PSU/Unit Rumah, keempatnya pakai rincian yang SAMA:
+    // Blok/No. Unit, Kontraktor/Vendor, Tgl Mulai, Target, Tgl Selesai,
+    // Nilai Kontrak.
     var psuRows = fSpk.filter(function (r) { return r.jenisSpk === 'PSU'; });
     var unitRumahRows = fSpk.filter(function (r) { return r.jenisSpk === 'UNIT RUMAH'; });
-    function spkRowTitle_(r) { return r.itemSpk || '(Tanpa Item)'; }
+    function spkRowTitle_(r) { return r.unit || '(Tanpa Blok/Unit)'; }
     function spkRowMeta_(r) {
-      return 'Kontraktor: ' + (r.kontraktor || '-') + ' · Status: ' + (r.isOverdue ? 'Overdue' : 'Sesuai Jadwal');
+      return [
+        'Kontraktor/Vendor: ' + (r.kontraktor || '-'),
+        'Tgl Mulai: ' + formatDate(r.tanggalTerbit) + ' · Target: ' + formatDate(r.slaTargetDate) + ' · Tgl Selesai: ' + formatDate(r.tanggalSelesaiEfektif)
+      ];
     }
+    function spkRowNilaiKontrak_(r) { return r.nilaiKontrak; }
+    var psuDetail = buildCardDetail_(psuRows, { titleFn: spkRowTitle_, metaFn: spkRowMeta_, valueFn: spkRowNilaiKontrak_ });
+    var unitRumahDetail = buildCardDetail_(unitRumahRows, { titleFn: spkRowTitle_, metaFn: spkRowMeta_, valueFn: spkRowNilaiKontrak_ });
     var behindDetail = buildBehindDetail_(behindRecords);
 
     renderCardGrid(ids.cards, [
-      { label: 'Total Proyek', value: Object.keys(totalProyek).length, icon: '🏗️', accent: 'green', hero: true, detail: buildCardDetail_(proyekNames) },
+      { label: 'Total Proyek', value: Object.keys(totalProyek).length, icon: '🏗️', accent: 'green', hero: true, detail: proyekDetail },
       { label: 'Total SPK', value: fSpk.length, icon: '📄', accent: 'blue', sub: overdueCount + ' overdue (Unit Rumah) · ' + (jenis.count['PSU'] || 0) + ' PSU · ' + (jenis.count['UNIT RUMAH'] || 0) + ' Unit Rumah' },
-      { label: 'Total SPK PSU', value: jenis.count['PSU'] || 0, icon: '📄', accent: 'blue', detail: buildCardDetail_(psuRows, { titleFn: spkRowTitle_, metaFn: spkRowMeta_ }) },
-      { label: 'Total SPK Unit Rumah', value: jenis.count['UNIT RUMAH'] || 0, icon: '🏠', accent: 'green', detail: buildCardDetail_(unitRumahRows, { titleFn: spkRowTitle_, metaFn: spkRowMeta_ }) },
+      { label: 'Total SPK PSU', value: jenis.count['PSU'] || 0, icon: '📄', accent: 'blue', detail: psuDetail },
+      { label: 'Total SPK Unit Rumah', value: jenis.count['UNIT RUMAH'] || 0, icon: '🏠', accent: 'green', detail: unitRumahDetail },
       { label: 'Total Nilai Transaksi', value: formatRupiah(totalNilai), icon: '💰', accent: 'amber', sub: 'PSU: ' + formatRupiah(jenis.nilai['PSU'] || 0) + ' · Unit Rumah: ' + formatRupiah(jenis.nilai['UNIT RUMAH'] || 0) },
-      { label: 'Total Nilai Transaksi PSU', value: formatRupiah(jenis.nilai['PSU'] || 0), icon: '💰', accent: 'amber', detail: buildCardDetail_(psuRows, { titleFn: spkRowTitle_, metaFn: spkRowMeta_, valueFn: function (r) { return r.nilaiTotal; } }) },
-      { label: 'Total Nilai Transaksi Unit Rumah', value: formatRupiah(jenis.nilai['UNIT RUMAH'] || 0), icon: '💰', accent: 'amber', detail: buildCardDetail_(unitRumahRows, { titleFn: spkRowTitle_, metaFn: spkRowMeta_, valueFn: function (r) { return r.nilaiTotal; } }) },
+      { label: 'Total Nilai Transaksi PSU', value: formatRupiah(jenis.nilai['PSU'] || 0), icon: '💰', accent: 'amber', detail: psuDetail },
+      { label: 'Total Nilai Transaksi Unit Rumah', value: formatRupiah(jenis.nilai['UNIT RUMAH'] || 0), icon: '💰', accent: 'amber', detail: unitRumahDetail },
       { label: 'Unit Tertinggal Jadwal Konstruksi', value: behindCount, icon: '⚠️', accent: 'red', sub: 'Realisasi kumulatif di bawah rencana s/d minggu berjalan', alert: behindCount > 0, detail: behindDetail }
     ]);
 
