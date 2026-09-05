@@ -696,28 +696,62 @@
     wrap.innerHTML = '';
     cards.forEach(function (c) {
       var el = document.createElement('div');
-      el.className = 'card' + (c.alert ? ' card-alert' : '') + (c.breakdown ? ' has-breakdown' : '');
+      el.className = 'card' + (c.alert ? ' card-alert' : '') + (c.hero ? ' hero' : '') + (c.detail ? ' card-clickable' : '');
+      var iconHtml = c.icon ? '<div class="card-icon accent-' + (c.accent || 'blue') + '">' + c.icon + '</div>' : '';
       el.innerHTML =
-        '<div class="card-label">' + escapeHtml(c.label) + (c.breakdown ? '<span class="card-toggle-icon">▸</span>' : '') + '</div>' +
+        '<div class="card-top"><div class="card-label">' + escapeHtml(c.label) + '</div>' + iconHtml + '</div>' +
         '<div class="card-value">' + escapeHtml(String(c.value)) + '</div>' +
-        (c.sub ? '<div class="card-sub">' + escapeHtml(c.sub) + '</div>' : '') +
-        (c.breakdown ? '<div class="card-breakdown" hidden>' + c.breakdown + '</div>' : '');
-      if (c.breakdown) {
-        el.addEventListener('click', function () {
-          var bd = el.querySelector('.card-breakdown');
-          var willShow = bd.hidden;
-          bd.hidden = !willShow;
-          el.classList.toggle('expanded', willShow);
-        });
+        (c.sub ? '<div class="card-sub">' + escapeHtml(c.sub) + '</div>' : '');
+      if (c.detail) {
+        el.addEventListener('click', function () { openCardModal_(c.label, c.detail); });
       }
       wrap.appendChild(el);
     });
   }
 
-  // Breakdown pill list generik (dipakai renderSummary + overview per
-  // kategori) -- kelompokkan `rows` berdasar `keyFn`, hitung count & total
-  // nilai (`valueFn`) per kelompok, kembalikan { order, countPills,
-  // nilaiPills } siap ditempel ke card.breakdown.
+  // Rincian isi modal popup kartu (Addendum 28) -- `rows` boleh berupa array
+  // string polos (nama saja, mis. Total Proyek) ATAU array record dengan
+  // opts.titleFn/metaFn/valueFn custom (mis. rincian per baris SPK/Unit
+  // Tertinggal). Markup sama persis pola .unit-item/.unit-item-title/
+  // .unit-item-meta yang sudah dipakai modal Riwayat & Keterlambatan.
+  function buildCardDetail_(rows, opts) {
+    opts = opts || {};
+    if (!rows.length) return '<div class="unit-item"><div class="unit-item-title"><span>Tidak ada data</span></div></div>';
+    return rows.map(function (r) {
+      var title = opts.titleFn ? opts.titleFn(r) : String(r);
+      var valueHtml = opts.valueFn ? '<span>' + formatRupiah(opts.valueFn(r)) + '</span>' : '';
+      var metaLines = [];
+      if (opts.metaFn) {
+        var m = opts.metaFn(r);
+        metaLines = Array.isArray(m) ? m : (m ? [m] : []);
+      }
+      return '<div class="unit-item">' +
+        '<div class="unit-item-title"><span>' + escapeHtml(title) + '</span>' + valueHtml + '</div>' +
+        metaLines.map(function (l) { return '<div class="unit-item-meta">' + escapeHtml(l) + '</div>'; }).join('') +
+        '</div>';
+    }).join('');
+  }
+
+  // Modal popup generik untuk kartu ringkasan (Addendum 28) -- backdrop
+  // TERPISAH dari unitModalBackdrop/delayModalBackdrop supaya tidak
+  // berebut state, pola persis openDelayModal_.
+  function openCardModal_(title, detailHtml) {
+    var html = '<div class="unit-header"><h2>' + escapeHtml(title) + '</h2></div>' +
+      '<div class="unit-section">' + detailHtml + '</div>';
+    document.getElementById('cardModalContent').innerHTML = html;
+    document.getElementById('cardModalBackdrop').classList.add('open');
+  }
+  document.getElementById('cardModalClose').addEventListener('click', closeCardModal_);
+  document.getElementById('cardModalBackdrop').addEventListener('click', function (e) {
+    if (e.target === document.getElementById('cardModalBackdrop')) closeCardModal_();
+  });
+  function closeCardModal_() {
+    document.getElementById('cardModalBackdrop').classList.remove('open');
+  }
+
+  // Breakdown generik (dipakai overview per kategori + chart status) --
+  // kelompokkan `rows` berdasar `keyFn`, hitung count & total nilai
+  // (`valueFn`) per kelompok, kembalikan { order, count, nilai, items }.
   function buildBreakdown(rows, keyFn, valueFn, pillClassFn, itemLabelFn) {
     var order = [];
     var count = {};
@@ -730,18 +764,7 @@
       nilai[k] += valueFn(r);
       if (itemLabelFn) items[k].push(itemLabelFn(r));
     });
-    function pill(k, text) {
-      var cls = pillClassFn ? pillClassFn(k) : 'badge-gray';
-      return '<span class="badge ' + cls + '">' + escapeHtml(k) + ': ' + text + '</span>';
-    }
-    return {
-      order: order,
-      count: count,
-      nilai: nilai,
-      items: items,
-      countPills: order.map(function (k) { return pill(k, count[k]); }).join(''),
-      nilaiPills: order.map(function (k) { return pill(k, formatRupiah(nilai[k])); }).join('')
-    };
+    return { order: order, count: count, nilai: nilai, items: items };
   }
 
   // Rincian nama (dipakai card tanpa breakdown pill count/nilai, mis. Total
@@ -1015,14 +1038,14 @@
     // sedang tampil di filter Dashboard saat ini.
     var seenUnitKeys = {};
     var behindCount = 0;
-    var behindNames = [];
+    var behindRecords = [];
     fSpk.forEach(function (r) {
       if (!r.unitKey || seenUnitKeys[r.unitKey]) return;
       seenUnitKeys[r.unitKey] = true;
       var status = computeUnitProgressStatus_(r.unitKey);
       if (status && status.isBehind) {
         behindCount++;
-        behindNames.push((r.proyek || '-') + (r.unit ? ' – ' + r.unit : ''));
+        behindRecords.push({ proyek: r.proyek, unit: r.unit, status: status });
       }
     });
 
@@ -1036,22 +1059,28 @@
     // Total SPK PSU/Unit Rumah & Total Nilai Transaksi PSU/Unit Rumah.
     var psuRows = fSpk.filter(function (r) { return r.jenisSpk === 'PSU'; });
     var unitRumahRows = fSpk.filter(function (r) { return r.jenisSpk === 'UNIT RUMAH'; });
-    function spkRowLabel(r) {
-      return (r.itemSpk || '(Tanpa Item)') + ' — ' + (r.kontraktor || '-') + ' · ' + (r.isOverdue ? 'Overdue' : 'Sesuai Jadwal');
+    function spkRowTitle_(r) { return r.itemSpk || '(Tanpa Item)'; }
+    function spkRowMeta_(r) {
+      return 'Kontraktor: ' + (r.kontraktor || '-') + ' · Status: ' + (r.isOverdue ? 'Overdue' : 'Sesuai Jadwal');
     }
-    function spkRowLabelNilai(r) {
-      return spkRowLabel(r) + ' · ' + formatRupiah(r.nilaiTotal);
-    }
+    var behindDetail = buildCardDetail_(behindRecords, {
+      titleFn: function (b) { return (b.proyek || '-') + (b.unit ? ' – ' + b.unit : ''); },
+      metaFn: function (b) {
+        return 'Rencana kumulatif ' + b.status.plannedCumulative.toFixed(1) + '% · realisasi ' +
+          b.status.actualCumulative.toFixed(1) + '% · tertinggal ' + b.status.gap.toFixed(1) +
+          ' poin (s/d minggu ke-' + b.status.evalWeek + ')';
+      }
+    });
 
     renderCardGrid(ids.cards, [
-      { label: 'Total Proyek', value: Object.keys(totalProyek).length, breakdown: buildNamePills(proyekNames) },
-      { label: 'Total SPK', value: fSpk.length, sub: overdueCount + ' overdue (Unit Rumah) · ' + (jenis.count['PSU'] || 0) + ' PSU · ' + (jenis.count['UNIT RUMAH'] || 0) + ' Unit Rumah' },
-      { label: 'Total SPK PSU', value: jenis.count['PSU'] || 0, breakdown: buildNamePills(psuRows.map(spkRowLabelNilai)) },
-      { label: 'Total SPK Unit Rumah', value: jenis.count['UNIT RUMAH'] || 0, breakdown: buildNamePills(unitRumahRows.map(spkRowLabelNilai)) },
-      { label: 'Total Nilai Transaksi', value: formatRupiah(totalNilai), sub: 'PSU: ' + formatRupiah(jenis.nilai['PSU'] || 0) + ' · Unit Rumah: ' + formatRupiah(jenis.nilai['UNIT RUMAH'] || 0) },
-      { label: 'Total Nilai Transaksi PSU', value: formatRupiah(jenis.nilai['PSU'] || 0), breakdown: buildNamePills(psuRows.map(spkRowLabelNilai)) },
-      { label: 'Total Nilai Transaksi Unit Rumah', value: formatRupiah(jenis.nilai['UNIT RUMAH'] || 0), breakdown: buildNamePills(unitRumahRows.map(spkRowLabelNilai)) },
-      { label: 'Unit Tertinggal Jadwal Konstruksi', value: behindCount, sub: 'Realisasi kumulatif di bawah rencana s/d minggu berjalan', alert: behindCount > 0, breakdown: buildNamePills(behindNames) }
+      { label: 'Total Proyek', value: Object.keys(totalProyek).length, icon: '🏗️', accent: 'green', hero: true, detail: buildCardDetail_(proyekNames) },
+      { label: 'Total SPK', value: fSpk.length, icon: '📄', accent: 'blue', sub: overdueCount + ' overdue (Unit Rumah) · ' + (jenis.count['PSU'] || 0) + ' PSU · ' + (jenis.count['UNIT RUMAH'] || 0) + ' Unit Rumah' },
+      { label: 'Total SPK PSU', value: jenis.count['PSU'] || 0, icon: '📄', accent: 'blue', detail: buildCardDetail_(psuRows, { titleFn: spkRowTitle_, metaFn: spkRowMeta_ }) },
+      { label: 'Total SPK Unit Rumah', value: jenis.count['UNIT RUMAH'] || 0, icon: '🏠', accent: 'green', detail: buildCardDetail_(unitRumahRows, { titleFn: spkRowTitle_, metaFn: spkRowMeta_ }) },
+      { label: 'Total Nilai Transaksi', value: formatRupiah(totalNilai), icon: '💰', accent: 'amber', sub: 'PSU: ' + formatRupiah(jenis.nilai['PSU'] || 0) + ' · Unit Rumah: ' + formatRupiah(jenis.nilai['UNIT RUMAH'] || 0) },
+      { label: 'Total Nilai Transaksi PSU', value: formatRupiah(jenis.nilai['PSU'] || 0), icon: '💰', accent: 'amber', detail: buildCardDetail_(psuRows, { titleFn: spkRowTitle_, metaFn: spkRowMeta_, valueFn: function (r) { return r.nilaiTotal; } }) },
+      { label: 'Total Nilai Transaksi Unit Rumah', value: formatRupiah(jenis.nilai['UNIT RUMAH'] || 0), icon: '💰', accent: 'amber', detail: buildCardDetail_(unitRumahRows, { titleFn: spkRowTitle_, metaFn: spkRowMeta_, valueFn: function (r) { return r.nilaiTotal; } }) },
+      { label: 'Unit Tertinggal Jadwal Konstruksi', value: behindCount, icon: '⚠️', accent: 'red', sub: 'Realisasi kumulatif di bawah rencana s/d minggu berjalan', alert: behindCount > 0, detail: behindDetail }
     ]);
 
     renderTrendCountChart(ids.tren, ids.trenKey, fSpk, 'tanggalTerbit', 'Jumlah SPK Terbit', '#40916c', spkTrendGranularity, 'rgba(64,145,108,.12)');
@@ -1068,10 +1097,14 @@
     var jenis = buildBreakdown(fPur, function (r) { return r.jenisPengadaan; }, function (r) { return r.nilai; });
     var itemLabel = function (r) { return (r.proyek || '-') + (r.unit ? ' – ' + r.unit : '') + ' (' + (r.namaBarang || '-') + ')'; };
     var status = buildBreakdown(fPur, function (r) { return r.statusPekerjaan; }, function () { return 0; }, null, itemLabel);
+    var jenisDetail = buildCardDetail_(jenis.order, {
+      titleFn: function (k) { return k; },
+      metaFn: function (k) { return jenis.count[k] + ' PO · ' + formatRupiah(jenis.nilai[k] || 0); }
+    });
 
     renderCardGrid(ids.cards, [
-      { label: 'Total PO Purchasing', value: fPur.length, breakdown: jenis.countPills },
-      { label: 'Total Nilai PO Purchasing', value: formatRupiah(totalNilai), breakdown: jenis.nilaiPills }
+      { label: 'Total PO Purchasing', value: fPur.length, icon: '🛒', accent: 'purple', hero: true, detail: jenisDetail },
+      { label: 'Total Nilai PO Purchasing', value: formatRupiah(totalNilai), icon: '💰', accent: 'amber', detail: jenisDetail }
     ]);
 
     renderTrendCountChart(ids.tren, ids.trenKey, fPur, 'tanggalMulai', 'Jumlah PO', '#40916c', purTrendGranularity);
@@ -1090,11 +1123,19 @@
     // Breakdown Home With AI vs Smarthome (Addendum 9) -- kategori kosong
     // sudah di-fallback ke 'HOME WITH AI' di getHomeWithAiRows_.
     var kategori = buildBreakdown(fHwa, function (r) { return r.kategori; }, function (r) { return r.nilai; }, null, itemLabel);
+    var statusDetail = buildCardDetail_(status.order, {
+      titleFn: function (k) { return k; },
+      metaFn: function (k) { return status.count[k] + ' PO · ' + formatRupiah(status.nilai[k] || 0); }
+    });
+    var kategoriDetail = buildCardDetail_(kategori.order, {
+      titleFn: function (k) { return k; },
+      metaFn: function (k) { return kategori.count[k] + ' PO · ' + formatRupiah(kategori.nilai[k] || 0); }
+    });
 
     renderCardGrid(ids.cards, [
-      { label: 'Total PO Home With AI', value: fHwa.length, breakdown: status.countPills },
-      { label: 'Total per Kategori', value: kategori.order.length, breakdown: kategori.countPills },
-      { label: 'Total Nilai Transaksi Home With AI', value: formatRupiah(totalNilai), breakdown: status.nilaiPills }
+      { label: 'Total PO Home With AI', value: fHwa.length, icon: '🏠', accent: 'teal', hero: true, detail: statusDetail },
+      { label: 'Total per Kategori', value: kategori.order.length, icon: '📦', accent: 'purple', detail: kategoriDetail },
+      { label: 'Total Nilai Transaksi Home With AI', value: formatRupiah(totalNilai), icon: '💰', accent: 'amber', detail: statusDetail }
     ]);
 
     renderStatusProportionChart(ids.status, ids.statusKey,
@@ -1264,11 +1305,11 @@
 
   // Card ringkasan generik ("Keterangan Total") dipakai di 3 halaman Master
   // Data -- Total Baris + Total Nilai (Rp) dari rows yang SEDANG ter-filter.
-  function renderMasterSummary(elId, rows, valueKey, countLabel) {
+  function renderMasterSummary(elId, rows, valueKey, countLabel, icon, accent) {
     var totalNilai = rows.reduce(function (sum, r) { return sum + (Number(r[valueKey]) || 0); }, 0);
     renderCardGrid(elId, [
-      { label: countLabel || 'Total Baris', value: rows.length },
-      { label: 'Total Nilai (Rp)', value: formatRupiah(totalNilai) }
+      { label: countLabel || 'Total Baris', value: rows.length, icon: icon, accent: accent },
+      { label: 'Total Nilai (Rp)', value: formatRupiah(totalNilai), icon: '💰', accent: 'amber' }
     ]);
   }
 
@@ -1278,7 +1319,7 @@
     if (masterSpkGp) rows = rows.filter(function (r) { return r.sourceTab === masterSpkGp; });
     if (masterSpkProyek) rows = rows.filter(function (r) { return normKey(r.proyek) === normKey(masterSpkProyek); });
     if (masterSpkJenis) rows = rows.filter(function (r) { return r.jenisSpk === masterSpkJenis; });
-    renderMasterSummary('masterSpkSummary', rows, 'nilaiTotal', 'Total SPK');
+    renderMasterSummary('masterSpkSummary', rows, 'nilaiTotal', 'Total SPK', '📄', 'blue');
     buildDataTable({
       theadEl: document.querySelector('#masterSpkTable thead'),
       tbodyEl: document.querySelector('#masterSpkTable tbody'),
@@ -1335,7 +1376,7 @@
     if (masterPurGp) rows = rows.filter(function (r) { return normKey(r.gp) === normKey(masterPurGp); });
     if (masterPurProyek) rows = rows.filter(function (r) { return normKey(r.proyek) === normKey(masterPurProyek); });
     if (masterPurJenis) rows = rows.filter(function (r) { return r.jenisPengadaan === masterPurJenis; });
-    renderMasterSummary('masterPurSummary', rows, 'nilai', 'Total PO');
+    renderMasterSummary('masterPurSummary', rows, 'nilai', 'Total PO', '🛒', 'purple');
     buildDataTable({
       theadEl: document.querySelector('#masterPurTable thead'),
       tbodyEl: document.querySelector('#masterPurTable tbody'),
@@ -1392,7 +1433,7 @@
     if (masterHwaProyek) rows = rows.filter(function (r) { return normKey(r.proyek) === normKey(masterHwaProyek); });
     if (masterHwaStatus) rows = rows.filter(function (r) { return r.status === masterHwaStatus; });
     if (masterHwaKategori) rows = rows.filter(function (r) { return r.kategori === masterHwaKategori; });
-    renderMasterSummary('masterHwaSummary', rows, 'nilai', 'Total PO');
+    renderMasterSummary('masterHwaSummary', rows, 'nilai', 'Total PO', '🏠', 'teal');
     buildDataTable({
       theadEl: document.querySelector('#masterHwaTable thead'),
       tbodyEl: document.querySelector('#masterHwaTable tbody'),
@@ -1466,7 +1507,7 @@
       alertZone.appendChild(banner);
     }
 
-    renderMasterSummary('masterWifiSummary', rows, 'biayaBundling', 'Total Langganan');
+    renderMasterSummary('masterWifiSummary', rows, 'biayaBundling', 'Total Langganan', '📶', 'blue');
     buildDataTable({
       theadEl: document.querySelector('#masterWifiTable thead'),
       tbodyEl: document.querySelector('#masterWifiTable tbody'),

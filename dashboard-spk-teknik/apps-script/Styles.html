@@ -30,7 +30,7 @@
     padding: 0;
     background: var(--bg);
     color: var(--ink);
-    font-family: "Segoe UI", Roboto, Arial, sans-serif;
+    font-family: "Inter", "Segoe UI", Roboto, Arial, sans-serif;
     font-size: 14px;
     -webkit-font-smoothing: antialiased;
   }
@@ -210,6 +210,7 @@
     grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
     flex-wrap: wrap;
     gap: 14px;
+    align-items: start;
   }
   .master-summary:empty { display: none; }
 
@@ -319,30 +320,44 @@
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
     gap: 14px;
+    align-items: start;
   }
   .card {
     background: var(--white);
     border: 1px solid var(--line);
-    border-radius: var(--radius);
-    padding: 16px 18px;
+    border-radius: 14px;
+    padding: 18px 20px;
     box-shadow: var(--shadow);
     display: flex;
     flex-direction: column;
     gap: 4px;
+    transition: transform .15s ease, box-shadow .15s ease;
   }
   .card.card-alert { border-color: #f3c1c1; background: var(--red-bg); }
+  .card.card-clickable { cursor: pointer; }
+  .card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+  .card-icon {
+    width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  .card-icon.accent-blue { background: #e3edfb; color: #2563eb; }
+  .card-icon.accent-green { background: var(--green-bg); color: var(--green); }
+  .card-icon.accent-amber { background: var(--amber-bg); color: var(--amber); }
+  .card-icon.accent-purple { background: #f1e7fb; color: #7c3aed; }
+  .card-icon.accent-teal { background: #e0f5f3; color: #0f9488; }
+  .card-icon.accent-red { background: var(--red-bg); color: var(--red); }
   .card-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-soft); }
   .card-value { font-size: 22px; font-weight: 700; color: var(--navy-900); }
   .card.card-alert .card-value { color: var(--red); }
   .card-sub { font-size: 12px; color: var(--ink-soft); }
-  .card-breakdown { display: flex; gap: 10px; margin-top: 6px; flex-wrap: wrap; }
-  .card-breakdown[hidden] { display: none; }
-  .card.has-breakdown { cursor: pointer; }
-  .card-toggle-icon {
-    float: right; color: var(--ink-soft); font-size: 11px;
-    transition: transform .15s ease;
+  .card.hero {
+    background: linear-gradient(135deg, var(--navy-800), var(--navy-500));
+    border-color: transparent;
   }
-  .card.expanded .card-toggle-icon { transform: rotate(90deg); }
+  .card.hero .card-label, .card.hero .card-sub { color: rgba(255, 255, 255, .85); }
+  .card.hero .card-value { color: var(--white); }
+  .card.hero .card-icon { background: rgba(255, 255, 255, .2); color: var(--white); }
   .badge {
     font-size: 11px;
     font-weight: 600;
@@ -361,6 +376,7 @@
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
     gap: 14px;
+    align-items: start;
   }
   .chart-card {
     background: var(--white);
@@ -731,7 +747,7 @@
     .chip:hover { border-color: var(--navy-500); color: var(--navy-700); }
     .btn-reset:hover { border-color: var(--red); color: var(--red); }
     .alert-delay-seg:hover { background: #fde2e2; }
-    .card.has-breakdown:hover { border-color: var(--navy-500); }
+    .card.card-clickable:hover { transform: translateY(-2px); box-shadow: var(--shadow-modal); }
     .chart-toggle button:hover { border-color: var(--navy-500); color: var(--navy-700); }
     .btn-add:hover { background: var(--navy-700); border-color: var(--navy-700); }
     .btn-primary:hover { background: var(--navy-900); }
