@@ -1,0 +1,826 @@
+<style>
+  :root {
+    --navy-900: #1b4332;
+    --navy-800: #2d6a4f;
+    --navy-700: #40916c;
+    --navy-500: #52b788;
+    --ink: #1f2d3d;
+    --ink-soft: #5b6b7c;
+    --line: #d7dee6;
+    --bg: #ffffff;
+    --white: #ffffff;
+    --hover-bg: #f6f7f9;
+    --gray: #5b6b7c;
+    --gray-bg: #eef1f4;
+    --green: #1f9d55;
+    --green-bg: #e6f7ec;
+    --amber: #b7791f;
+    --amber-bg: #fef6e4;
+    --red: #c53030;
+    --red-bg: #fdeaea;
+    --shadow: 0 1px 2px rgba(27, 67, 50, 0.06), 0 4px 12px rgba(27, 67, 50, 0.06);
+    --shadow-modal: 0 10px 40px rgba(0, 0, 0, .25);
+    --radius: 10px;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Inter", "Segoe UI", Roboto, Arial, sans-serif;
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  #app.app-shell { display: flex; flex-direction: row; align-items: stretch; min-height: 100vh; }
+
+  /* ---------- Sidebar (ERP-style, collapsible, off-canvas on mobile) ---------- */
+  .sidebar {
+    width: 272px;
+    flex-shrink: 0;
+    background: var(--navy-900);
+    color: var(--white);
+    display: flex;
+    flex-direction: column;
+    position: sticky;
+    top: 0;
+    align-self: flex-start;
+    height: 100vh;
+    overflow-y: auto;
+    transition: width .2s ease;
+    z-index: 30;
+  }
+  .sidebar-brand {
+    display: flex; align-items: center; gap: 12px;
+    padding: 20px 16px;
+    border-bottom: 1px solid rgba(255,255,255,.12);
+  }
+  .sidebar-brand .brand-text { min-width: 0; }
+  .brand-mark {
+    width: 40px; height: 40px;
+    flex-shrink: 0;
+    background: linear-gradient(135deg, var(--navy-500), var(--navy-700));
+    border: 1px solid rgba(255,255,255,.25);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 13px; letter-spacing: .5px;
+    overflow: hidden;
+  }
+  .brand-mark img { width: 100%; height: 100%; object-fit: contain; }
+  .brand-text h1 { font-size: 14.5px; line-height: 1.3; margin: 0; font-weight: 600; }
+  .brand-text p { font-size: 11px; line-height: 1.35; margin: 4px 0 0; color: #a9d0bd; }
+
+  .sidebar .app-nav {
+    flex: 1;
+    width: auto;
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    gap: 2px;
+    padding: 12px 10px;
+    margin-top: 0;
+    border-top: none;
+  }
+  .sidebar .app-nav button {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    text-align: left;
+    padding: 9px 10px;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+  .sidebar .app-nav button .nav-icon { font-size: 15px; width: 18px; text-align: center; flex-shrink: 0; }
+  .sidebar .app-nav button .nav-label { overflow: hidden; text-overflow: ellipsis; }
+
+  .sidebar-collapse-btn {
+    margin: 8px 10px 14px;
+    background: rgba(255,255,255,.08);
+    border: 1px solid rgba(255,255,255,.2);
+    color: #d9ede2;
+    border-radius: 6px;
+    padding: 7px;
+    cursor: pointer;
+    font-size: 13px;
+  }
+
+  /* Collapsed: desktop icon-only rail */
+  .sidebar.collapsed { width: 64px; }
+  .sidebar.collapsed .sidebar-brand { justify-content: center; padding: 18px 8px; }
+  .sidebar.collapsed .sidebar-brand .brand-text,
+  .sidebar.collapsed .app-nav button .nav-label { display: none; }
+  .sidebar.collapsed .app-nav button { justify-content: center; padding: 9px 0; }
+  .sidebar.collapsed .sidebar-collapse-btn { transform: rotate(180deg); }
+
+  .app-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+  .sidebar-backdrop {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(27, 67, 50, .5);
+    z-index: 29;
+  }
+
+  .mobile-nav-toggle {
+    display: none;
+    width: 34px; height: 34px;
+    align-items: center; justify-content: center;
+    background: rgba(255,255,255,.1);
+    border: 1px solid rgba(255,255,255,.3);
+    color: var(--white);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+
+  /* ---------- Header (topbar meta: clock/sync/refresh/user, nav moved to sidebar) ---------- */
+  .topbar {
+    background: var(--navy-900);
+    color: var(--white);
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 14px 24px;
+    flex-wrap: wrap;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+  }
+  .topbar-meta { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-left: auto; }
+  .clock { font-variant-numeric: tabular-nums; font-size: 13px; color: #d9ede2; min-width: 190px; text-align: right; }
+  .sync-status { font-size: 11.5px; color: #a8cdb8; }
+  .btn-refresh {
+    background: rgba(255,255,255,.1);
+    border: 1px solid rgba(255,255,255,.3);
+    color: var(--white);
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12.5px;
+  }
+  .btn-refresh:disabled { opacity: .5; cursor: default; }
+  .sync-interval { display: flex; align-items: center; gap: 6px; }
+  .sync-interval label { font-size: 11px; color: #a8cdb8; white-space: nowrap; }
+  .sync-interval select {
+    background: rgba(255,255,255,.1);
+    border: 1px solid rgba(255,255,255,.3);
+    color: var(--white);
+    padding: 5px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+  }
+  .sync-interval select option { color: var(--ink); }
+  .user-badge {
+    font-size: 11px;
+    background: rgba(255,255,255,.08);
+    border: 1px solid rgba(255,255,255,.2);
+    padding: 5px 10px;
+    border-radius: 999px;
+    color: #d9ede2;
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* ---------- App nav buttons (base look, laid out by .sidebar .app-nav above) ---------- */
+  .app-nav button {
+    background: transparent;
+    border: 1px solid transparent;
+    color: #a9d0bd;
+    padding: 7px 14px;
+    border-radius: 6px;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .app-nav button.active { background: rgba(255,255,255,.16); color: var(--white); border-color: rgba(255,255,255,.25); }
+
+  .view[hidden] { display: none; }
+  .master-hint { padding: 10px 2px 0; font-size: 11.5px; color: var(--ink-soft); }
+  .master-summary {
+    padding: 16px 24px 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    flex-wrap: wrap;
+    gap: 14px;
+    align-items: start;
+  }
+  .master-summary:empty { display: none; }
+
+  /* ---------- Filters ---------- */
+  .filters {
+    background: var(--white);
+    border-bottom: 1px solid var(--line);
+    padding: 14px 24px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: flex-end;
+    position: sticky;
+    top: 68px; /* fallback; overridden by JS (syncStickyOffsets) to match actual topbar height */
+    z-index: 15;
+    box-shadow: var(--shadow);
+  }
+  .filter-group { display: flex; flex-direction: column; gap: 5px; min-width: 140px; }
+  .filter-group-wide { min-width: 220px; flex: 1 1 220px; }
+  .filter-search { flex: 1 1 220px; min-width: 200px; }
+  .filter-group label { font-size: 11px; font-weight: 600; color: var(--ink-soft); text-transform: uppercase; letter-spacing: .04em; }
+  .filter-group select, .filter-group input[type="text"] {
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 7px 10px;
+    font-size: 13px;
+    color: var(--ink);
+    background: var(--white);
+    outline: none;
+  }
+  .filter-group select:focus, .filter-group input[type="text"]:focus { border-color: var(--navy-500); }
+
+  .chip-multiselect { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip {
+    border: 1px solid var(--line);
+    background: var(--white);
+    color: var(--ink-soft);
+    padding: 5px 11px;
+    border-radius: 999px;
+    font-size: 12px;
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+  }
+  .chip.active { background: var(--navy-700); border-color: var(--navy-700); color: var(--white); }
+
+  .btn-reset {
+    border: 1px solid var(--line);
+    background: var(--white);
+    color: var(--ink-soft);
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: 12.5px;
+    cursor: pointer;
+    align-self: flex-end;
+  }
+
+  /* ---------- Dashboard sub-tab (Semua/SPK/Purchasing/Home With AI) ---------- */
+  #dashboardSubTabs { padding: 16px 24px 0; margin-bottom: 0; }
+  .dashboard-subview[hidden] { display: none; }
+
+  /* ---------- Alert row ---------- */
+  .alert-row { padding: 16px 24px 0; display: flex; flex-direction: column; gap: 10px; }
+
+  /* ---------- Blok kategori di sub-tab Dashboard "Semua" (SPK/Purchasing/
+     Home With AI ditumpuk berurutan, masing-masing pakai .summary-cards/
+     .charts-grid yang sama seperti sub-tab kategorinya sendiri) ---------- */
+  .dashboard-category-block { margin-top: 22px; }
+  .dashboard-category-block:first-of-type { margin-top: 0; }
+  .dashboard-category-heading {
+    margin: 0; padding: 0 24px;
+    font-size: 13px; font-weight: 700; color: var(--navy-800);
+    text-transform: uppercase; letter-spacing: .04em;
+  }
+  .alert-banner {
+    background: var(--red-bg);
+    border: 1px solid #f3c1c1;
+    color: var(--red);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .alert-banner .alert-icon { font-size: 16px; }
+
+  /* ---------- Alert keterlambatan progres (Dashboard "Semua" + tiap
+     sub-tab kategori) -- banner dgn segmen per kategori, klik utk buka
+     modal popup (delayModalBackdrop) berisi daftar proyek/unit yang
+     terlambat ---------- */
+  .alert-banner-delay { flex-direction: column; align-items: stretch; gap: 12px; }
+  .alert-banner-summary { display: flex; align-items: center; gap: 10px; }
+  .alert-delay-segments { display: flex; flex-wrap: wrap; gap: 10px; }
+  .alert-delay-seg {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--white); border: 1px solid #f3c1c1; color: var(--red);
+    border-radius: 999px; padding: 5px 12px; font-size: 12.5px; font-weight: 600;
+    cursor: pointer;
+  }
+  .alert-delay-seg-count { background: var(--red); color: var(--white); border-radius: 999px; padding: 1px 8px; font-size: 11.5px; }
+
+  /* ---------- Summary cards ---------- */
+  /* `align-items: stretch` (default grid) SENGAJA tidak di-override di
+     sini (beda dari .charts-grid di bawah) -- Addendum 37: sebelumnya
+     rule ini ikut memakai `align-items: start` (niatnya cuma utk
+     .charts-grid, lihat komentar di sana), efeknya card KPI dalam satu
+     baris jadi TIDAK sama tinggi lagi (tinggi masing2 ikut panjang
+     teks `sub`-nya sendiri). Dengan stretch (default), semua card dalam
+     satu baris grid otomatis disamakan tingginya. */
+  .summary-cards {
+    padding: 16px 24px 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 14px;
+  }
+  .card {
+    background: var(--white);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 18px 20px;
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .card.card-alert { border-color: #f3c1c1; background: var(--red-bg); }
+  .card.card-clickable { cursor: pointer; }
+  .card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+  .card-icon {
+    width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  .card-icon.accent-blue { background: #e3edfb; color: #2563eb; }
+  .card-icon.accent-green { background: var(--green-bg); color: var(--green); }
+  .card-icon.accent-amber { background: var(--amber-bg); color: var(--amber); }
+  .card-icon.accent-purple { background: #f1e7fb; color: #7c3aed; }
+  .card-icon.accent-teal { background: #e0f5f3; color: #0f9488; }
+  .card-icon.accent-red { background: var(--red-bg); color: var(--red); }
+  .card-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-soft); }
+  .card-value { font-size: 22px; font-weight: 700; color: var(--navy-900); }
+  .card.card-alert .card-value { color: var(--red); }
+  .card-sub { font-size: 12px; color: var(--ink-soft); }
+  .card.hero {
+    background: linear-gradient(135deg, var(--navy-800), var(--navy-500));
+    border-color: transparent;
+  }
+  .card.hero .card-label, .card.hero .card-sub { color: rgba(255, 255, 255, .85); }
+  .card.hero .card-value { color: var(--white); }
+  .card.hero .card-icon { background: rgba(255, 255, 255, .2); color: var(--white); }
+  .badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge-green { background: var(--green-bg); color: var(--green); }
+  .badge-amber { background: var(--amber-bg); color: var(--amber); }
+  .badge-red { background: var(--red-bg); color: var(--red); }
+  .badge-gray { background: var(--gray-bg); color: var(--gray); }
+
+  /* ---------- Charts ---------- */
+  .charts-grid {
+    padding: 16px 24px 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 14px;
+    align-items: start;
+  }
+  .chart-card {
+    background: var(--white);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 14px 16px 10px;
+    box-shadow: var(--shadow);
+  }
+  .chart-card h3 {
+    margin: 0 0 10px; font-size: 12.5px; font-weight: 700; color: var(--navy-800);
+    text-transform: uppercase; letter-spacing: .03em;
+    display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;
+  }
+  .chart-card-wide { grid-column: span 2; }
+  .chart-canvas-wrap { position: relative; height: 240px; }
+  /* Tabel Peringkat Kontraktor/Vendor (Addendum 21/22, direvisi Addendum
+     33) di dalam .chart-card -- reuse styling table generik (thead th/
+     tbody td) yang sudah ada. Dibatasi tinggi + scroll vertikal (bukan
+     lagi tampil penuh, sudah kepanjangan begitu jumlah kontraktor/vendor
+     banyak); header tabel tetap terlihat (sticky) saat scroll. Nama
+     panjang tetap di-wrap ke bawah (bukan nowrap) supaya tidak memicu
+     scroll horizontal. */
+  .chart-card-table-wrap { max-height: 360px; overflow-y: auto; }
+  .chart-card-table-wrap table { font-size: 12px; }
+  .chart-card-table-wrap th, .chart-card-table-wrap td { white-space: normal; }
+
+  /* ---------- Progress bar (Addendum 29, tabel Milestone Progres Konstruksi) ---------- */
+  .progress-bar { display: inline-block; width: 90px; height: 8px; border-radius: 999px; background: var(--gray-bg); overflow: hidden; vertical-align: middle; }
+  .progress-bar-fill { height: 100%; background: var(--green); }
+  .progress-bar-fill.behind { background: var(--red); }
+  .progress-bar-label { margin-left: 8px; font-size: 12px; color: var(--ink-soft); vertical-align: middle; }
+
+  /* ---------- Toggle Bulan/Tahun di header chart-card (trend SPK/Purchasing/HWA) ---------- */
+  .chart-toggle { display: inline-flex; gap: 2px; text-transform: none; letter-spacing: normal; }
+  .chart-toggle button {
+    background: var(--white);
+    border: 1px solid var(--line);
+    color: var(--ink-soft);
+    padding: 3px 9px;
+    border-radius: 5px;
+    font-size: 10.5px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .chart-toggle button.active { background: var(--navy-700); color: var(--white); border-color: var(--navy-700); }
+  @media (max-width: 900px) {
+    .chart-card-wide { grid-column: span 1; }
+  }
+
+  /* ---------- Rincian klik pada chart Status Progres (donut) ---------- */
+  .chart-rincian {
+    margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line);
+    max-height: 160px; overflow-y: auto;
+  }
+  .chart-rincian[hidden] { display: none; }
+  .chart-rincian-title { font-size: 11px; font-weight: 700; color: var(--ink-soft); margin-bottom: 6px; }
+  .chart-rincian-list { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chart-rincian-empty { font-size: 12px; color: var(--ink-soft); }
+
+  /* ---------- Table ---------- */
+  .table-section { padding: 18px 24px 8px; }
+  .table-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+  .table-tabs button {
+    background: var(--white);
+    border: 1px solid var(--line);
+    color: var(--ink-soft);
+    padding: 8px 16px;
+    border-radius: 8px 8px 0 0;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    border-bottom: none;
+  }
+  .table-tabs button.active { background: var(--navy-900); color: var(--white); border-color: var(--navy-900); }
+  .table-toolbar { display: flex; align-items: center; margin-bottom: 8px; gap: 10px; flex-wrap: wrap; }
+  .table-toolbar input {
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 7px 10px;
+    font-size: 13px;
+    min-width: 220px;
+    background: var(--white);
+  }
+  .table-toolbar select {
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 7px 10px;
+    font-size: 13px;
+    color: var(--ink);
+    background: var(--white);
+  }
+  .toolbar-count { margin-left: auto; font-size: 12px; color: var(--ink-soft); }
+  .btn-add {
+    border: 1px solid var(--navy-500);
+    background: var(--navy-500);
+    color: var(--white);
+    padding: 7px 14px;
+    border-radius: 6px;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .btn-add[hidden] { display: none; }
+  /* Tombol hapus satu baris (Master Opsi, Addendum 26) -- outline merah
+     ringan, konsisten dgn .btn-secondary tapi warna peringatan. */
+  .btn-remove {
+    border: 1px solid var(--line);
+    background: var(--white);
+    color: var(--red);
+    padding: 5px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .btn-remove:disabled { opacity: .6; cursor: default; }
+
+  /* ---------- Form "Tambah Data" (dalam unit-modal) ---------- */
+  .unit-modal-form { max-width: 660px; padding: 32px 36px 36px; }
+  .form-modal-title {
+    margin: 0 0 20px; padding-bottom: 14px;
+    font-size: 17px; font-weight: 700; color: var(--navy-900);
+    border-bottom: 1px solid var(--line);
+  }
+  .form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px 24px;
+    margin-top: 4px;
+  }
+  @media (max-width: 560px) {
+    .form-grid { grid-template-columns: 1fr; }
+  }
+  .form-field { display: flex; flex-direction: column; gap: 8px; }
+  .form-field.form-field-wide { grid-column: 1 / -1; }
+  .form-field label { font-size: 11px; font-weight: 600; color: var(--ink-soft); text-transform: uppercase; letter-spacing: .04em; }
+  .form-field label .required-mark { color: var(--red); }
+  .form-field input, .form-field select, .form-field textarea {
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 10px 13px;
+    font-size: 13.5px;
+    font-family: inherit;
+    color: var(--ink);
+    background: var(--white);
+  }
+  .form-field textarea { resize: vertical; min-height: 64px; }
+  .form-field input:focus, .form-field select:focus, .form-field textarea:focus { border-color: var(--navy-500); outline: none; box-shadow: 0 0 0 3px rgba(82, 183, 136, .12); }
+  .form-actions { grid-column: 1 / -1; margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--line); display: flex; justify-content: flex-end; gap: 10px; }
+  .btn-primary {
+    border: 1px solid var(--navy-700);
+    background: var(--navy-700);
+    color: var(--white);
+    padding: 9px 18px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .btn-primary:disabled { opacity: .6; cursor: default; }
+  .btn-secondary {
+    border: 1px solid var(--line);
+    background: var(--white);
+    color: var(--ink-soft);
+    padding: 9px 18px;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .form-error { color: var(--red); font-size: 12.5px; margin-top: 10px; }
+  .multitext-list { display: flex; flex-direction: column; gap: 6px; }
+  .multitext-row { display: flex; gap: 6px; }
+  .multitext-row input { flex: 1; }
+  .multitext-remove {
+    border: 1px solid var(--line);
+    background: var(--white);
+    color: var(--ink-soft);
+    width: 30px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+  }
+  .multitext-add {
+    align-self: flex-start;
+    margin-top: 6px;
+    border: 1px dashed var(--line);
+    background: var(--white);
+    color: var(--navy-500);
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .table-wrap {
+    background: var(--white);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: auto;
+    max-height: 520px;
+  }
+  /* Master Data SPK/Purchasing/Home With AI/Pembelian WiFi -- tabel
+     tampil penuh ke bawah (tanpa scroll internal VERTIKAL terpisah),
+     ikut scroll halaman biasa. Addendum 37: tabel di dalamnya dibiarkan
+     melebar natural (`width:max-content`, override `table{width:100%}`
+     di bawah) alih-alih dipaksa muat pas di lebar container -- sebelumnya
+     kolom saling "diperas" tidak konsisten (lebar goyang tiap dibuka,
+     beda antar 4 halaman Master Data krn jumlah/panjang kolom beda-beda)
+     krn tabel wajib pas di lebar viewport tanpa jalan keluar. Sekarang
+     kalau tabel butuh lebih lebar dari container, muncul scroll
+     HORIZONTAL yang wajar (overflow-x:auto) -- lebar kolom jadi stabil.
+     `:not(.unit-history-table-wrap)` supaya tabel Riwayat di modal Detail
+     per Unit (yang sengaja pakai white-space:normal biar ringkas di dalam
+     modal, bukan salah satu dari 4 tabel yang dikeluhkan) TIDAK terkena
+     perubahan ini. */
+  .table-wrap.table-wrap-full { max-height: none; overflow: visible; }
+  .table-wrap.table-wrap-full:not(.unit-history-table-wrap) { overflow-x: auto; overflow-y: visible; }
+  .table-wrap.table-wrap-full:not(.unit-history-table-wrap) table { width: max-content; min-width: 100%; }
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  thead th {
+    position: sticky; top: 0;
+    background: var(--white);
+    color: var(--navy-800);
+    text-align: left;
+    padding: 9px 12px;
+    font-weight: 700;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    border-bottom: 2px solid var(--line);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  tbody td { padding: 9px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  tbody td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  tbody tr { cursor: pointer; }
+  tbody tr.row-overdue { background: var(--red-bg); }
+  .empty-row td { text-align: center; color: var(--ink-soft); padding: 24px; cursor: default; }
+
+  /* ---------- Footer ---------- */
+  .footer-note {
+    margin-top: auto;
+    padding: 18px 24px 28px;
+    font-size: 11.5px;
+    color: var(--ink-soft);
+    text-align: center;
+  }
+
+  /* ---------- Unit detail modal ---------- */
+  .unit-modal-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(27, 67, 50, .45);
+    display: none;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 40px 16px;
+    z-index: 50;
+    overflow-y: auto;
+  }
+  .unit-modal-backdrop.open { display: flex; }
+  .unit-modal {
+    background: var(--white);
+    border-radius: 12px;
+    max-width: 760px;
+    width: 100%;
+    padding: 24px 28px 28px;
+    position: relative;
+    box-shadow: var(--shadow-modal);
+  }
+  .unit-modal-close {
+    position: absolute; top: 14px; right: 16px;
+    background: none; border: none;
+    font-size: 22px; line-height: 1;
+    cursor: pointer; color: var(--ink-soft);
+  }
+  .unit-header h2 { margin: 0 0 4px; font-size: 18px; color: var(--navy-900); }
+  .unit-header p { margin: 0; font-size: 12.5px; color: var(--ink-soft); }
+  .unit-section { margin-top: 18px; }
+  .unit-section h4 {
+    margin: 0 0 8px; font-size: 12px; text-transform: uppercase;
+    letter-spacing: .04em; color: var(--navy-700); font-weight: 700;
+    border-bottom: 1px solid var(--line); padding-bottom: 6px;
+  }
+  .unit-item {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    font-size: 12.5px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .unit-item-title { font-weight: 700; color: var(--ink); display: flex; justify-content: space-between; gap: 10px; }
+  .unit-item-meta { color: var(--ink-soft); }
+  .unit-empty { color: var(--ink-soft); font-size: 12.5px; font-style: italic; }
+  .progress-chart-wrap { position: relative; height: 180px; margin-bottom: 8px; }
+  /* Tabel riwayat Progres Konstruksi per-minggu (M1-M16) di dalam modal --
+     dipisah dari kartu chart di atasnya, tanpa shadow (sudah di dalam
+     .unit-modal yang punya shadow sendiri), teks boleh wrap (kolom
+     Keterangan/Foto bisa panjang). */
+  .unit-history-table-wrap { box-shadow: none; margin-bottom: 4px; }
+  .unit-history-table-wrap table td, .unit-history-table-wrap table th { white-space: normal; }
+  .unit-history-table-wrap table td { font-size: 12px; }
+  #progresInputTanggal[readonly] { background: var(--hover-bg); color: var(--ink-soft); cursor: default; }
+  .progress-form { margin-top: 12px; }
+  .unit-total-footer {
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px solid var(--line);
+    text-align: right;
+    font-size: 13px;
+    color: var(--ink-soft);
+  }
+  .unit-total-footer strong { color: var(--navy-900); font-size: 15px; margin-left: 6px; }
+
+  /* ---------- Input Progres (SPV Lapangan) -- upload foto ---------- */
+  .photo-preview-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .photo-thumb {
+    width: 72px;
+    height: 72px;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid var(--line);
+  }
+  .photo-count {
+    margin-top: 6px;
+    font-size: 12px;
+    color: var(--ink-soft);
+    font-weight: 600;
+  }
+  .photo-count.photo-count-ok { color: var(--green); }
+
+  /* ---------- Loading / error ---------- */
+  .loading-overlay {
+    position: fixed; inset: 0;
+    background: rgba(255, 255, 255, .92);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 14px; z-index: 100;
+  }
+  .loading-overlay[hidden] { display: none; }
+  .spinner {
+    width: 34px; height: 34px;
+    border: 3px solid var(--line);
+    border-top-color: var(--navy-700);
+    border-radius: 50%;
+    animation: spin .8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-overlay p { color: var(--ink-soft); font-size: 13px; }
+
+  .error-banner {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    background: var(--red); color: var(--white);
+    padding: 12px 20px; border-radius: 8px;
+    font-size: 13px; box-shadow: 0 6px 20px rgba(0,0,0,.2);
+    z-index: 110; max-width: 90vw;
+  }
+  .error-banner.toast-success { background: var(--green); }
+
+  /* ---------- Sel Target Hari SLA yang bisa diedit langsung ---------- */
+  .sla-edit-input {
+    width: 64px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 4px 7px;
+    font-size: 12.5px;
+    color: var(--ink);
+    background: var(--white);
+  }
+  .sla-edit-input:focus { border-color: var(--navy-500); outline: none; }
+  .sla-edit-input:disabled { opacity: .5; }
+  .sla-edit-hint { display: block; font-size: 10px; color: var(--ink-soft); margin-top: 2px; }
+
+  /* ---------- Efek :hover, dibungkus @media (hover: hover) supaya tidak
+     "nyangkut" di layar sentuh (HP/tablet -- dashboard ini dipakai SPV
+     Lapangan lewat HP di halaman Input Progres). Tanpa pembatas ini, tap
+     satu baris tabel/tombol memicu state :hover yang menempel (jadi abu-
+     abu) sampai user tap elemen lain, sedangkan baris yang belum disentuh
+     tetap warna normal -- device dengan mouse/trackpad presisi tetap
+     dapat efek hover seperti biasa. ---------- */
+  @media (hover: hover) and (pointer: fine) {
+    .sidebar-collapse-btn:hover { background: rgba(255,255,255,.16); }
+    .btn-refresh:hover { background: rgba(255,255,255,.2); }
+    .app-nav button:hover { color: var(--white); background: rgba(255,255,255,.08); }
+    .chip:hover { border-color: var(--navy-500); color: var(--navy-700); }
+    .btn-reset:hover { border-color: var(--red); color: var(--red); }
+    .alert-delay-seg:hover { background: #fde2e2; }
+    .card.card-clickable:hover { transform: translateY(-2px); box-shadow: var(--shadow-modal); }
+    .chart-toggle button:hover { border-color: var(--navy-500); color: var(--navy-700); }
+    .btn-add:hover { background: var(--navy-700); border-color: var(--navy-700); }
+    .btn-primary:hover { background: var(--navy-900); }
+    .multitext-remove:hover { border-color: var(--red); color: var(--red); }
+    .btn-remove:hover { background: #fde2e2; border-color: var(--red); }
+    .multitext-add:hover { border-color: var(--navy-500); background: #eaf5ef; }
+    thead th:hover { background: var(--hover-bg); }
+    tbody tr:hover { background: var(--hover-bg); }
+    tbody tr.row-overdue:hover { background: #fbdada; }
+    .empty-row:hover { background: transparent; }
+    .unit-modal-close:hover { color: var(--red); }
+  }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width: 720px) {
+    .topbar { padding: 12px 16px; }
+    .clock { min-width: 0; text-align: left; }
+    .filters { top: 0; padding: 12px 16px; }
+    .summary-cards, .charts-grid, .table-section { padding-left: 16px; padding-right: 16px; }
+    .chart-card-wide { grid-column: span 1; }
+  }
+
+  /* ---------- Sidebar off-canvas (mobile/HP -- penting utk SPV Lapangan) ---------- */
+  @media (max-width: 880px) {
+    .sidebar {
+      position: fixed;
+      top: 0;
+      left: -290px;
+      width: 272px;
+      height: 100vh;
+      transition: left .25s ease;
+    }
+    .sidebar.mobile-open { left: 0; }
+    /* Abaikan mode "collapsed" (icon-only) desktop di layar sempit -- off-canvas
+       selalu tampil penuh dgn label supaya tetap gampang dibaca/disentuh di HP. */
+    .sidebar.collapsed { width: 272px; }
+    .sidebar.collapsed .sidebar-brand { justify-content: flex-start; padding: 18px 16px; }
+    .sidebar.collapsed .sidebar-brand .brand-text,
+    .sidebar.collapsed .app-nav button .nav-label { display: block; }
+    .sidebar.collapsed .app-nav button { justify-content: flex-start; padding: 9px 10px; }
+    .sidebar-collapse-btn { display: none; }
+    .sidebar-backdrop.open { display: block; }
+    .mobile-nav-toggle { display: inline-flex; }
+    .topbar { justify-content: space-between; }
+    .topbar-meta { margin-left: 0; }
+  }
+</style>
