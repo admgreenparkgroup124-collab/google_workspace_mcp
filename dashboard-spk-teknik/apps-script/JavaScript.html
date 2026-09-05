@@ -846,6 +846,69 @@
     el.hidden = false;
   }
 
+  // Rincian kaya (Addendum 33) khusus klik potongan/legend chart "Status
+  // Progres" di sub-tab SPK -- fungsi BERDIRI SENDIRI, terpisah dari
+  // showChartRincian_/buildNamePills (masih dipakai chart Status Progres
+  // Purchasing/HWA yang tetap rincian nama polos) supaya perubahan ini
+  // terisolasi ke satu chart saja. Tiap baris: Nama Proyek, Blok/No. Unit,
+  // Kontraktor/Vendor, Keterangan, % Progres (realisasi kumulatif dari
+  // computeUnitProgressStatus_ kalau unit itu sudah punya data progres
+  // mingguan, kalau belum tampil "–"), dikelompokkan per GP lalu per
+  // Proyek, dengan jumlah baris di tiap header GP/Proyek.
+  function buildSpkStatusRincianRows_(fSpk) {
+    return fSpk.map(function (r) {
+      var status = r.unitKey ? computeUnitProgressStatus_(r.unitKey) : null;
+      return {
+        gp: r.gp || '(Tanpa GP)',
+        proyek: r.proyek || '(Tanpa Proyek)',
+        unit: r.unit || '(Tanpa Blok/Unit)',
+        kontraktor: r.kontraktor || '-',
+        keterangan: r.keterangan || '-',
+        persenLabel: status ? status.actualCumulative.toFixed(1) + '%' : '–',
+        statusLabel: r.isOverdue ? 'Overdue' : 'Sesuai Jadwal'
+      };
+    });
+  }
+
+  function showSpkStatusRincian_(detailsElId, label, rows) {
+    if (!detailsElId) return;
+    var el = document.getElementById(detailsElId);
+    if (!el) return;
+    var filtered = rows.filter(function (r) { return r.statusLabel === label; });
+    if (!filtered.length) {
+      el.innerHTML = '<div class="chart-rincian-empty">Tidak ada data untuk "' + escapeHtml(label) + '".</div>';
+      el.hidden = false;
+      return;
+    }
+    var gpOrder = []; var gpMap = {};
+    filtered.forEach(function (r) {
+      if (!gpMap[r.gp]) { gpMap[r.gp] = { order: [], proyekMap: {} }; gpOrder.push(r.gp); }
+      var g = gpMap[r.gp];
+      if (!g.proyekMap[r.proyek]) { g.proyekMap[r.proyek] = []; g.order.push(r.proyek); }
+      g.proyekMap[r.proyek].push(r);
+    });
+    var html = '<div class="chart-rincian-title">' + escapeHtml(label) + ' (' + filtered.length + ')</div>';
+    html += gpOrder.map(function (gp) {
+      var g = gpMap[gp];
+      var gpTotal = g.order.reduce(function (sum, p) { return sum + g.proyekMap[p].length; }, 0);
+      var proyekHtml = g.order.map(function (proyek) {
+        var items = g.proyekMap[proyek];
+        var itemsHtml = items.map(function (r) {
+          return '<div class="unit-item">' +
+            '<div class="unit-item-title"><span>' + escapeHtml(r.unit) + '</span></div>' +
+            '<div class="unit-item-meta">Kontraktor/Vendor: ' + escapeHtml(r.kontraktor) + '</div>' +
+            '<div class="unit-item-meta">Keterangan: ' + escapeHtml(r.keterangan) + '</div>' +
+            '<div class="unit-item-meta">Progres: ' + escapeHtml(r.persenLabel) + '</div>' +
+            '</div>';
+        }).join('');
+        return '<div style="font-weight:600;margin:10px 0 6px;">' + escapeHtml(proyek) + ' (' + items.length + ')</div>' + itemsHtml;
+      }).join('');
+      return '<div class="unit-section"><h4>' + escapeHtml(gp) + ' (' + gpTotal + ')</h4>' + proyekHtml + '</div>';
+    }).join('');
+    el.innerHTML = html;
+    el.hidden = false;
+  }
+
   // ---------------------------------------------------------------------
   // Alert keterlambatan progres (Dashboard "Semua" + tiap sub-tab kategori)
   // -- sumbernya PERSIS flag yang sama dgn highlight baris merah di Master
@@ -1015,12 +1078,13 @@
   // ATAU klik legend-nya menampilkan daftar nama baris untuk status itu di
   // container `detailsElId` (lihat showChartRincian_) -- interaktif, tidak
   // sekadar tooltip hover.
-  function renderStatusProportionChart(canvasId, chartKey, labels, values, colors, itemsByLabel, detailsElId) {
+  function renderStatusProportionChart(canvasId, chartKey, labels, values, colors, itemsByLabel, detailsElId, customRincianFn) {
     destroyChart(chartKey);
     var ctx = document.getElementById(canvasId).getContext('2d');
     function onPick(idx) {
       if (idx == null || idx < 0) return;
-      showChartRincian_(detailsElId, labels[idx], itemsByLabel);
+      if (customRincianFn) customRincianFn(detailsElId, labels[idx]);
+      else showChartRincian_(detailsElId, labels[idx], itemsByLabel);
     }
     charts[chartKey] = new Chart(ctx, {
       type: 'doughnut',
@@ -1094,24 +1158,20 @@
     var behindRecords = computeBehindUnits_(fSpk);
     var behindCount = behindRecords.length;
 
-    var spkStatusItems = { 'Sesuai Jadwal': [], 'Overdue': [] };
-    fSpk.forEach(function (r) {
-      var label = r.isOverdue ? 'Overdue' : 'Sesuai Jadwal';
-      spkStatusItems[label].push((r.proyek || '-') + (r.unit ? ' – ' + r.unit : ''));
-    });
+    var spkStatusRows = buildSpkStatusRincianRows_(fSpk);
 
     // Rincian per baris SPK PSU/Unit Rumah (Addendum 22, diperluas
-    // Addendum 32) -- dipakai card Total SPK PSU/Unit Rumah & Total Nilai
-    // Transaksi PSU/Unit Rumah, keempatnya pakai rincian yang SAMA:
-    // Blok/No. Unit, Kontraktor/Vendor, Tgl Mulai, Target, Tgl Selesai,
-    // Nilai Kontrak.
+    // Addendum 32/33) -- dipakai card Total SPK PSU/Unit Rumah & Total
+    // Nilai Transaksi PSU/Unit Rumah, keempatnya pakai rincian yang SAMA:
+    // Nama Proyek, Blok/No. Unit, Kontraktor/Vendor, Item SPK, Tgl Mulai,
+    // Tgl Selesai, Target, Nilai Kontrak.
     var psuRows = fSpk.filter(function (r) { return r.jenisSpk === 'PSU'; });
     var unitRumahRows = fSpk.filter(function (r) { return r.jenisSpk === 'UNIT RUMAH'; });
-    function spkRowTitle_(r) { return r.unit || '(Tanpa Blok/Unit)'; }
+    function spkRowTitle_(r) { return (r.proyek || '-') + (r.unit ? ' – ' + r.unit : ''); }
     function spkRowMeta_(r) {
       return [
-        'Kontraktor/Vendor: ' + (r.kontraktor || '-'),
-        'Tgl Mulai: ' + formatDate(r.tanggalTerbit) + ' · Target: ' + formatDate(r.slaTargetDate) + ' · Tgl Selesai: ' + formatDate(r.tanggalSelesaiEfektif)
+        'Kontraktor/Vendor: ' + (r.kontraktor || '-') + ' · Item SPK: ' + (r.itemSpk || '-'),
+        'Tgl Mulai: ' + formatDate(r.tanggalTerbit) + ' · Tgl Selesai: ' + formatDate(r.tanggalSelesaiEfektif) + ' · Target: ' + formatDate(r.slaTargetDate)
       ];
     }
     function spkRowNilaiKontrak_(r) { return r.nilaiKontrak; }
@@ -1133,7 +1193,7 @@
     renderTrendCountChart(ids.tren, ids.trenKey, fSpk, 'tanggalTerbit', 'Jumlah SPK Terbit', '#40916c', spkTrendGranularity, 'rgba(64,145,108,.12)');
     renderStatusProportionChart(ids.status, ids.statusKey,
       ['Sesuai Jadwal', 'Overdue'], [fSpk.length - overdueCount, overdueCount], ['#1f9d55', '#c53030'],
-      spkStatusItems, ids.statusDetails);
+      null, ids.statusDetails, function (detailsElId, label) { showSpkStatusRincian_(detailsElId, label, spkStatusRows); });
     renderRankingTable_(ids.ranking, fSpk, function (r) { return r.kontraktor; }, function (r) { return r.nilaiTotal; }, spkRankingSort);
   }
 
