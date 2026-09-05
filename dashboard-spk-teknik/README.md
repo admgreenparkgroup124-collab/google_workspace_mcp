@@ -547,15 +547,16 @@ sendiri), cara update:
   disembunyikan, muncul lewat tombol **☰** di pojok kiri atas, klik di
   luar sidebar atau pilih satu menu untuk menutupnya lagi.
   - **Dashboard** — punya 4 sub-tab: **Semua**, **SPK**, **Purchasing**,
-    **Home With AI**. Sub-tab **Semua** adalah gabungan literal dari
-    tiga sub-tab kategori di bawah — ketiga section SPK/Purchasing/Home
-    With AI ditumpuk berurutan apa adanya (kartu & grafiknya sama persis
-    dengan sub-tab masing-masing, cuma disatukan dalam satu halaman),
-    ditambah alert keterlambatan progres di atas (lihat di bawah) dan
-    tabel detail per kategori SPK/Home With AI/Purchasing di bawah — jadi
-    tidak perlu buka tiap sub-tab satu per satu untuk melihat semuanya
-    sekaligus. Filter Tahun/Bulan/GP/Proyek + kotak pencarian tetap
-    berlaku untuk seluruh sub-tab Semua. Isi tiap kategorinya:
+    **Home With AI**, dan **Progres Konstruksi**. Sub-tab **Semua** adalah
+    gabungan literal dari keempat sub-tab kategori di bawah — keempat
+    section SPK/Purchasing/Home With AI/Progres Konstruksi ditumpuk
+    berurutan apa adanya (kartu & grafiknya sama persis dengan sub-tab
+    masing-masing, cuma disatukan dalam satu halaman), ditambah alert
+    keterlambatan progres di atas (lihat di bawah) dan tabel detail per
+    kategori SPK/Home With AI/Purchasing di bawah — jadi tidak perlu buka
+    tiap sub-tab satu per satu untuk melihat semuanya sekaligus. Filter
+    Tahun/Bulan/GP/Proyek + kotak pencarian tetap berlaku untuk seluruh
+    sub-tab Semua. Isi tiap kategorinya:
     - **SPK**: card Total Proyek (rincian nama proyek saja), Total SPK
       (tidak bisa diklik, cukup keterangan jumlah PSU/Unit Rumah), **Total
       SPK PSU** & **Total SPK Unit Rumah** (bisa diklik, rincian per baris
@@ -566,9 +567,11 @@ sendiri), cara update:
       (Bagian 2g/2h — Addendum 21/22); grafik **garis** Trend Penerbitan
       SPK dengan toggle **Bulan/Tahun** (area di bawah garis diberi isian
       warna lembut, murni kosmetik), chart Status Progres (Sesuai Jadwal
-      vs Overdue), dan tabel **Peringkat Kontraktor** (jumlah SPK & total
-      nilai per kontraktor, urutan bisa ditoggle Jumlah/Nilai, seluruh
-      baris langsung terlihat tanpa scroll — Addendum 22).
+      vs Overdue), chart batang **Nilai Transaksi** (Total/PSU/Unit
+      Rumah — muncul khusus di sub-tab Semua, Addendum 36), dan tabel
+      **Peringkat Kontraktor** (jumlah SPK & total nilai per kontraktor,
+      urutan bisa ditoggle Jumlah/Nilai, seluruh baris langsung terlihat
+      tanpa scroll — Addendum 22).
     - **Purchasing**: card Total PO Purchasing (rincian Jenis Pengadaan),
       Total Nilai PO Purchasing; grafik garis Trend PO Purchasing (toggle
       Bulan/Tahun), chart Status Progres (proporsi status pekerjaan), dan
@@ -581,6 +584,13 @@ sendiri), cara update:
       Order/On Proses/Terpasang), dan tabel **Peringkat Item** (dari
       kolom Nama Item, toggle Jumlah/Nilai, tanpa scroll — Addendum
       21/22, diganti dari Nama Vendor karena field itu dihapus Addendum 25).
+    - **Progres Konstruksi** (Addendum 36): 4 card (Total Proyek Aktif,
+      Progres Konstruksi Keseluruhan, Status Unit per Tahap, Indikator
+      Keterlambatan), chart Kurva S (Rencana vs Realisasi), tabel
+      Peringkat Ketepatan Waktu Kontraktor, dan tabel Milestone per unit
+      dengan kotak cari sendiri — persis isi sub-tab "Progres Konstruksi"
+      (Bagian 4, Addendum 29), sort & kotak cari tabelnya independen dari
+      sub-tab dedicated-nya sendiri (tidak saling mereset).
     Filter Tahun/Bulan/GP/Proyek/Cari tetap berlaku di semua sub-tab.
     **Card dengan tanda panah (▸) bisa diklik untuk rincian** (Total
     Proyek, Total per Jenis/Status, Total SPK PSU/Unit Rumah, Total Nilai

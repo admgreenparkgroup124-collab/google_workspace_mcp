@@ -621,9 +621,17 @@
   // renderHwaOverview apa adanya, render ke elemen id lain (prefix
   // "semua...") supaya tidak bentrok dgn elemen id sub-tab kategori
   // sendiri -- lihat markup #dashboardSubview-semua di Index.html.
-  var SEMUA_SPK_IDS = { cards: 'semuaSpkSummaryCards', tren: 'chartSemuaSpkTren', trenKey: 'semuaSpkTren', status: 'chartSemuaSpkStatus', statusKey: 'semuaSpkStatus', statusDetails: 'semuaSpkStatusRincian', ranking: 'semuaSpkRankingBody' };
+  var SEMUA_SPK_IDS = { cards: 'semuaSpkSummaryCards', tren: 'chartSemuaSpkTren', trenKey: 'semuaSpkTren', status: 'chartSemuaSpkStatus', statusKey: 'semuaSpkStatus', statusDetails: 'semuaSpkStatusRincian', ranking: 'semuaSpkRankingBody', nilaiChart: 'chartSemuaSpkNilai', nilaiChartKey: 'semuaSpkNilai' };
   var SEMUA_PUR_IDS = { cards: 'semuaPurSummaryCards', tren: 'chartSemuaPurTren', trenKey: 'semuaPurTren', status: 'chartSemuaPurStatus', statusKey: 'semuaPurStatus', statusDetails: 'semuaPurStatusRincian', ranking: 'semuaPurRankingBody' };
   var SEMUA_HWA_IDS = { cards: 'semuaHwaSummaryCards', tren: 'chartSemuaHwaTren', trenKey: 'semuaHwaTren', status: 'chartSemuaHwaStatus', statusKey: 'semuaHwaStatus', statusDetails: 'semuaHwaStatusRincian', ranking: 'semuaHwaRankingBody' };
+  // Addendum 36: blok ke-4 "Progres Konstruksi" di sub-tab "Semua" --
+  // sort/searchTerm terpisah dari PROGRES_IDS_DEDICATED supaya sub-tab
+  // "Progres Konstruksi" dedicated tidak ikut ke-reset saat "Semua" dirender.
+  var SEMUA_PROGRES_IDS = {
+    cards: 'semuaProgresSummaryCards', sCurve: 'chartSemuaProgresSCurve', sCurveKey: 'semuaProgresSCurve',
+    ranking: 'semuaProgresVendorRankingBody', table: 'semuaProgresMilestoneTable', count: 'semuaProgresMilestoneCount',
+    search: 'semuaProgresMilestoneSearch', sort: { key: null, dir: 1 }, searchTerm: ''
+  };
 
   function renderAll() {
     var fSpk = getFilteredSpk();
@@ -647,6 +655,7 @@
       renderSpkOverview(fSpk, SEMUA_SPK_IDS);
       renderPurchasingOverview(fPur, SEMUA_PUR_IDS);
       renderHwaOverview(fHwa, SEMUA_HWA_IDS);
+      renderProgresKonstruksiOverview(fSpk, SEMUA_PROGRES_IDS);
       renderTable(fSpk, fHwa, fPur);
     }
   }
@@ -1199,6 +1208,13 @@
       { label: 'Unit Tertinggal Jadwal Konstruksi', value: behindCount, icon: '⚠️', accent: 'red', sub: 'Realisasi kumulatif di bawah rencana s/d minggu berjalan', alert: behindCount > 0, detail: behindDetail }
     ]);
 
+    // Chart Nilai Transaksi (Total/PSU/Unit Rumah) -- cuma dipanggil kalau
+    // ids.nilaiChart diberikan (khusus SEMUA_SPK_IDS, Addendum 36); sub-tab
+    // SPK dedicated tidak mengirim properti ini jadi tampilannya tidak berubah.
+    if (ids.nilaiChart) {
+      renderNilaiTransaksiChart_(ids.nilaiChart, ids.nilaiChartKey, totalNilai, jenis.nilai['PSU'] || 0, jenis.nilai['UNIT RUMAH'] || 0);
+    }
+
     renderTrendCountChart(ids.tren, ids.trenKey, fSpk, 'tanggalTerbit', 'Jumlah SPK Terbit', '#40916c', spkTrendGranularity, 'rgba(64,145,108,.12)');
     renderStatusProportionChart(ids.status, ids.statusKey,
       ['Sesuai Jadwal', 'Overdue'], [fSpk.length - overdueCount, overdueCount], ['#1f9d55', '#c53030'],
@@ -1414,10 +1430,17 @@
     { key: 'persenRealisasi', label: 'Progres', format: 'progressBar' },
     { key: 'statusLabel', label: 'Status', format: 'progressStatus' }
   ];
-  var progresMilestoneSort = { key: null, dir: 1 };
-  var progresMilestoneSearch = '';
+  // ids.sort/ids.searchTerm dipakai sbg pengganti var global lama supaya
+  // sub-tab "Progres Konstruksi" & blok "Progres Konstruksi" di "Semua"
+  // (Addendum 36) punya state sort/cari independen -- lihat SEMUA_PROGRES_IDS.
+  var PROGRES_IDS_DEDICATED = {
+    cards: 'progresSummaryCards', sCurve: 'chartProgresSCurve', sCurveKey: 'progresSCurve',
+    ranking: 'progresVendorRankingBody', table: 'progresMilestoneTable', count: 'progresMilestoneCount',
+    search: 'progresMilestoneSearch', sort: { key: null, dir: 1 }, searchTerm: ''
+  };
 
-  function renderProgresKonstruksiOverview(fSpk) {
+  function renderProgresKonstruksiOverview(fSpk, ids) {
+    ids = ids || PROGRES_IDS_DEDICATED;
     var units = buildConstructionUnits_(fSpk);
     var withStatus = units.filter(function (u) { return u.status; });
 
@@ -1452,33 +1475,38 @@
     // "Unit Tertinggal Jadwal Konstruksi" di sub-tab SPK.
     var behindRecords = computeBehindUnits_(fSpk);
 
-    renderCardGrid('progresSummaryCards', [
+    renderCardGrid(ids.cards, [
       { label: 'Total Proyek Aktif', value: Object.keys(proyekAktif).length, icon: '🏘️', accent: 'green', hero: true, detail: buildCardDetail_(proyekAktifNames) },
       { label: 'Progres Konstruksi Keseluruhan', value: avgActual.toFixed(1) + '%', icon: '📈', accent: 'blue', sub: 'Rencana rata-rata ' + avgPlanned.toFixed(1) + '% · Realisasi rata-rata ' + avgActual.toFixed(1) + '%' },
       { label: 'Status Unit per Tahap', value: units.length + ' unit', icon: '🏗️', accent: 'purple', detail: tahapDetail },
       { label: 'Indikator Keterlambatan', value: behindRecords.length, icon: '⚠️', accent: 'red', alert: behindRecords.length > 0, sub: 'Unit dengan realisasi di bawah rencana s/d minggu berjalan', detail: buildBehindDetail_(behindRecords) }
     ]);
 
-    renderSCurveChart_('chartProgresSCurve', 'progresSCurve', buildSCurveSeries_(units));
-    renderVendorTimelinessTable_('progresVendorRankingBody', fSpk, function (r) { return r.kontraktor; });
+    renderSCurveChart_(ids.sCurve, ids.sCurveKey, buildSCurveSeries_(units));
+    renderVendorTimelinessTable_(ids.ranking, fSpk, function (r) { return r.kontraktor; });
 
     var milestoneRows = units;
     buildDataTable({
-      theadEl: document.querySelector('#progresMilestoneTable thead'),
-      tbodyEl: document.querySelector('#progresMilestoneTable tbody'),
-      countEl: document.getElementById('progresMilestoneCount'),
+      theadEl: document.querySelector('#' + ids.table + ' thead'),
+      tbodyEl: document.querySelector('#' + ids.table + ' tbody'),
+      countEl: document.getElementById(ids.count),
       rows: milestoneRows,
       columns: PROGRES_MILESTONE_COLUMNS,
-      sortState: progresMilestoneSort,
-      search: progresMilestoneSearch,
-      onHeaderClick: function () { renderProgresKonstruksiOverview(getFilteredSpk()); },
+      sortState: ids.sort,
+      search: ids.searchTerm,
+      onHeaderClick: function () { renderProgresKonstruksiOverview(getFilteredSpk(), ids); },
       onRowClick: openUnitDetail
     });
   }
 
   document.getElementById('progresMilestoneSearch').addEventListener('input', function (e) {
-    progresMilestoneSearch = e.target.value;
-    renderProgresKonstruksiOverview(getFilteredSpk());
+    PROGRES_IDS_DEDICATED.searchTerm = e.target.value;
+    renderProgresKonstruksiOverview(getFilteredSpk(), PROGRES_IDS_DEDICATED);
+  });
+
+  document.getElementById('semuaProgresMilestoneSearch').addEventListener('input', function (e) {
+    SEMUA_PROGRES_IDS.searchTerm = e.target.value;
+    renderProgresKonstruksiOverview(getFilteredSpk(), SEMUA_PROGRES_IDS);
   });
 
   function baseBarOptions(axisLabel, isCurrency, horizontal) {
@@ -1508,6 +1536,27 @@
         }
       }
     };
+  }
+
+  // Chart batang Nilai Transaksi (Total/PSU/Unit Rumah) -- khusus dipakai
+  // di sub-tab "Semua" (Addendum 36), digating via ids.nilaiChart di
+  // renderSpkOverview supaya sub-tab SPK dedicated tidak berubah.
+  function renderNilaiTransaksiChart_(canvasId, chartKey, totalNilai, nilaiPsu, nilaiUnitRumah) {
+    destroyChart(chartKey);
+    var canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    var ctx = canvas.getContext('2d');
+    charts[chartKey] = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: ['Total', 'PSU', 'Unit Rumah'],
+        datasets: [{
+          data: [totalNilai, nilaiPsu, nilaiUnitRumah],
+          backgroundColor: ['#3b82f6', '#f59e0b', '#22c55e']
+        }]
+      },
+      options: baseBarOptions('Rp', true, false)
+    });
   }
 
   // ---------------------------------------------------------------------
