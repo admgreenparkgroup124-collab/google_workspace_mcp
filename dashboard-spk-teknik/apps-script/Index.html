@@ -102,9 +102,9 @@
       <div class="table-tabs" id="dashboardSubTabs">
         <button data-subtab="semua" class="active" type="button">Semua</button>
         <button data-subtab="spk" type="button">SPK</button>
+        <button data-subtab="progres" type="button">Progres Konstruksi</button>
         <button data-subtab="purchasing" type="button">Purchasing</button>
         <button data-subtab="hwa" type="button">Home With AI</button>
-        <button data-subtab="progres" type="button">Progres Konstruksi</button>
       </div>
 
       <div id="dashboardSubview-semua" class="dashboard-subview">
@@ -134,7 +134,7 @@
               <div class="chart-rincian" id="semuaSpkStatusRincian" hidden></div>
             </div>
             <div class="chart-card">
-              <h3>Nilai Transaksi (Total/PSU/Unit Rumah)</h3>
+              <h3>Nilai Transaksi (PSU/Unit Rumah)</h3>
               <div class="chart-canvas-wrap"><canvas id="chartSemuaSpkNilai"></canvas></div>
             </div>
             <div class="chart-card chart-card-wide">
@@ -151,6 +151,39 @@
                 </table>
               </div>
             </div>
+          </section>
+        </section>
+
+        <section class="dashboard-category-block">
+          <h2 class="dashboard-category-heading">Progres Konstruksi</h2>
+          <section class="summary-cards" id="semuaProgresSummaryCards"></section>
+          <section class="charts-grid">
+            <div class="chart-card chart-card-wide">
+              <h3>Kurva S (Rencana vs Realisasi)</h3>
+              <div class="chart-canvas-wrap"><canvas id="chartSemuaProgresSCurve"></canvas></div>
+            </div>
+            <div class="chart-card chart-card-wide">
+              <h3>Peringkat Ketepatan Waktu Kontraktor</h3>
+              <div class="chart-card-table-wrap">
+                <table>
+                  <thead><tr><th>No</th><th>Kontraktor</th><th>Total SPK</th><th>Tepat Waktu</th><th>% Tepat Waktu</th></tr></thead>
+                  <tbody id="semuaProgresVendorRankingBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+          <section class="table-section">
+            <div class="table-toolbar">
+              <input type="text" id="semuaProgresMilestoneSearch" placeholder="Cari GP, proyek, unit…">
+              <span id="semuaProgresMilestoneCount" class="toolbar-count"></span>
+            </div>
+            <div class="table-wrap">
+              <table id="semuaProgresMilestoneTable">
+                <thead></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+            <p class="master-hint">Milestone per unit — Tahap ditebak otomatis dari % realisasi kumulatif (bukan input manual). Klik baris untuk lihat riwayat progres lengkap.</p>
           </section>
         </section>
 
@@ -221,39 +254,6 @@
                 </table>
               </div>
             </div>
-          </section>
-        </section>
-
-        <section class="dashboard-category-block">
-          <h2 class="dashboard-category-heading">Progres Konstruksi</h2>
-          <section class="summary-cards" id="semuaProgresSummaryCards"></section>
-          <section class="charts-grid">
-            <div class="chart-card chart-card-wide">
-              <h3>Kurva S (Rencana vs Realisasi)</h3>
-              <div class="chart-canvas-wrap"><canvas id="chartSemuaProgresSCurve"></canvas></div>
-            </div>
-            <div class="chart-card chart-card-wide">
-              <h3>Peringkat Ketepatan Waktu Kontraktor</h3>
-              <div class="chart-card-table-wrap">
-                <table>
-                  <thead><tr><th>No</th><th>Kontraktor</th><th>Total SPK</th><th>Tepat Waktu</th><th>% Tepat Waktu</th></tr></thead>
-                  <tbody id="semuaProgresVendorRankingBody"></tbody>
-                </table>
-              </div>
-            </div>
-          </section>
-          <section class="table-section">
-            <div class="table-toolbar">
-              <input type="text" id="semuaProgresMilestoneSearch" placeholder="Cari GP, proyek, unit…">
-              <span id="semuaProgresMilestoneCount" class="toolbar-count"></span>
-            </div>
-            <div class="table-wrap table-wrap-full">
-              <table id="semuaProgresMilestoneTable">
-                <thead></thead>
-                <tbody></tbody>
-              </table>
-            </div>
-            <p class="master-hint">Milestone per unit — Tahap ditebak otomatis dari % realisasi kumulatif (bukan input manual). Klik baris untuk lihat riwayat progres lengkap.</p>
           </section>
         </section>
 
