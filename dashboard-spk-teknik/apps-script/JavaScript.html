@@ -850,21 +850,18 @@
   // Progres" di sub-tab SPK -- fungsi BERDIRI SENDIRI, terpisah dari
   // showChartRincian_/buildNamePills (masih dipakai chart Status Progres
   // Purchasing/HWA yang tetap rincian nama polos) supaya perubahan ini
-  // terisolasi ke satu chart saja. Tiap baris: Nama Proyek, Blok/No. Unit,
-  // Kontraktor/Vendor, Keterangan, % Progres (realisasi kumulatif dari
-  // computeUnitProgressStatus_ kalau unit itu sudah punya data progres
-  // mingguan, kalau belum tampil "–"), dikelompokkan per GP lalu per
-  // Proyek, dengan jumlah baris di tiap header GP/Proyek.
+  // terisolasi ke satu chart saja. Tiap baris: Nama Proyek, Blok/No.
+  // Unit, Kontraktor/Vendor, Item SPK, dikelompokkan per GP lalu per
+  // Proyek, dengan jumlah baris (total status progres) di tiap header
+  // GP/Proyek.
   function buildSpkStatusRincianRows_(fSpk) {
     return fSpk.map(function (r) {
-      var status = r.unitKey ? computeUnitProgressStatus_(r.unitKey) : null;
       return {
         gp: r.gp || '(Tanpa GP)',
         proyek: r.proyek || '(Tanpa Proyek)',
         unit: r.unit || '(Tanpa Blok/Unit)',
         kontraktor: r.kontraktor || '-',
-        keterangan: r.keterangan || '-',
-        persenLabel: status ? status.actualCumulative.toFixed(1) + '%' : '–',
+        itemSpk: r.itemSpk || '-',
         statusLabel: r.isOverdue ? 'Overdue' : 'Sesuai Jadwal'
       };
     });
@@ -896,9 +893,7 @@
         var itemsHtml = items.map(function (r) {
           return '<div class="unit-item">' +
             '<div class="unit-item-title"><span>' + escapeHtml(r.unit) + '</span></div>' +
-            '<div class="unit-item-meta">Kontraktor/Vendor: ' + escapeHtml(r.kontraktor) + '</div>' +
-            '<div class="unit-item-meta">Keterangan: ' + escapeHtml(r.keterangan) + '</div>' +
-            '<div class="unit-item-meta">Progres: ' + escapeHtml(r.persenLabel) + '</div>' +
+            '<div class="unit-item-meta">Kontraktor/Vendor: ' + escapeHtml(r.kontraktor) + ' · Item SPK: ' + escapeHtml(r.itemSpk) + '</div>' +
             '</div>';
         }).join('');
         return '<div style="font-weight:600;margin:10px 0 6px;">' + escapeHtml(proyek) + ' (' + items.length + ')</div>' + itemsHtml;
