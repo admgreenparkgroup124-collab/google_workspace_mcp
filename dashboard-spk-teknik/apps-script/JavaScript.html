@@ -733,24 +733,38 @@
     }).join('');
   }
 
-  // Rincian "Total Proyek" dikelompokkan per Grup Proyek (Addendum 32) --
+  // Rincian dikelompokkan per Grup Proyek (Addendum 32, digeneralisasi
+  // Addendum 35 supaya dipakai juga oleh card SPK PSU/Unit Rumah) --
   // fungsi BERDIRI SENDIRI (bukan opsi baru di buildCardDetail_ yang
   // dipakai luas oleh banyak card lain) supaya perubahan ini terisolasi
   // dan tidak menambah risiko ke card/fungsi lain yang sudah stabil.
-  function buildProyekPerGpDetail_(records) {
-    if (!records.length) return '<div class="unit-item"><div class="unit-item-title"><span>Tidak ada data</span></div></div>';
+  // opts.titleFn/metaFn/valueFn opsional -- tanpa opts, `rows` dianggap
+  // array {gp, proyek} polos (perilaku Total Proyek, tidak berubah).
+  function buildRowsPerGpDetail_(rows, opts) {
+    opts = opts || {};
+    if (!rows.length) return '<div class="unit-item"><div class="unit-item-title"><span>Tidak ada data</span></div></div>';
     var order = []; var groups = {};
-    records.forEach(function (rec) {
-      var gp = rec.gp || '(Tidak diisi)';
+    rows.forEach(function (r) {
+      var gp = r.gp || '(Tidak diisi)';
       if (!groups[gp]) { groups[gp] = []; order.push(gp); }
-      groups[gp].push(rec.proyek);
+      groups[gp].push(r);
     });
     return order.map(function (gp) {
-      var proyekList = groups[gp];
-      return '<div class="unit-section"><h4>' + escapeHtml(gp) + ' (' + proyekList.length + ')</h4>' +
-        proyekList.map(function (p) {
-          return '<div class="unit-item"><div class="unit-item-title"><span>' + escapeHtml(p) + '</span></div></div>';
-        }).join('') + '</div>';
+      var groupRows = groups[gp];
+      var itemsHtml = groupRows.map(function (r) {
+        var title = opts.titleFn ? opts.titleFn(r) : r.proyek;
+        var valueHtml = opts.valueFn ? '<span>' + formatRupiah(opts.valueFn(r)) + '</span>' : '';
+        var metaLines = [];
+        if (opts.metaFn) {
+          var m = opts.metaFn(r);
+          metaLines = Array.isArray(m) ? m : (m ? [m] : []);
+        }
+        return '<div class="unit-item">' +
+          '<div class="unit-item-title"><span>' + escapeHtml(title) + '</span>' + valueHtml + '</div>' +
+          metaLines.map(function (l) { return '<div class="unit-item-meta">' + escapeHtml(l) + '</div>'; }).join('') +
+          '</div>';
+      }).join('');
+      return '<div class="unit-section"><h4>' + escapeHtml(gp) + ' (' + groupRows.length + ')</h4>' + itemsHtml + '</div>';
     }).join('');
   }
 
@@ -1148,7 +1162,7 @@
       var k = normKey(r.gp) + '|' + normKey(r.proyek);
       if (!totalProyek[k]) { totalProyek[k] = true; proyekRecords.push({ gp: r.gp || '(Tanpa GP)', proyek: r.proyek }); }
     });
-    var proyekDetail = buildProyekPerGpDetail_(proyekRecords);
+    var proyekDetail = buildRowsPerGpDetail_(proyekRecords);
 
     var behindRecords = computeBehindUnits_(fSpk);
     var behindCount = behindRecords.length;
@@ -1170,8 +1184,8 @@
       ];
     }
     function spkRowNilaiKontrak_(r) { return r.nilaiKontrak; }
-    var psuDetail = buildCardDetail_(psuRows, { titleFn: spkRowTitle_, metaFn: spkRowMeta_, valueFn: spkRowNilaiKontrak_ });
-    var unitRumahDetail = buildCardDetail_(unitRumahRows, { titleFn: spkRowTitle_, metaFn: spkRowMeta_, valueFn: spkRowNilaiKontrak_ });
+    var psuDetail = buildRowsPerGpDetail_(psuRows, { titleFn: spkRowTitle_, metaFn: spkRowMeta_, valueFn: spkRowNilaiKontrak_ });
+    var unitRumahDetail = buildRowsPerGpDetail_(unitRumahRows, { titleFn: spkRowTitle_, metaFn: spkRowMeta_, valueFn: spkRowNilaiKontrak_ });
     var behindDetail = buildBehindDetail_(behindRecords);
 
     renderCardGrid(ids.cards, [
